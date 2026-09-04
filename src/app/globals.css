@@ -1,0 +1,85 @@
+@import "tailwindcss";
+
+:root {
+  --siemens-petrol: #00646E;
+  --siemens-cyan: #00A3B5;
+  --siemens-accent: #EB780A;
+  --siemens-dark: #0B1120;
+  
+  --bg-color: #F8FAFC;
+  --surface-color: rgba(255, 255, 255, 0.75);
+  --border-color: rgba(0, 100, 110, 0.15);
+  --text-main: #0F172A;
+  --text-muted: #64748B;
+  --card-bg: rgba(255, 255, 255, 0.65);
+}
+
+.dark {
+  --bg-color: #070D18;
+  --surface-color: rgba(15, 23, 42, 0.75);
+  --border-color: rgba(0, 163, 181, 0.25);
+  --text-main: #F1F5F9;
+  --text-muted: #94A3B8;
+  --card-bg: rgba(15, 23, 42, 0.65);
+}
+
+body {
+  background-color: var(--bg-color);
+  color: var(--text-main);
+  min-height: 100vh;
+  font-family: var(--font-geist-sans), system-ui, -apple-system, sans-serif;
+  overflow-x: hidden;
+  transition: background-color 0.3s ease, color 0.3s ease;
+}
+
+/* Glassmorphism primitives */
+.glass-panel {
+  background: var(--card-bg);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid var(--border-color);
+  box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.08);
+}
+
+.glass-header {
+  background: var(--surface-color);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border-bottom: 1px solid var(--border-color);
+}
+
+.ambient-blob {
+  position: fixed;
+  border-radius: 50%;
+  filter: blur(120px);
+  z-index: 0;
+  pointer-events: none;
+  opacity: 0.25;
+  animation: blob-float 20s infinite alternate ease-in-out;
+}
+
+@keyframes blob-float {
+  0% { transform: translate(0, 0) scale(1); }
+  100% { transform: translate(60px, 40px) scale(1.15); }
+}
+
+/* Print Stylesheet for Project Documentation */
+@media print {
+  body {
+    background: #ffffff !important;
+    color: #000000 !important;
+  }
+  .no-print, header, nav, .btn, button, .ambient-blob {
+    display: none !important;
+  }
+  .glass-panel {
+    background: #ffffff !important;
+    border: 1px solid #cccccc !important;
+    box-shadow: none !important;
+    backdrop-filter: none !important;
+    page-break-inside: avoid;
+  }
+  .print-only {
+    display: block !important;
+  }
+}
