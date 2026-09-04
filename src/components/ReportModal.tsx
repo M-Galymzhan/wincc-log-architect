@@ -18,16 +18,16 @@ export const ReportModal: React.FC<ReportModalProps> = ({
   isOpen,
   onClose,
   lang,
-  activeTab,
   unifiedData,
   comfortData,
   proData,
 }) => {
+  const [projectName, setProjectName] = useState('Siemens Automation Project');
+  const [engineerName, setEngineerName] = useState('M-Galymzhan');
+
   if (!isOpen) return null;
   const t = translations[lang];
 
-  const [projectName, setProjectName] = useState('Siemens Automation Project');
-  const [engineerName, setEngineerName] = useState('M-Galymzhan');
   const dateStr = new Date().toLocaleDateString(lang === 'ru' ? 'ru-RU' : 'en-US', {
     year: 'numeric', month: 'long', day: 'numeric'
   });
@@ -72,7 +72,7 @@ export const ReportModal: React.FC<ReportModalProps> = ({
                 Siemens TIA Portal
               </div>
               <div className="text-sm font-bold text-slate-700 dark:text-slate-300">
-                Расчет и спецификация подсистемы архивации (Data & Alarm Logging Sizing Sheet)
+                {t.reportDocSubtitle}
               </div>
             </div>
 
@@ -109,28 +109,28 @@ export const ReportModal: React.FC<ReportModalProps> = ({
             <table className="w-full text-xs text-left mb-3">
               <tbody className="divide-y divide-slate-200 dark:divide-slate-800">
                 <tr>
-                  <td className="py-2 text-slate-500">Целевая платформа:</td>
+                  <td className="py-2 text-slate-500">{t.reportPlatform}</td>
                   <td className="py-2 font-semibold">{unifiedData.config.deviceType === 'ucp' ? 'SIMATIC Unified Comfort Panel' : 'WinCC Unified PC Runtime'}</td>
-                  <td className="py-2 text-slate-500">Срок хранения (Retention):</td>
-                  <td className="py-2 font-semibold">{unifiedData.config.retentionDays} суток ({unifiedData.config.segmentHours} ч / сегмент)</td>
+                  <td className="py-2 text-slate-500">{t.reportRetention}</td>
+                  <td className="py-2 font-semibold">{unifiedData.config.retentionDays} {t.reportDays} ({unifiedData.config.segmentHours} {t.reportHoursPerSeg})</td>
                 </tr>
                 <tr>
-                  <td className="py-2 text-slate-500">Всего тегов / Скорость:</td>
-                  <td className="py-2 font-semibold">{unifiedData.result.totalTags} тегов (~{unifiedData.result.totalEntriesPerSec.toFixed(1)} зап/сек)</td>
-                  <td className="py-2 text-slate-500">Записей в сутки:</td>
-                  <td className="py-2 font-semibold">{unifiedData.result.entriesPerDay.toLocaleString()} зап/день</td>
+                  <td className="py-2 text-slate-500">{t.reportTotalTagsRate}</td>
+                  <td className="py-2 font-semibold">{unifiedData.result.totalTags} {t.reportTags} (~{unifiedData.result.totalEntriesPerSec.toFixed(1)} {t.reportRecPerSec})</td>
+                  <td className="py-2 text-slate-500">{t.reportEntriesPerDay}</td>
+                  <td className="py-2 font-semibold">{unifiedData.result.entriesPerDay.toLocaleString()} {t.reportRecPerDay}</td>
                 </tr>
                 <tr>
-                  <td className="py-2 text-slate-500">Сегмент SQLite (Max segment size):</td>
-                  <td className="py-2 font-bold font-mono text-[#00646E] dark:text-[#00A3B5]">{unifiedData.result.sqliteSegmentMb} MB (кратно 4 МБ)</td>
-                  <td className="py-2 text-slate-500">Общий архив (Max log size):</td>
+                  <td className="py-2 text-slate-500">{t.reportSqliteSegment}</td>
+                  <td className="py-2 font-bold font-mono text-[#00646E] dark:text-[#00A3B5]">{unifiedData.result.sqliteSegmentMb} MB ({t.reportMultiple4Mb})</td>
+                  <td className="py-2 text-slate-500">{t.reportTotalLog}</td>
                   <td className="py-2 font-bold font-mono">{unifiedData.result.totalLogGb >= 1 ? `${unifiedData.result.totalLogGb.toFixed(2)} GB` : `${unifiedData.result.totalLogMb} MB`}</td>
                 </tr>
                 <tr>
-                  <td className="py-2 text-slate-500">Носитель данных / Заполнение:</td>
+                  <td className="py-2 text-slate-500">{t.reportStorageOccupancy}</td>
                   <td className="py-2 font-semibold">{unifiedData.config.storageSizeGb} GB ({unifiedData.result.storageOccupancyPct.toFixed(1)}%)</td>
-                  <td className="py-2 text-slate-500">Расчетный ресурс Flash-памяти:</td>
-                  <td className="py-2 font-semibold text-emerald-600">~{unifiedData.result.estimatedFlashLifeYears.toFixed(1)} лет</td>
+                  <td className="py-2 text-slate-500">{t.reportFlashLife}</td>
+                  <td className="py-2 font-semibold text-emerald-600">~{unifiedData.result.estimatedFlashLifeYears.toFixed(1)} {t.reportYears}</td>
                 </tr>
               </tbody>
             </table>
@@ -146,15 +146,15 @@ export const ReportModal: React.FC<ReportModalProps> = ({
             <table className="w-full text-xs text-left mb-3">
               <tbody className="divide-y divide-slate-200 dark:divide-slate-800">
                 <tr>
-                  <td className="py-2 text-slate-500">Устройство / Формат:</td>
+                  <td className="py-2 text-slate-500">{t.reportDeviceFormat}</td>
                   <td className="py-2 font-semibold">{comfortData.config.deviceType === 'comfort_panel' ? 'Comfort Panel (WinCE)' : 'PC RT Advanced'} / {comfortData.config.format.toUpperCase()}</td>
-                  <td className="py-2 text-slate-500">Записей на один файл:</td>
-                  <td className="py-2 font-semibold">{comfortData.config.recordsPerLog.toLocaleString()} записей</td>
+                  <td className="py-2 text-slate-500">{t.reportRecPerFile}</td>
+                  <td className="py-2 font-semibold">{comfortData.config.recordsPerLog.toLocaleString()} {t.reportRecs}</td>
                 </tr>
                 <tr>
-                  <td className="py-2 text-slate-500">Количество файлов (Sequence):</td>
-                  <td className="py-2 font-bold font-mono text-emerald-600">{comfortData.result.recommendedLogFiles} файлов</td>
-                  <td className="py-2 text-slate-500">Размер одного файла / Суммарно:</td>
+                  <td className="py-2 text-slate-500">{t.reportSequenceFiles}</td>
+                  <td className="py-2 font-bold font-mono text-emerald-600">{comfortData.result.recommendedLogFiles} {t.reportFiles}</td>
+                  <td className="py-2 text-slate-500">{t.reportFileSizeTotal}</td>
                   <td className="py-2 font-semibold">{comfortData.result.fileSizeMb.toFixed(1)} MB / {comfortData.result.totalArchiveSizeMb.toFixed(0)} MB</td>
                 </tr>
               </tbody>
@@ -171,21 +171,21 @@ export const ReportModal: React.FC<ReportModalProps> = ({
             <table className="w-full text-xs text-left mb-3">
               <tbody className="divide-y divide-slate-200 dark:divide-slate-800">
                 <tr>
-                  <td className="py-2 text-slate-500">Редакция SQL Server:</td>
+                  <td className="py-2 text-slate-500">{t.reportSqlEdition}</td>
                   <td className="py-2 font-semibold">{proData.config.sqlEdition === 'express' ? 'SQL Server Express (10 GB limit)' : 'SQL Server Standard / Enterprise'}</td>
-                  <td className="py-2 text-slate-500">Период сегментации:</td>
+                  <td className="py-2 text-slate-500">{t.reportSegPeriod}</td>
                   <td className="py-2 font-semibold">{proData.config.segmentPeriod.toUpperCase()}</td>
                 </tr>
                 <tr>
-                  <td className="py-2 text-slate-500">Fast Tag Logging (MDF):</td>
+                  <td className="py-2 text-slate-500">{t.reportFastMdf}</td>
                   <td className="py-2 font-semibold">{proData.result.fastDatabaseSizeGb.toFixed(2)} GB</td>
-                  <td className="py-2 text-slate-500">Slow Tag Logging (MDF):</td>
+                  <td className="py-2 text-slate-500">{t.reportSlowMdf}</td>
                   <td className="py-2 font-semibold">{proData.result.slowDatabaseSizeGb.toFixed(2)} GB</td>
                 </tr>
                 <tr>
-                  <td className="py-2 text-slate-500">Суммарный объем базы данных (MDF):</td>
+                  <td className="py-2 text-slate-500">{t.reportTotalMdf}</td>
                   <td className="py-2 font-bold font-mono text-purple-600">{proData.result.totalMdfSizeGb.toFixed(2)} GB</td>
-                  <td className="py-2 text-slate-500">Общее дисковое пространство (MDF+LDF):</td>
+                  <td className="py-2 text-slate-500">{t.reportTotalDisk}</td>
                   <td className="py-2 font-bold font-mono">{proData.result.totalStorageGb.toFixed(2)} GB</td>
                 </tr>
               </tbody>
@@ -196,7 +196,7 @@ export const ReportModal: React.FC<ReportModalProps> = ({
           <div className="mt-8 pt-6 border-t border-slate-200 dark:border-slate-800 flex items-center justify-between text-xs text-slate-400">
             <div className="flex items-center gap-2">
               <CheckCircle2 className="w-4 h-4 text-emerald-500" />
-              <span>Расчет выполнен в соответствии с официальными руководствами Siemens WinCC Engineering Guideline.</span>
+              <span>{t.reportVerifiedNote}</span>
             </div>
             <div className="font-mono text-[10px]">VERIFIED FOR TIA PORTAL V16-V20</div>
           </div>

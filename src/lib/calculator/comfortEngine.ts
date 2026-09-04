@@ -4,30 +4,39 @@ export function calculateComfort(tags: ComfortTag[], config: ComfortConfig): Com
   let totalRatePerSec = 0;
   let totalTags = 0;
 
+  const safeRetentionDays = Math.max(0, Number(config.retentionDays) || 0);
+  const safeStorageMediumMb = Math.max(1, Number(config.storageMediumMb) || 2048);
+
   tags.forEach((tag) => {
+    const count = Math.max(0, Number(tag.count) || 0);
     let rate = 1 / 60; // default on change: ~1 record per minute
-    if (tag.mode === 'cyclic' && tag.cycleSec > 0) {
-      rate = 1 / tag.cycleSec;
+    if (tag.mode === 'cyclic') {
+      const cycle = Math.max(0.001, Number(tag.cycleSec) || 1);
+      rate = 1 / cycle;
     }
-    totalRatePerSec += rate * tag.count;
-    totalTags += tag.count;
+    totalRatePerSec += rate * count;
+    totalTags += count;
   });
 
   const recordsPerDay = totalRatePerSec * 86400;
-  const totalRecordsForPeriod = recordsPerDay * config.retentionDays;
+  const totalRecordsForPeriod = recordsPerDay * safeRetentionDays;
 
   // Bytes per record: RDB (binary) ~ 32 bytes; CSV (text) ~ 65 bytes
   const bytesPerRecord = config.format === 'rdb' ? 32 : 65;
 
   // Recommended number of segmented log files (Siemens limit: max 500,000 records per log file)
-  const safeRecordsPerFile = Math.min(500000, Math.max(1000, config.recordsPerLog));
-  const recommendedLogFiles = Math.max(1, Math.ceil(totalRecordsForPeriod / safeRecordsPerFile));
+  const safeRecordsPerFile = Math.min(500000, Math.max(100, Number(config.recordsPerLog) || 50000));
+  const recommendedLogFiles = totalRecordsForPeriod > 0
+    ? Math.max(1, Math.ceil(totalRecordsForPeriod / safeRecordsPerFile))
+    : 1;
 
   const fileSizeMb = (safeRecordsPerFile * bytesPerRecord) / (1024 * 1024);
-  const totalArchiveSizeMb = (totalRecordsForPeriod * bytesPerRecord) / (1024 * 1024);
+  const totalArchiveSizeMb = totalTags > 0 ? (totalRecordsForPeriod * bytesPerRecord) / (1024 * 1024) : 0;
   const totalArchiveSizeGb = totalArchiveSizeMb / 1024;
 
-  const storageOccupancyPct = Math.min(100, (totalArchiveSizeMb / Math.max(1, config.storageMediumMb)) * 100);
+  const storageOccupancyPct = safeStorageMediumMb > 0
+    ? Math.min(100, Math.max(0, (totalArchiveSizeMb / safeStorageMediumMb) * 100))
+    : 0;
 
   const warnings: string[] = [];
 

@@ -4,44 +4,55 @@ export function calculateUnified(tags: UnifiedTag[], config: UnifiedConfig): Uni
   let totalRatePerSec = 0;
   let totalTags = 0;
 
+  const safeRetentionDays = Math.max(0, Number(config.retentionDays) || 0);
+  const safeSegmentHours = Math.max(0.1, Number(config.segmentHours) || 24);
+  const safePerEntryBytes = Math.max(1, Number(config.perEntryBytes) || 50);
+  const safeStorageGb = Math.max(0.1, Number(config.storageSizeGb) || 1);
+  const safeHeadroomPct = Math.max(0, Number(config.headroomPct) || 0);
+
   tags.forEach((tag) => {
-    let rate = tag.entriesPerSec;
-    if (tag.mode === 'cyclic' && tag.cycleSec > 0) {
-      rate = 1 / tag.cycleSec;
+    const count = Math.max(0, Number(tag.count) || 0);
+    let rate = Math.max(0, Number(tag.entriesPerSec) || 0);
+    if (tag.mode === 'cyclic') {
+      const cycle = Math.max(0.001, Number(tag.cycleSec) || 1);
+      rate = 1 / cycle;
     }
-    totalRatePerSec += rate * tag.count;
-    totalTags += tag.count;
+    totalRatePerSec += rate * count;
+    totalTags += count;
   });
 
   // Process data tags entries
-  let tagEntriesPerDay = totalRatePerSec * 86400;
+  const tagEntriesPerDay = totalRatePerSec * 86400;
 
   // Add Alarm Logs if enabled (default ~120 bytes per alarm record)
-  let alarmEntriesPerDay = config.includeAlarms ? config.alarmsPerDay : 0;
-  let alarmBytesPerDay = alarmEntriesPerDay * 120;
+  const safeAlarmsPerDay = config.includeAlarms ? Math.max(0, Number(config.alarmsPerDay) || 0) : 0;
+  const alarmBytesPerDay = safeAlarmsPerDay * 120;
 
   // Add Audit Trail if enabled (default ~250 bytes per audit record)
-  let auditEntriesPerDay = config.includeAudit ? config.auditEntriesPerDay : 0;
-  let auditBytesPerDay = auditEntriesPerDay * 250;
+  const safeAuditPerDay = config.includeAudit ? Math.max(0, Number(config.auditEntriesPerDay) || 0) : 0;
+  const auditBytesPerDay = safeAuditPerDay * 250;
 
-  let totalEntriesPerDay = tagEntriesPerDay + alarmEntriesPerDay + auditEntriesPerDay;
-  let totalEntriesPerSec = totalRatePerSec + (alarmEntriesPerDay + auditEntriesPerDay) / 86400;
+  const totalEntriesPerDay = tagEntriesPerDay + safeAlarmsPerDay + safeAuditPerDay;
+  const totalEntriesPerSec = totalRatePerSec + (safeAlarmsPerDay + safeAuditPerDay) / 86400;
 
-  let baseTagBytesPerDay = tagEntriesPerDay * config.perEntryBytes;
-  let totalBytesPerDay = baseTagBytesPerDay + alarmBytesPerDay + auditBytesPerDay;
+  const baseTagBytesPerDay = tagEntriesPerDay * safePerEntryBytes;
+  const totalBytesPerDay = baseTagBytesPerDay + alarmBytesPerDay + auditBytesPerDay;
 
-  const factor = 1 + config.headroomPct / 100;
-  const segmentsPerDay = 24 / Math.max(1, config.segmentHours);
-  const bytesPerSegment = (totalBytesPerDay / segmentsPerDay) * factor;
+  const factor = 1 + safeHeadroomPct / 100;
+  const segmentsPerDay = 24 / safeSegmentHours;
+  const bytesPerSegment = (totalBytesPerDay / Math.max(0.001, segmentsPerDay)) * factor;
   const rawSegmentMb = bytesPerSegment / (1024 * 1024);
 
   // Siemens SQLite Rule: Multiple of 4 MB
-  const sqliteSegmentMb = Math.max(4, Math.ceil(rawSegmentMb / 4) * 4);
+  const sqliteSegmentMb = totalTags > 0 || safeAlarmsPerDay > 0 || safeAuditPerDay > 0
+    ? Math.max(4, Math.ceil(rawSegmentMb / 4) * 4)
+    : 4;
 
-  const totalSegments = (config.retentionDays * 24) / config.segmentHours;
+  const totalSegments = safeRetentionDays > 0 ? (safeRetentionDays * 24) / safeSegmentHours : 0;
   
-  // Siemens minimum log size recommendations: >= 200 MB
-  const totalLogMb = Math.max(200, sqliteSegmentMb * totalSegments);
+  // Siemens minimum log size recommendations: >= 200 MB when logging active
+  const hasData = totalTags > 0 || safeAlarmsPerDay > 0 || safeAuditPerDay > 0;
+  const totalLogMb = hasData && totalSegments > 0 ? Math.max(200, sqliteSegmentMb * totalSegments) : 0;
   const totalLogGb = totalLogMb / 1024;
 
   // Traffic status (Siemens limit recommendations)
@@ -56,15 +67,17 @@ export function calculateUnified(tags: UnifiedTag[], config: UnifiedConfig): Uni
   const rule3SegmentsValid = totalSegments >= 3;
 
   // Storage Occupancy
-  const storageCapMb = config.storageSizeGb * 1024;
-  const storageOccupancyPct = Math.min(100, (totalLogMb / Math.max(1, storageCapMb)) * 100);
+  const storageCapMb = safeStorageGb * 1024;
+  const storageOccupancyPct = storageCapMb > 0 ? Math.min(100, Math.max(0, (totalLogMb / storageCapMb) * 100)) : 0;
 
   // Flash Wear & Lifespan estimation (TBW)
   // Standard SIMATIC SD card write endurance ~ 2,000 P/E cycles
   // Daily written data = (totalBytesPerDay * factor * 1.5 write amplification) / (1024^3) GB/day
   const dailyWrittenGb = (totalBytesPerDay * factor * 1.5) / (1024 * 1024 * 1024);
-  const totalCardTbwGb = config.storageSizeGb * 2000;
-  const estimatedFlashLifeYears = dailyWrittenGb > 0 ? Math.min(30, totalCardTbwGb / (dailyWrittenGb * 365)) : 30;
+  const totalCardTbwGb = safeStorageGb * 2000;
+  const estimatedFlashLifeYears = dailyWrittenGb > 0 && !isNaN(dailyWrittenGb)
+    ? Math.min(30, Math.max(0.1, totalCardTbwGb / (dailyWrittenGb * 365)))
+    : 30;
 
   const warnings: string[] = [];
   if (trafficStatus === 'critical') {

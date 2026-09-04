@@ -11,6 +11,8 @@ import { ComfortTab } from '../components/tabs/ComfortTab';
 import { ProfessionalTab } from '../components/tabs/ProfessionalTab';
 import { TiaCheatSheetModal } from '../components/TiaCheatSheetModal';
 import { ReportModal } from '../components/ReportModal';
+import { Toast, ToastType } from '../components/Toast';
+import { translations } from '../lib/i18n';
 
 export default function Home() {
   const [mounted, setMounted] = useState(false);
@@ -20,6 +22,16 @@ export default function Home() {
 
   const [isCheatSheetOpen, setIsCheatSheetOpen] = useState(false);
   const [isReportOpen, setIsReportOpen] = useState(false);
+
+  // Toast State
+  const [toast, setToast] = useState<{ message: string | null; type: ToastType }>({
+    message: null,
+    type: 'info',
+  });
+
+  const showToast = (message: string, type: ToastType = 'info') => {
+    setToast({ message, type });
+  };
 
   // 1. Unified State
   const [unifiedTags, setUnifiedTags] = useState<UnifiedTag[]>([
@@ -91,12 +103,12 @@ export default function Home() {
       const savedData = localStorage.getItem('wincc_project_data');
       if (savedData) {
         const parsed = JSON.parse(savedData);
-        if (parsed.unifiedTags) setUnifiedTags(parsed.unifiedTags);
-        if (parsed.unifiedConfig) setUnifiedConfig(parsed.unifiedConfig);
-        if (parsed.comfortTags) setComfortTags(parsed.comfortTags);
-        if (parsed.comfortConfig) setComfortConfig(parsed.comfortConfig);
-        if (parsed.proTags) setProTags(parsed.proTags);
-        if (parsed.proConfig) setProConfig(parsed.proConfig);
+        if (parsed.unifiedTags && Array.isArray(parsed.unifiedTags)) setUnifiedTags(parsed.unifiedTags);
+        if (parsed.unifiedConfig && typeof parsed.unifiedConfig === 'object') setUnifiedConfig(parsed.unifiedConfig);
+        if (parsed.comfortTags && Array.isArray(parsed.comfortTags)) setComfortTags(parsed.comfortTags);
+        if (parsed.comfortConfig && typeof parsed.comfortConfig === 'object') setComfortConfig(parsed.comfortConfig);
+        if (parsed.proTags && Array.isArray(parsed.proTags)) setProTags(parsed.proTags);
+        if (parsed.proConfig && typeof parsed.proConfig === 'object') setProConfig(parsed.proConfig);
       }
     } catch (e) {
       console.error(e);
@@ -124,25 +136,32 @@ export default function Home() {
     }
   }, [lang, theme, unifiedTags, unifiedConfig, comfortTags, comfortConfig, proTags, proConfig, mounted]);
 
+  const t = translations[lang];
+
   // Export Project JSON
   const handleExportJson = () => {
-    const payload = {
-      version: '1.0.0',
-      timestamp: new Date().toISOString(),
-      unified: { tags: unifiedTags, config: unifiedConfig },
-      comfort: { tags: comfortTags, config: comfortConfig },
-      professional: { tags: proTags, config: proConfig },
-    };
-    const blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `wincc-log-architect-${new Date().toISOString().slice(0, 10)}.json`;
-    a.click();
-    URL.revokeObjectURL(url);
+    try {
+      const payload = {
+        version: '1.1.0',
+        timestamp: new Date().toISOString(),
+        unified: { tags: unifiedTags, config: unifiedConfig },
+        comfort: { tags: comfortTags, config: comfortConfig },
+        professional: { tags: proTags, config: proConfig },
+      };
+      const blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `wincc-log-architect-${new Date().toISOString().slice(0, 10)}.json`;
+      a.click();
+      URL.revokeObjectURL(url);
+      showToast(t.toastExportSuccess, 'success');
+    } catch {
+      showToast('Export failed', 'error');
+    }
   };
 
-  // Import Project JSON
+  // Import Project JSON with sanitization
   const handleImportJson = () => {
     const input = document.createElement('input');
     input.type = 'file';
@@ -154,15 +173,104 @@ export default function Home() {
       reader.onload = (ev) => {
         try {
           const parsed = JSON.parse(ev.target?.result as string);
-          if (parsed.unified?.tags) setUnifiedTags(parsed.unified.tags);
-          if (parsed.unified?.config) setUnifiedConfig(parsed.unified.config);
-          if (parsed.comfort?.tags) setComfortTags(parsed.comfort.tags);
-          if (parsed.comfort?.config) setComfortConfig(parsed.comfort.config);
-          if (parsed.professional?.tags) setProTags(parsed.professional.tags);
-          if (parsed.professional?.config) setProConfig(parsed.professional.config);
-          alert('Проект успешно загружен!');
-        } catch (err) {
-          alert('Ошибка при чтении JSON файла конфигурации');
+          if (!parsed || typeof parsed !== 'object') {
+            showToast(t.toastImportError, 'error');
+            return;
+          }
+
+          let loadedAny = false;
+
+          // Support new format (unified, comfort, professional) and legacy flat format
+          const rawUnifiedTags = parsed.unified?.tags || parsed.unifiedTags;
+          if (Array.isArray(rawUnifiedTags)) {
+            const valid = rawUnifiedTags.filter((tg: any) => tg && typeof tg === 'object');
+            if (valid.length > 0) {
+              setUnifiedTags(valid.map((tg: any) => ({
+                id: String(tg.id || Math.random().toString(36).substring(2, 9)),
+                description: String(tg.description || 'Tag'),
+                mode: tg.mode === 'onchange' ? 'onchange' : 'cyclic',
+                cycleSec: Math.max(0.01, Number(tg.cycleSec) || 1),
+                entriesPerSec: Math.max(0.0001, Number(tg.entriesPerSec) || 1),
+                count: Math.max(1, Math.floor(Number(tg.count) || 1)),
+                dataType: ['Real', 'LReal', 'DInt', 'Int', 'Bool', 'String'].includes(tg.dataType) ? tg.dataType : 'Real',
+              })));
+              loadedAny = true;
+            }
+          }
+
+          const rawUnifiedCfg = parsed.unified?.config || parsed.unifiedConfig;
+          if (rawUnifiedCfg && typeof rawUnifiedCfg === 'object') {
+            setUnifiedConfig(prev => ({
+              ...prev,
+              ...rawUnifiedCfg,
+              retentionDays: Math.max(1, Number(rawUnifiedCfg.retentionDays) || prev.retentionDays),
+              segmentHours: Math.max(1, Number(rawUnifiedCfg.segmentHours) || prev.segmentHours),
+              storageSizeGb: Math.max(0.5, Number(rawUnifiedCfg.storageSizeGb) || prev.storageSizeGb),
+            }));
+            loadedAny = true;
+          }
+
+          const rawComfortTags = parsed.comfort?.tags || parsed.comfortTags;
+          if (Array.isArray(rawComfortTags)) {
+            const valid = rawComfortTags.filter((tg: any) => tg && typeof tg === 'object');
+            if (valid.length > 0) {
+              setComfortTags(valid.map((tg: any) => ({
+                id: String(tg.id || Math.random().toString(36).substring(2, 9)),
+                description: String(tg.description || 'Tag'),
+                mode: tg.mode === 'onchange' ? 'onchange' : 'cyclic',
+                cycleSec: Math.max(0.1, Number(tg.cycleSec) || 1),
+                count: Math.max(1, Math.floor(Number(tg.count) || 1)),
+              })));
+              loadedAny = true;
+            }
+          }
+
+          const rawComfortCfg = parsed.comfort?.config || parsed.comfortConfig;
+          if (rawComfortCfg && typeof rawComfortCfg === 'object') {
+            setComfortConfig(prev => ({
+              ...prev,
+              ...rawComfortCfg,
+              retentionDays: Math.max(1, Number(rawComfortCfg.retentionDays) || prev.retentionDays),
+              recordsPerLog: Math.max(100, Math.min(500000, Number(rawComfortCfg.recordsPerLog) || prev.recordsPerLog)),
+              storageMediumMb: Math.max(512, Number(rawComfortCfg.storageMediumMb) || prev.storageMediumMb),
+            }));
+            loadedAny = true;
+          }
+
+          const rawProTags = parsed.professional?.tags || parsed.proTags;
+          if (Array.isArray(rawProTags)) {
+            const valid = rawProTags.filter((tg: any) => tg && typeof tg === 'object');
+            if (valid.length > 0) {
+              setProTags(valid.map((tg: any) => ({
+                id: String(tg.id || Math.random().toString(36).substring(2, 9)),
+                description: String(tg.description || 'Tag'),
+                cycleSec: Math.max(0.1, Number(tg.cycleSec) || 1),
+                count: Math.max(1, Math.floor(Number(tg.count) || 1)),
+                archiveType: tg.archiveType === 'slow' ? 'slow' : 'fast',
+              })));
+              loadedAny = true;
+            }
+          }
+
+          const rawProCfg = parsed.professional?.config || parsed.proConfig;
+          if (rawProCfg && typeof rawProCfg === 'object') {
+            setProConfig(prev => ({
+              ...prev,
+              ...rawProCfg,
+              sqlEdition: (rawProCfg.sqlEdition === 'standard_enterprise' || rawProCfg.sqlEdition === 'standard') ? 'standard_enterprise' : 'express',
+              retentionDays: Math.max(1, Number(rawProCfg.retentionDays) || prev.retentionDays),
+              alarmsPerHour: Math.max(0, Number(rawProCfg.alarmsPerHour) || prev.alarmsPerHour),
+            }));
+            loadedAny = true;
+          }
+
+          if (loadedAny) {
+            showToast(t.toastImportSuccess, 'success');
+          } else {
+            showToast(t.toastImportError, 'error');
+          }
+        } catch {
+          showToast(t.toastImportError, 'error');
         }
       };
       reader.readAsText(file);
@@ -174,8 +282,6 @@ export default function Home() {
   const unifiedResult = calculateUnified(unifiedTags, unifiedConfig);
   const comfortResult = calculateComfort(comfortTags, comfortConfig);
   const proResult = calculateProfessional(proTags, proConfig);
-
-  if (!mounted) return null;
 
   return (
     <div className="relative min-h-screen pb-16">
@@ -271,6 +377,13 @@ export default function Home() {
         unifiedData={{ config: unifiedConfig, result: unifiedResult }}
         comfortData={{ config: comfortConfig, result: comfortResult }}
         proData={{ config: proConfig, result: proResult }}
+      />
+
+      {/* Toast Notification Container */}
+      <Toast
+        message={toast.message}
+        type={toast.type}
+        onClose={() => setToast({ message: null, type: 'info' })}
       />
     </div>
   );

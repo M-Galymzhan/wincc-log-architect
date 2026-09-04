@@ -1,8 +1,13 @@
 'use client';
-import React from 'react';
+import React, { useState } from 'react';
 import { ComfortTag, ComfortConfig, ComfortResult, Language } from '../../lib/types';
 import { translations } from '../../lib/i18n';
-import { Plus, Trash2, HardDrive, AlertTriangle, CheckCircle2, RefreshCw, FileSpreadsheet, Layers } from 'lucide-react';
+import { BulkAddModal, BulkAddConfig } from '../BulkAddModal';
+import { ConfirmModal } from '../ConfirmModal';
+import { 
+  Plus, Trash2, Layers, AlertTriangle, CheckCircle2, 
+  HardDrive, FileSpreadsheet, Binary, RefreshCw 
+} from 'lucide-react';
 
 interface ComfortTabProps {
   tags: ComfortTag[];
@@ -22,6 +27,8 @@ export const ComfortTab: React.FC<ComfortTabProps> = ({
   lang,
 }) => {
   const t = translations[lang];
+  const [isBulkModalOpen, setIsBulkModalOpen] = useState(false);
+  const [isConfirmClearOpen, setIsConfirmClearOpen] = useState(false);
 
   const handleAddTag = () => {
     const newTag: ComfortTag = {
@@ -34,18 +41,17 @@ export const ComfortTab: React.FC<ComfortTabProps> = ({
     setTags([...tags, newTag]);
   };
 
-  const handleAddBulk = () => {
-    const count = parseInt(prompt(lang === 'ru' ? 'Сколько одинаковых тегов добавить?' : 'Number of bulk tags to add?', '50') || '0', 10);
-    if (count > 0) {
-      const newTag: ComfortTag = {
-        id: Math.random().toString(36).substring(2, 9),
-        description: `Bulk_Comfort_Tags_${count}x`,
-        mode: 'cyclic',
-        cycleSec: 2,
-        count: count,
-      };
-      setTags([...tags, newTag]);
-    }
+  const handleBulkAddSubmit = (bulkCfg: BulkAddConfig) => {
+    const isCyclic = bulkCfg.mode !== 'onchange';
+    const safeCycle = Math.max(0.1, bulkCfg.cycleSec || 1);
+    const newTag: ComfortTag = {
+      id: Math.random().toString(36).substring(2, 9),
+      description: `${bulkCfg.prefix}_${bulkCfg.count}x`,
+      mode: bulkCfg.mode || 'cyclic',
+      cycleSec: isCyclic ? safeCycle : 60,
+      count: Math.max(1, bulkCfg.count || 1),
+    };
+    setTags([...tags, newTag]);
   };
 
   const handleLoadSample = () => {
@@ -58,11 +64,11 @@ export const ComfortTab: React.FC<ComfortTabProps> = ({
   };
 
   const handleUpdateTag = (id: string, updates: Partial<ComfortTag>) => {
-    setTags(tags.map(t => t.id === id ? { ...t, ...updates } : t));
+    setTags(tags.map(tagItem => tagItem.id === id ? { ...tagItem, ...updates } : tagItem));
   };
 
   const handleRemoveTag = (id: string) => {
-    setTags(tags.filter(t => t.id !== id));
+    setTags(tags.filter(tagItem => tagItem.id !== id));
   };
 
   return (
@@ -91,7 +97,7 @@ export const ComfortTab: React.FC<ComfortTabProps> = ({
                   className="accent-emerald-600 w-4 h-4"
                 />
                 <div>
-                  <div className="text-sm font-semibold">{t.comfortPanel}</div>
+                  <div className="text-sm font-semibold text-slate-900 dark:text-white">{t.comfortPanel}</div>
                   <div className="text-xs text-slate-500">Windows CE, SIMATIC SD Card (X51 slot)</div>
                 </div>
               </label>
@@ -105,121 +111,132 @@ export const ComfortTab: React.FC<ComfortTabProps> = ({
                   type="radio"
                   name="comfortDevice"
                   checked={config.deviceType === 'rt_advanced'}
-                  onChange={() => setConfig({ ...config, deviceType: 'rt_advanced', storageMediumMb: 32768 })}
+                  onChange={() => setConfig({ ...config, deviceType: 'rt_advanced', storageMediumMb: 16384 })}
                   className="accent-emerald-600 w-4 h-4"
                 />
                 <div>
-                  <div className="text-sm font-semibold">{t.comfortRtAdv}</div>
-                  <div className="text-xs text-slate-500">Windows PC, local HDD/SSD or Network share</div>
+                  <div className="text-sm font-semibold text-slate-900 dark:text-white">{t.comfortRtAdv}</div>
+                  <div className="text-xs text-slate-500">Windows PC Station, Local SSD / Network Share</div>
                 </div>
               </label>
             </div>
-          </div>
 
-          {/* Format selection: RDB vs CSV */}
-          <div className="mt-4 pt-4 border-t border-slate-200/60 dark:border-slate-800">
-            <label className="text-xs font-semibold block mb-2">Формат архива (Log format):</label>
-            <div className="grid grid-cols-2 gap-2">
-              <button
-                type="button"
-                onClick={() => setConfig({ ...config, format: 'rdb' })}
-                className={`p-2.5 rounded-xl border text-xs text-left transition-all cursor-pointer ${
+            {/* Archive Format Selection */}
+            <div className="mt-4 pt-4 border-t border-slate-200/60 dark:border-slate-800">
+              <label className="text-xs font-semibold text-slate-700 dark:text-slate-300 block mb-2">
+                {lang === 'ru' ? 'Формат файла архива' : 'Archive File Format'}
+              </label>
+              <div className="grid grid-cols-2 gap-2">
+                <label className={`flex items-center gap-2.5 p-2.5 rounded-xl border cursor-pointer transition-all ${
                   config.format === 'rdb'
-                    ? 'border-emerald-600 bg-emerald-50 dark:bg-emerald-950/40 font-bold text-emerald-800 dark:text-emerald-200'
-                    : 'border-slate-200 dark:border-slate-800 hover:bg-slate-100 dark:hover:bg-slate-800'
-                }`}
-              >
-                <div className="font-semibold">{t.formatRdb}</div>
-                <div className="text-[10px] text-slate-500 font-normal">~32 байт/запись</div>
-              </button>
+                    ? 'border-emerald-600 bg-emerald-600/10 text-emerald-700 dark:text-emerald-300'
+                    : 'border-slate-200 dark:border-slate-800'
+                }`}>
+                  <input
+                    type="radio"
+                    name="comfortFormat"
+                    checked={config.format === 'rdb'}
+                    onChange={() => setConfig({ ...config, format: 'rdb' })}
+                    className="accent-emerald-600"
+                  />
+                  <Binary className="w-4 h-4" />
+                  <div className="text-xs font-bold">RDB (~32B)</div>
+                </label>
 
-              <button
-                type="button"
-                onClick={() => setConfig({ ...config, format: 'csv' })}
-                className={`p-2.5 rounded-xl border text-xs text-left transition-all cursor-pointer ${
+                <label className={`flex items-center gap-2.5 p-2.5 rounded-xl border cursor-pointer transition-all ${
                   config.format === 'csv'
-                    ? 'border-emerald-600 bg-emerald-50 dark:bg-emerald-950/40 font-bold text-emerald-800 dark:text-emerald-200'
-                    : 'border-slate-200 dark:border-slate-800 hover:bg-slate-100 dark:hover:bg-slate-800'
-                }`}
-              >
-                <div className="font-semibold">{t.formatCsv}</div>
-                <div className="text-[10px] text-slate-500 font-normal">~65 байт/запись</div>
-              </button>
+                    ? 'border-emerald-600 bg-emerald-600/10 text-emerald-700 dark:text-emerald-300'
+                    : 'border-slate-200 dark:border-slate-800'
+                }`}>
+                  <input
+                    type="radio"
+                    name="comfortFormat"
+                    checked={config.format === 'csv'}
+                    onChange={() => setConfig({ ...config, format: 'csv' })}
+                    className="accent-emerald-600"
+                  />
+                  <FileSpreadsheet className="w-4 h-4" />
+                  <div className="text-xs font-bold">CSV (~65B)</div>
+                </label>
+              </div>
             </div>
           </div>
         </div>
 
-        {/* Comfort Global Parameters */}
-        <div className="lg:col-span-7 glass-panel p-5 rounded-2xl">
-          <div className="flex items-center justify-between mb-3">
-            <h2 className="font-bold text-base text-slate-900 dark:text-white flex items-center gap-2">
-              <FileSpreadsheet className="w-5 h-5 text-emerald-500" />
-              Параметры ротации и емкости
-            </h2>
-            <button
-              onClick={handleLoadSample}
-              className="text-xs text-emerald-600 dark:text-emerald-400 hover:underline flex items-center gap-1 font-medium cursor-pointer"
-            >
-              <RefreshCw className="w-3 h-3" />
-              {lang === 'ru' ? 'Загрузить демо' : 'Load Sample'}
-            </button>
-          </div>
-
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-            <div className="flex flex-col gap-1">
-              <label className="text-xs font-semibold text-slate-600 dark:text-slate-300">
-                {t.retentionDays}
-              </label>
-              <input
-                type="number"
-                min="1"
-                value={config.retentionDays}
-                onChange={(e) => setConfig({ ...config, retentionDays: parseInt(e.target.value, 10) || 30 })}
-                className="p-2 text-sm font-semibold rounded-lg border border-slate-300 dark:border-slate-700 bg-white/80 dark:bg-slate-900 outline-none"
-              />
-              <span className="text-[10px] text-slate-400">Период хранения</span>
-            </div>
-
-            <div className="flex flex-col gap-1">
-              <label className="text-xs font-semibold text-slate-600 dark:text-slate-300">
-                {t.recordsPerLogLabel}
-              </label>
-              <input
-                type="number"
-                min="1000"
-                max="500000"
-                step="1000"
-                value={config.recordsPerLog}
-                onChange={(e) => setConfig({ ...config, recordsPerLog: parseInt(e.target.value, 10) || 50000 })}
-                className="p-2 text-sm font-semibold rounded-lg border border-slate-300 dark:border-slate-700 bg-white/80 dark:bg-slate-900 outline-none"
-              />
-              <span className="text-[10px] text-slate-400">{t.recordsPerLogHelper}</span>
-            </div>
-
-            <div className="flex flex-col gap-1">
-              <label className="text-xs font-semibold text-slate-600 dark:text-slate-300">
-                {t.comfortStorageCapacity}
-              </label>
-              <select
-                value={config.storageMediumMb}
-                onChange={(e) => setConfig({ ...config, storageMediumMb: parseInt(e.target.value, 10) || 2048 })}
-                className="p-2 text-sm font-semibold rounded-lg border border-slate-300 dark:border-slate-700 bg-white/80 dark:bg-slate-900 outline-none"
+        {/* Global Comfort Log Parameters */}
+        <div className="lg:col-span-7 glass-panel p-5 rounded-2xl flex flex-col justify-between">
+          <div>
+            <div className="flex items-center justify-between mb-3">
+              <h2 className="font-bold text-base text-slate-900 dark:text-white flex items-center gap-2">
+                <Layers className="w-5 h-5 text-emerald-500" />
+                {t.globalParams}
+              </h2>
+              <button
+                onClick={handleLoadSample}
+                className="text-xs text-emerald-600 dark:text-emerald-400 hover:underline flex items-center gap-1 font-medium cursor-pointer"
               >
-                <option value="512">SIMATIC SD 512 MB</option>
-                <option value="2048">SIMATIC SD 2 GB (Стандарт)</option>
-                <option value="4096">SIMATIC SD 4 GB</option>
-                <option value="8192">SIMATIC SD 8 GB</option>
-                <option value="16384">SIMATIC SD 16 GB</option>
-                <option value="32768">USB Flash 32 GB</option>
-              </select>
-              <span className="text-[10px] text-slate-400">Емкость SD-карты X51</span>
+                <RefreshCw className="w-3 h-3" />
+                {t.loadDemoTags}
+              </button>
             </div>
-          </div>
 
-          <div className="mt-4 p-3.5 rounded-xl bg-slate-50 dark:bg-slate-900/40 border border-slate-200/80 dark:border-slate-800 text-xs text-slate-600 dark:text-slate-300">
-            <span className="font-semibold text-emerald-600 dark:text-emerald-400">Правило TIA Portal: </span>
-            В WinCC Comfort архивы разделяются на цепочку последовательных файлов (<strong>Sequence of log files</strong>). 
-            Рекомендуется держать размер одного файла до 100 000 записей для быстрого открытия графиков Trends на панели.
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3.5">
+              <div className="flex flex-col gap-1">
+                <label className="text-xs font-semibold text-slate-600 dark:text-slate-300">
+                  {t.retentionDays}
+                </label>
+                <input
+                  type="number"
+                  min="1"
+                  value={config.retentionDays}
+                  onChange={(e) => setConfig({ ...config, retentionDays: Math.max(1, parseInt(e.target.value, 10) || 1) })}
+                  className="p-2 text-sm font-semibold rounded-lg border border-slate-300 dark:border-slate-700 bg-white/80 dark:bg-slate-900 outline-none"
+                />
+                <span className="text-[10px] text-slate-400">{t.retentionHelper}</span>
+              </div>
+
+              <div className="flex flex-col gap-1">
+                <label className="text-xs font-semibold text-slate-600 dark:text-slate-300">
+                  {t.recordsPerLogLabel}
+                </label>
+                <input
+                  type="number"
+                  min="1000"
+                  max="500000"
+                  step="10000"
+                  value={config.recordsPerLog}
+                  onChange={(e) => setConfig({ ...config, recordsPerLog: Math.max(100, Math.min(500000, parseInt(e.target.value, 10) || 50000)) })}
+                  className="p-2 text-sm font-semibold rounded-lg border border-slate-300 dark:border-slate-700 bg-white/80 dark:bg-slate-900 outline-none"
+                />
+                <span className="text-[10px] text-slate-400">{t.recordsPerLogHelper}</span>
+              </div>
+
+              <div className="flex flex-col gap-1">
+                <label className="text-xs font-semibold text-slate-600 dark:text-slate-300">
+                  {t.comfortStorageCapacity}
+                </label>
+                <select
+                  value={config.storageMediumMb}
+                  onChange={(e) => setConfig({ ...config, storageMediumMb: Math.max(1, parseInt(e.target.value, 10) || 2048) })}
+                  className="p-2 text-sm font-semibold rounded-lg border border-slate-300 dark:border-slate-700 bg-white/80 dark:bg-slate-900 outline-none"
+                >
+                  <option value="512">SIMATIC SD 512 MB</option>
+                  <option value="2048">SIMATIC SD 2 GB ({lang === 'ru' ? 'Стандарт' : 'Standard'})</option>
+                  <option value="4096">SIMATIC SD 4 GB</option>
+                  <option value="8192">SIMATIC SD 8 GB</option>
+                  <option value="16384">SIMATIC SD 16 GB</option>
+                  <option value="32768">USB Flash 32 GB</option>
+                </select>
+                <span className="text-[10px] text-slate-400">{lang === 'ru' ? 'Емкость SD-карты X51' : 'SD Card X51 Slot Capacity'}</span>
+              </div>
+            </div>
+
+            <div className="mt-4 p-3.5 rounded-xl bg-slate-50 dark:bg-slate-900/40 border border-slate-200/80 dark:border-slate-800 text-xs text-slate-600 dark:text-slate-300 leading-relaxed">
+              <span className="font-semibold text-emerald-600 dark:text-emerald-400">{lang === 'ru' ? 'Правило TIA Portal: ' : 'TIA Portal Rule: '}</span>
+              {lang === 'ru' 
+                ? 'В WinCC Comfort архивы разделяются на цепочку последовательных файлов (Sequence of log files). Рекомендуется держать размер одного файла до 100 000 записей для быстрого открытия графиков Trends на панели.' 
+                : 'In WinCC Comfort, data logs are partitioned into a cyclic chain (Sequence of log files). Siemens recommends keeping individual file sizes under 100,000 records for fast Trend chart display.'}
+            </div>
           </div>
         </div>
       </div>
@@ -229,25 +246,26 @@ export const ComfortTab: React.FC<ComfortTabProps> = ({
         <div className="flex items-center justify-between mb-4">
           <h2 className="font-bold text-base text-slate-900 dark:text-white flex items-center gap-2">
             <Layers className="w-5 h-5 text-emerald-500" />
-            {t.tagListTitle} ({result.totalTags} тегов)
+            {t.tagListTitle} ({result.totalTags} {t.tagsCountSuffix})
           </h2>
           <div className="flex items-center gap-2">
             <button
               onClick={handleAddTag}
-              className="px-3 py-1.5 rounded-lg text-xs font-semibold bg-emerald-600 text-white hover:bg-emerald-700 flex items-center gap-1 cursor-pointer"
+              className="px-3 py-1.5 rounded-lg text-xs font-semibold bg-emerald-600 text-white hover:bg-emerald-700 flex items-center gap-1 cursor-pointer transition-all active:scale-95"
             >
               <Plus className="w-3.5 h-3.5" />
               {t.btnAddTag}
             </button>
             <button
-              onClick={handleAddBulk}
-              className="px-3 py-1.5 rounded-lg text-xs font-semibold bg-slate-200 dark:bg-slate-800 hover:bg-slate-300 text-slate-700 dark:text-slate-200 cursor-pointer"
+              onClick={() => setIsBulkModalOpen(true)}
+              className="px-3 py-1.5 rounded-lg text-xs font-semibold bg-slate-200 dark:bg-slate-800 hover:bg-slate-300 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 cursor-pointer transition-all"
             >
+              <Plus className="w-3.5 h-3.5" />
               {t.btnAddBulk}
             </button>
             <button
-              onClick={() => setTags([])}
-              className="px-2.5 py-1.5 rounded-lg text-xs font-medium text-rose-500 hover:bg-rose-50 dark:hover:bg-rose-950/40 cursor-pointer"
+              onClick={() => setIsConfirmClearOpen(true)}
+              className="px-2.5 py-1.5 rounded-lg text-xs font-medium text-rose-500 hover:bg-rose-50 dark:hover:bg-rose-950/40 cursor-pointer transition-all"
             >
               {t.btnClearAll}
             </button>
@@ -266,56 +284,65 @@ export const ComfortTab: React.FC<ComfortTabProps> = ({
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-200/60 dark:divide-slate-800/60">
-              {tags.map((tag) => (
-                <tr key={tag.id} className="hover:bg-white/40 dark:hover:bg-slate-800/40">
-                  <td className="p-2.5">
-                    <input
-                      type="text"
-                      value={tag.description}
-                      onChange={(e) => handleUpdateTag(tag.id, { description: e.target.value })}
-                      className="w-full p-1.5 text-xs rounded border border-slate-200 dark:border-slate-700 bg-white/90 dark:bg-slate-900 outline-none"
-                    />
-                  </td>
-                  <td className="p-2.5">
-                    <select
-                      value={tag.mode}
-                      onChange={(e) => handleUpdateTag(tag.id, { mode: e.target.value as any })}
-                      className="p-1.5 text-xs rounded border border-slate-200 dark:border-slate-700 bg-white/90 dark:bg-slate-900 outline-none"
-                    >
-                      <option value="cyclic">{t.modeCyclic}</option>
-                      <option value="onchange">{t.modeOnChange}</option>
-                    </select>
-                  </td>
-                  <td className="p-2.5">
-                    <input
-                      type="number"
-                      step="0.5"
-                      min="0.1"
-                      disabled={tag.mode === 'onchange'}
-                      value={tag.cycleSec}
-                      onChange={(e) => handleUpdateTag(tag.id, { cycleSec: parseFloat(e.target.value) || 1 })}
-                      className="w-20 p-1.5 text-xs font-mono rounded border border-slate-200 dark:border-slate-700 bg-white/90 dark:bg-slate-900 outline-none disabled:opacity-40"
-                    />
-                  </td>
-                  <td className="p-2.5">
-                    <input
-                      type="number"
-                      min="1"
-                      value={tag.count}
-                      onChange={(e) => handleUpdateTag(tag.id, { count: parseInt(e.target.value, 10) || 1 })}
-                      className="w-16 p-1.5 text-xs font-mono rounded border border-slate-200 dark:border-slate-700 bg-white/90 dark:bg-slate-900 outline-none"
-                    />
-                  </td>
-                  <td className="p-2.5 text-right">
-                    <button
-                      onClick={() => handleRemoveTag(tag.id)}
-                      className="p-1 text-slate-400 hover:text-rose-500 cursor-pointer"
-                    >
-                      <Trash2 className="w-4 h-4" />
-                    </button>
+              {tags.length === 0 ? (
+                <tr>
+                  <td colSpan={5} className="p-8 text-center text-slate-400">
+                    {lang === 'ru' ? 'Теги процесса не добавлены. Добавьте тег или пакет.' : 'No process tags added yet. Click "+ Add Tag" or "+ Bulk Tags".'}
                   </td>
                 </tr>
-              ))}
+              ) : (
+                tags.map((tag) => (
+                  <tr key={tag.id} className="hover:bg-white/40 dark:hover:bg-slate-800/40 transition-colors">
+                    <td className="p-2.5">
+                      <input
+                        type="text"
+                        value={tag.description}
+                        onChange={(e) => handleUpdateTag(tag.id, { description: e.target.value })}
+                        className="w-full p-1.5 text-xs rounded border border-slate-200 dark:border-slate-700 bg-white/90 dark:bg-slate-900 outline-none font-medium"
+                      />
+                    </td>
+                    <td className="p-2.5">
+                      <select
+                        value={tag.mode}
+                        onChange={(e) => handleUpdateTag(tag.id, { mode: e.target.value as any })}
+                        className="p-1.5 text-xs rounded border border-slate-200 dark:border-slate-700 bg-white/90 dark:bg-slate-900 outline-none"
+                      >
+                        <option value="cyclic">{t.modeCyclic}</option>
+                        <option value="onchange">{t.modeOnChange}</option>
+                      </select>
+                    </td>
+                    <td className="p-2.5">
+                      <input
+                        type="number"
+                        step="0.5"
+                        min="0.1"
+                        disabled={tag.mode === 'onchange'}
+                        value={tag.cycleSec}
+                        onChange={(e) => handleUpdateTag(tag.id, { cycleSec: Math.max(0.1, parseFloat(e.target.value) || 1) })}
+                        className="w-20 p-1.5 text-xs font-mono rounded border border-slate-200 dark:border-slate-700 bg-white/90 dark:bg-slate-900 outline-none disabled:opacity-40"
+                      />
+                    </td>
+                    <td className="p-2.5">
+                      <input
+                        type="number"
+                        min="1"
+                        value={tag.count}
+                        onChange={(e) => handleUpdateTag(tag.id, { count: Math.max(1, parseInt(e.target.value, 10) || 1) })}
+                        className="w-16 p-1.5 text-xs font-mono rounded border border-slate-200 dark:border-slate-700 bg-white/90 dark:bg-slate-900 outline-none"
+                      />
+                    </td>
+                    <td className="p-2.5 text-right">
+                      <button
+                        onClick={() => handleRemoveTag(tag.id)}
+                        className="p-1 text-slate-400 hover:text-rose-500 cursor-pointer transition-colors"
+                        aria-label="Remove tag"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </button>
+                    </td>
+                  </tr>
+                ))
+              )}
             </tbody>
           </table>
         </div>
@@ -332,13 +359,13 @@ export const ComfortTab: React.FC<ComfortTabProps> = ({
           {/* Total records */}
           <div className="p-4 rounded-xl border border-slate-200/80 dark:border-slate-800 bg-white/50 dark:bg-slate-900/50">
             <div className="text-xs font-medium text-slate-500 dark:text-slate-400 mb-1">
-              Всего записей за {config.retentionDays} дн.
+              {lang === 'ru' ? `Всего записей за ${config.retentionDays} дн.` : `Total records for ${config.retentionDays} days`}
             </div>
             <div className="text-2xl font-bold font-mono text-slate-900 dark:text-white">
               {result.totalRecordsForPeriod.toLocaleString()}
             </div>
             <div className="text-xs text-slate-500 mt-1 font-mono">
-              ~{result.entriesPerSec.toFixed(2)} зап/сек ({result.recordsPerDay.toLocaleString()}/сут)
+              ~{result.entriesPerSec.toFixed(2)} {lang === 'ru' ? 'зап/сек' : 'rec/s'} ({result.recordsPerDay.toLocaleString()}/{lang === 'ru' ? 'сут' : 'day'})
             </div>
           </div>
 
@@ -348,10 +375,10 @@ export const ComfortTab: React.FC<ComfortTabProps> = ({
               {t.comfortFilesNeeded}
             </div>
             <div className="text-2xl font-black font-mono text-emerald-700 dark:text-emerald-300">
-              {result.recommendedLogFiles} файлов
+              {result.recommendedLogFiles} {lang === 'ru' ? 'файлов' : 'files'}
             </div>
             <div className="text-[11px] text-slate-500 dark:text-slate-400 mt-1">
-              По {config.recordsPerLog.toLocaleString()} записей на файл
+              {lang === 'ru' ? 'По' : 'At'} {config.recordsPerLog.toLocaleString()} {lang === 'ru' ? 'записей на файл' : 'records per file'}
             </div>
           </div>
 
@@ -364,7 +391,7 @@ export const ComfortTab: React.FC<ComfortTabProps> = ({
               {result.fileSizeMb.toFixed(1)} MB
             </div>
             <div className="text-xs text-slate-500 mt-1 font-mono">
-              Всего: {result.totalArchiveSizeMb > 1024 ? `${result.totalArchiveSizeGb.toFixed(2)} GB` : `${result.totalArchiveSizeMb.toFixed(0)} MB`}
+              {lang === 'ru' ? 'Всего:' : 'Total:'} {result.totalArchiveSizeMb > 1024 ? `${result.totalArchiveSizeGb.toFixed(2)} GB` : `${result.totalArchiveSizeMb.toFixed(0)} MB`}
             </div>
           </div>
 
@@ -399,6 +426,26 @@ export const ComfortTab: React.FC<ComfortTabProps> = ({
           </div>
         )}
       </div>
+
+      {/* Bulk Add Modal */}
+      <BulkAddModal
+        isOpen={isBulkModalOpen}
+        onClose={() => setIsBulkModalOpen(false)}
+        onAdd={handleBulkAddSubmit}
+        lang={lang}
+        platform="comfort"
+      />
+
+      {/* Clear Confirmation Modal */}
+      <ConfirmModal
+        isOpen={isConfirmClearOpen}
+        title={t.confirmClearTitle}
+        message={t.confirmClearText}
+        confirmText={t.confirmBtnConfirm}
+        cancelText={t.confirmBtnCancel}
+        onConfirm={() => setTags([])}
+        onCancel={() => setIsConfirmClearOpen(false)}
+      />
     </div>
   );
 };

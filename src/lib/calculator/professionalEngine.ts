@@ -6,31 +6,37 @@ export function calculateProfessional(tags: ProfessionalTag[], config: Professio
   let fastRatePerSec = 0;
   let slowRatePerSec = 0;
 
+  const safeRetentionDays = Math.max(0, Number(config.retentionDays) || 0);
+  const safeDatabaseHeadroomPct = Math.max(0, Number(config.databaseHeadroomPct) || 0);
+  const safeAlarmsPerHour = config.includeAlarmLogging ? Math.max(0, Number(config.alarmsPerHour) || 0) : 0;
+
   tags.forEach((tag) => {
-    const rate = tag.cycleSec > 0 ? (1 / tag.cycleSec) * tag.count : 0;
-    if (tag.cycleSec < 60 || tag.archiveType === 'fast') {
-      fastTagsCount += tag.count;
+    const count = Math.max(0, Number(tag.count) || 0);
+    const cycle = Math.max(0.001, Number(tag.cycleSec) || 1);
+    const rate = (1 / cycle) * count;
+    if (cycle < 60 || tag.archiveType === 'fast') {
+      fastTagsCount += count;
       fastRatePerSec += rate;
     } else {
-      slowTagsCount += tag.count;
+      slowTagsCount += count;
       slowRatePerSec += rate;
     }
   });
 
   const fastEntriesPerDay = fastRatePerSec * 86400;
   const slowEntriesPerDay = slowRatePerSec * 86400;
-  const alarmEntriesPerDay = config.includeAlarmLogging ? config.alarmsPerHour * 24 : 0;
+  const alarmEntriesPerDay = safeAlarmsPerHour * 24;
 
   const totalEntriesPerDay = fastEntriesPerDay + slowEntriesPerDay + alarmEntriesPerDay;
 
   // SQL Server record footprint:
   // Tag logging value: ~48 bytes in MDF (Value, Timestamp, QualityCode, Index)
   // Alarm logging record: ~160 bytes in MDF (Alarm text, state, acknowledge, timestamps)
-  const factor = 1 + config.databaseHeadroomPct / 100;
+  const factor = 1 + safeDatabaseHeadroomPct / 100;
 
-  const fastBytesTotal = fastEntriesPerDay * config.retentionDays * 48 * factor;
-  const slowBytesTotal = slowEntriesPerDay * config.retentionDays * 48 * factor;
-  const alarmBytesTotal = alarmEntriesPerDay * config.retentionDays * 160 * factor;
+  const fastBytesTotal = fastEntriesPerDay * safeRetentionDays * 48 * factor;
+  const slowBytesTotal = slowEntriesPerDay * safeRetentionDays * 48 * factor;
+  const alarmBytesTotal = alarmEntriesPerDay * safeRetentionDays * 160 * factor;
 
   const fastDatabaseSizeGb = fastBytesTotal / (1024 * 1024 * 1024);
   const slowDatabaseSizeGb = slowBytesTotal / (1024 * 1024 * 1024);

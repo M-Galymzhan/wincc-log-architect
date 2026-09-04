@@ -3,9 +3,11 @@ import React, { useState } from 'react';
 import { UnifiedTag, UnifiedConfig, UnifiedResult, Language } from '../../lib/types';
 import { translations } from '../../lib/i18n';
 import { TrafficGauge } from '../TrafficGauge';
+import { BulkAddModal, BulkAddConfig } from '../BulkAddModal';
+import { ConfirmModal } from '../ConfirmModal';
 import { 
   Plus, Trash2, Layers, AlertTriangle, CheckCircle2, 
-  ShieldCheck, HardDrive, Bell, FileText, Cpu, Clock, RefreshCw 
+  ShieldCheck, Bell, Cpu, Clock, RefreshCw 
 } from 'lucide-react';
 
 interface UnifiedTabProps {
@@ -26,6 +28,8 @@ export const UnifiedTab: React.FC<UnifiedTabProps> = ({
   lang,
 }) => {
   const t = translations[lang];
+  const [isBulkModalOpen, setIsBulkModalOpen] = useState(false);
+  const [isConfirmClearOpen, setIsConfirmClearOpen] = useState(false);
 
   const handleAddTag = () => {
     const newTag: UnifiedTag = {
@@ -40,20 +44,19 @@ export const UnifiedTab: React.FC<UnifiedTabProps> = ({
     setTags([...tags, newTag]);
   };
 
-  const handleAddBulk = () => {
-    const count = parseInt(prompt(lang === 'ru' ? 'Сколько одинаковых тегов добавить в пакет?' : 'How many bulk tags to add?', '50') || '0', 10);
-    if (count > 0) {
-      const newTag: UnifiedTag = {
-        id: Math.random().toString(36).substring(2, 9),
-        description: `Bulk_Analog_Sensors_${count}x`,
-        mode: 'cyclic',
-        cycleSec: 1,
-        entriesPerSec: 1,
-        count: count,
-        dataType: 'Real',
-      };
-      setTags([...tags, newTag]);
-    }
+  const handleBulkAddSubmit = (bulkCfg: BulkAddConfig) => {
+    const isCyclic = bulkCfg.mode !== 'onchange';
+    const safeCycle = Math.max(0.01, bulkCfg.cycleSec || 1);
+    const newTag: UnifiedTag = {
+      id: Math.random().toString(36).substring(2, 9),
+      description: `${bulkCfg.prefix}_${bulkCfg.count}x`,
+      mode: bulkCfg.mode || 'cyclic',
+      cycleSec: isCyclic ? safeCycle : 60,
+      entriesPerSec: isCyclic ? Number((1 / safeCycle).toFixed(4)) : 0.0167,
+      count: Math.max(1, bulkCfg.count || 1),
+      dataType: bulkCfg.dataType || 'Real',
+    };
+    setTags([...tags, newTag]);
   };
 
   const handleLoadSample = () => {
@@ -66,11 +69,11 @@ export const UnifiedTab: React.FC<UnifiedTabProps> = ({
   };
 
   const handleUpdateTag = (id: string, updates: Partial<UnifiedTag>) => {
-    setTags(tags.map(t => {
-      if (t.id !== id) return t;
-      const updated = { ...t, ...updates };
+    setTags(tags.map(tagItem => {
+      if (tagItem.id !== id) return tagItem;
+      const updated = { ...tagItem, ...updates };
       if (updates.mode === 'cyclic' && updated.cycleSec > 0) {
-        updated.entriesPerSec = Number((1 / updated.cycleSec).toFixed(4));
+        updated.entriesPerSec = Number((1 / Math.max(0.01, updated.cycleSec)).toFixed(4));
       } else if (updates.mode === 'onchange') {
         updated.entriesPerSec = 0.0167; // average 1 entry per minute
       }
@@ -79,7 +82,7 @@ export const UnifiedTab: React.FC<UnifiedTabProps> = ({
   };
 
   const handleRemoveTag = (id: string) => {
-    setTags(tags.filter(t => t.id !== id));
+    setTags(tags.filter(tagItem => tagItem.id !== id));
   };
 
   return (
@@ -174,7 +177,7 @@ export const UnifiedTab: React.FC<UnifiedTabProps> = ({
                     type="number"
                     min="1"
                     value={config.storageSizeGb}
-                    onChange={(e) => setConfig({ ...config, storageSizeGb: parseFloat(e.target.value) || 100 })}
+                    onChange={(e) => setConfig({ ...config, storageSizeGb: Math.max(1, parseFloat(e.target.value) || 100) })}
                     className="p-1 px-2 text-xs rounded border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 w-24 font-mono"
                   />
                   <span className="text-xs font-semibold">GB</span>
@@ -196,7 +199,7 @@ export const UnifiedTab: React.FC<UnifiedTabProps> = ({
               className="text-xs text-[#00646E] dark:text-[#00A3B5] hover:underline flex items-center gap-1 font-medium cursor-pointer"
             >
               <RefreshCw className="w-3 h-3" />
-              {lang === 'ru' ? 'Загрузить демо-теги' : 'Load Demo Tags'}
+              {t.loadDemoTags}
             </button>
           </div>
 
@@ -209,7 +212,7 @@ export const UnifiedTab: React.FC<UnifiedTabProps> = ({
                 type="number"
                 min="1"
                 value={config.retentionDays}
-                onChange={(e) => setConfig({ ...config, retentionDays: parseInt(e.target.value, 10) || 30 })}
+                onChange={(e) => setConfig({ ...config, retentionDays: Math.max(1, parseInt(e.target.value, 10) || 1) })}
                 className="p-2 text-sm font-semibold rounded-lg border border-slate-300 dark:border-slate-700 bg-white/80 dark:bg-slate-900 focus:border-[#00646E] outline-none"
               />
               <span className="text-[10px] text-slate-400 leading-tight">{t.retentionHelper}</span>
@@ -223,7 +226,7 @@ export const UnifiedTab: React.FC<UnifiedTabProps> = ({
                 type="number"
                 min="1"
                 value={config.segmentHours}
-                onChange={(e) => setConfig({ ...config, segmentHours: parseInt(e.target.value, 10) || 24 })}
+                onChange={(e) => setConfig({ ...config, segmentHours: Math.max(1, parseInt(e.target.value, 10) || 1) })}
                 className="p-2 text-sm font-semibold rounded-lg border border-slate-300 dark:border-slate-700 bg-white/80 dark:bg-slate-900 focus:border-[#00646E] outline-none"
               />
               <span className="text-[10px] text-slate-400 leading-tight">{t.segmentHelper}</span>
@@ -237,7 +240,7 @@ export const UnifiedTab: React.FC<UnifiedTabProps> = ({
                 type="number"
                 min="10"
                 value={config.perEntryBytes}
-                onChange={(e) => setConfig({ ...config, perEntryBytes: parseInt(e.target.value, 10) || 50 })}
+                onChange={(e) => setConfig({ ...config, perEntryBytes: Math.max(10, parseInt(e.target.value, 10) || 50) })}
                 className="p-2 text-sm font-semibold rounded-lg border border-slate-300 dark:border-slate-700 bg-white/80 dark:bg-slate-900 focus:border-[#00646E] outline-none"
               />
               <span className="text-[10px] text-slate-400 leading-tight">{t.entryBytesHelper}</span>
@@ -251,7 +254,7 @@ export const UnifiedTab: React.FC<UnifiedTabProps> = ({
                 type="number"
                 min="0"
                 value={config.headroomPct}
-                onChange={(e) => setConfig({ ...config, headroomPct: parseInt(e.target.value, 10) || 30 })}
+                onChange={(e) => setConfig({ ...config, headroomPct: Math.max(0, parseInt(e.target.value, 10) || 0) })}
                 className="p-2 text-sm font-semibold rounded-lg border border-slate-300 dark:border-slate-700 bg-white/80 dark:bg-slate-900 focus:border-[#00646E] outline-none"
               />
               <span className="text-[10px] text-slate-400 leading-tight">+30% для индексов</span>
@@ -268,9 +271,10 @@ export const UnifiedTab: React.FC<UnifiedTabProps> = ({
                   <div className="text-xs font-semibold">{t.alarmsToggle}</div>
                   <input
                     type="number"
+                    min="0"
                     disabled={!config.includeAlarms}
                     value={config.alarmsPerDay}
-                    onChange={(e) => setConfig({ ...config, alarmsPerDay: parseInt(e.target.value, 10) || 0 })}
+                    onChange={(e) => setConfig({ ...config, alarmsPerDay: Math.max(0, parseInt(e.target.value, 10) || 0) })}
                     className="w-20 p-0.5 text-xs font-mono rounded border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 mt-1 disabled:opacity-50"
                   />
                   <span className="text-[10px] text-slate-400 ml-1.5">{t.alarmsPerDay}</span>
@@ -292,9 +296,10 @@ export const UnifiedTab: React.FC<UnifiedTabProps> = ({
                   <div className="text-xs font-semibold">{t.auditToggle}</div>
                   <input
                     type="number"
+                    min="0"
                     disabled={!config.includeAudit}
                     value={config.auditEntriesPerDay}
-                    onChange={(e) => setConfig({ ...config, auditEntriesPerDay: parseInt(e.target.value, 10) || 0 })}
+                    onChange={(e) => setConfig({ ...config, auditEntriesPerDay: Math.max(0, parseInt(e.target.value, 10) || 0) })}
                     className="w-20 p-0.5 text-xs font-mono rounded border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 mt-1 disabled:opacity-50"
                   />
                   <span className="text-[10px] text-slate-400 ml-1.5">{t.auditPerDay}</span>
@@ -320,7 +325,7 @@ export const UnifiedTab: React.FC<UnifiedTabProps> = ({
               {t.tagListTitle}
             </h2>
             <span className="text-xs font-bold px-2 py-0.5 rounded-full bg-slate-200 dark:bg-slate-800 text-slate-700 dark:text-slate-300">
-              {result.totalTags} тегов
+              {result.totalTags} {t.tagsCountSuffix}
             </span>
           </div>
 
@@ -333,14 +338,14 @@ export const UnifiedTab: React.FC<UnifiedTabProps> = ({
               {t.btnAddTag}
             </button>
             <button
-              onClick={handleAddBulk}
+              onClick={() => setIsBulkModalOpen(true)}
               className="px-3 py-1.5 rounded-lg text-xs font-semibold bg-slate-200/80 dark:bg-slate-800 text-slate-700 dark:text-slate-200 hover:bg-slate-300 dark:hover:bg-slate-700 flex items-center gap-1.5 transition-all cursor-pointer"
             >
               <Plus className="w-3.5 h-3.5" />
               {t.btnAddBulk}
             </button>
             <button
-              onClick={() => setTags([])}
+              onClick={() => setIsConfirmClearOpen(true)}
               className="px-2.5 py-1.5 rounded-lg text-xs font-medium text-rose-500 hover:bg-rose-50 dark:hover:bg-rose-950/40 transition-all cursor-pointer"
             >
               {t.btnClearAll}
@@ -363,73 +368,82 @@ export const UnifiedTab: React.FC<UnifiedTabProps> = ({
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-200/60 dark:divide-slate-800/60">
-              {tags.map((tag) => (
-                <tr key={tag.id} className="hover:bg-white/40 dark:hover:bg-slate-800/40 transition-colors">
-                  <td className="p-2.5">
-                    <input
-                      type="text"
-                      value={tag.description}
-                      onChange={(e) => handleUpdateTag(tag.id, { description: e.target.value })}
-                      className="w-full p-1.5 text-xs rounded border border-slate-200 dark:border-slate-700 bg-white/90 dark:bg-slate-900 focus:border-[#00646E] outline-none font-medium"
-                    />
-                  </td>
-                  <td className="p-2.5">
-                    <select
-                      value={tag.dataType}
-                      onChange={(e) => handleUpdateTag(tag.id, { dataType: e.target.value as any })}
-                      className="p-1.5 text-xs rounded border border-slate-200 dark:border-slate-700 bg-white/90 dark:bg-slate-900 outline-none"
-                    >
-                      <option value="Real">Real (4B)</option>
-                      <option value="LReal">LReal (8B)</option>
-                      <option value="DInt">DInt (4B)</option>
-                      <option value="Int">Int (2B)</option>
-                      <option value="Bool">Bool (1B)</option>
-                      <option value="String">String (Variable)</option>
-                    </select>
-                  </td>
-                  <td className="p-2.5">
-                    <select
-                      value={tag.mode}
-                      onChange={(e) => handleUpdateTag(tag.id, { mode: e.target.value as any })}
-                      className="p-1.5 text-xs rounded border border-slate-200 dark:border-slate-700 bg-white/90 dark:bg-slate-900 outline-none font-medium"
-                    >
-                      <option value="cyclic">{t.modeCyclic}</option>
-                      <option value="onchange">{t.modeOnChange}</option>
-                    </select>
-                  </td>
-                  <td className="p-2.5">
-                    <input
-                      type="number"
-                      step="0.1"
-                      min="0.01"
-                      disabled={tag.mode === 'onchange'}
-                      value={tag.cycleSec}
-                      onChange={(e) => handleUpdateTag(tag.id, { cycleSec: parseFloat(e.target.value) || 1 })}
-                      className="w-20 p-1.5 text-xs font-mono rounded border border-slate-200 dark:border-slate-700 bg-white/90 dark:bg-slate-900 focus:border-[#00646E] outline-none disabled:opacity-40"
-                    />
-                  </td>
-                  <td className="p-2.5 font-mono text-slate-600 dark:text-slate-300">
-                    {tag.entriesPerSec.toFixed(3)}
-                  </td>
-                  <td className="p-2.5">
-                    <input
-                      type="number"
-                      min="1"
-                      value={tag.count}
-                      onChange={(e) => handleUpdateTag(tag.id, { count: parseInt(e.target.value, 10) || 1 })}
-                      className="w-16 p-1.5 text-xs font-mono rounded border border-slate-200 dark:border-slate-700 bg-white/90 dark:bg-slate-900 focus:border-[#00646E] outline-none"
-                    />
-                  </td>
-                  <td className="p-2.5 text-right">
-                    <button
-                      onClick={() => handleRemoveTag(tag.id)}
-                      className="p-1 text-slate-400 hover:text-rose-500 transition-colors cursor-pointer"
-                    >
-                      <Trash2 className="w-4 h-4" />
-                    </button>
+              {tags.length === 0 ? (
+                <tr>
+                  <td colSpan={7} className="p-8 text-center text-slate-400">
+                    {lang === 'ru' ? 'Теги процесса не добавлены. Добавьте тег или пакет.' : 'No process tags added yet. Click "+ Add Tag" or "+ Bulk Tags".'}
                   </td>
                 </tr>
-              ))}
+              ) : (
+                tags.map((tag) => (
+                  <tr key={tag.id} className="hover:bg-white/40 dark:hover:bg-slate-800/40 transition-colors">
+                    <td className="p-2.5">
+                      <input
+                        type="text"
+                        value={tag.description}
+                        onChange={(e) => handleUpdateTag(tag.id, { description: e.target.value })}
+                        className="w-full p-1.5 text-xs rounded border border-slate-200 dark:border-slate-700 bg-white/90 dark:bg-slate-900 focus:border-[#00646E] outline-none font-medium"
+                      />
+                    </td>
+                    <td className="p-2.5">
+                      <select
+                        value={tag.dataType}
+                        onChange={(e) => handleUpdateTag(tag.id, { dataType: e.target.value as any })}
+                        className="p-1.5 text-xs rounded border border-slate-200 dark:border-slate-700 bg-white/90 dark:bg-slate-900 outline-none"
+                      >
+                        <option value="Real">Real (4B)</option>
+                        <option value="LReal">LReal (8B)</option>
+                        <option value="DInt">DInt (4B)</option>
+                        <option value="Int">Int (2B)</option>
+                        <option value="Bool">Bool (1B)</option>
+                        <option value="String">String (Variable)</option>
+                      </select>
+                    </td>
+                    <td className="p-2.5">
+                      <select
+                        value={tag.mode}
+                        onChange={(e) => handleUpdateTag(tag.id, { mode: e.target.value as any })}
+                        className="p-1.5 text-xs rounded border border-slate-200 dark:border-slate-700 bg-white/90 dark:bg-slate-900 outline-none font-medium"
+                      >
+                        <option value="cyclic">{t.modeCyclic}</option>
+                        <option value="onchange">{t.modeOnChange}</option>
+                      </select>
+                    </td>
+                    <td className="p-2.5">
+                      <input
+                        type="number"
+                        step="0.1"
+                        min="0.01"
+                        disabled={tag.mode === 'onchange'}
+                        value={tag.cycleSec}
+                        onChange={(e) => handleUpdateTag(tag.id, { cycleSec: Math.max(0.01, parseFloat(e.target.value) || 1) })}
+                        className="w-20 p-1.5 text-xs font-mono rounded border border-slate-200 dark:border-slate-700 bg-white/90 dark:bg-slate-900 focus:border-[#00646E] outline-none disabled:opacity-40"
+                      />
+                    </td>
+                    <td className="p-2.5 font-mono text-slate-600 dark:text-slate-300">
+                      {tag.entriesPerSec.toFixed(3)}
+                    </td>
+                    <td className="p-2.5">
+                      <input
+                        type="number"
+                        min="1"
+                        value={tag.count}
+                        onChange={(e) => handleUpdateTag(tag.id, { count: Math.max(1, parseInt(e.target.value, 10) || 1) })}
+                        className="w-16 p-1.5 text-xs font-mono rounded border border-slate-200 dark:border-slate-700 bg-white/90 dark:bg-slate-900 focus:border-[#00646E] outline-none"
+                      />
+                    </td>
+                    <td className="p-2.5 text-right">
+                      <button
+                        onClick={() => handleRemoveTag(tag.id)}
+                        className="p-1 text-slate-400 hover:text-rose-500 transition-colors cursor-pointer"
+                        aria-label="Remove tag"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </button>
+                    </td>
+                  </tr>
+                ))
+              )}
             </tbody>
           </table>
         </div>
@@ -443,7 +457,7 @@ export const UnifiedTab: React.FC<UnifiedTabProps> = ({
             {t.resultsTitle}
           </h2>
           <span className="text-xs font-mono text-slate-500">
-            {result.totalSegments.toFixed(1)} сегментов за {config.retentionDays} дн.
+            {result.totalSegments.toFixed(1)} {lang === 'ru' ? 'сегментов за' : 'segments in'} {config.retentionDays} {lang === 'ru' ? 'дн.' : 'days'}
           </span>
         </div>
 
@@ -474,7 +488,7 @@ export const UnifiedTab: React.FC<UnifiedTabProps> = ({
               {t.sqliteMultiple4Mb}
             </div>
             <div className="text-[10px] text-slate-400 mt-0.5">
-              Сырой расчет: {result.rawSegmentMb.toFixed(2)} MB
+              {lang === 'ru' ? 'Сырой расчет:' : 'Raw calculation:'} {result.rawSegmentMb.toFixed(2)} MB
             </div>
           </div>
 
@@ -544,6 +558,26 @@ export const UnifiedTab: React.FC<UnifiedTabProps> = ({
           </div>
         )}
       </div>
+
+      {/* Bulk Add Modal */}
+      <BulkAddModal
+        isOpen={isBulkModalOpen}
+        onClose={() => setIsBulkModalOpen(false)}
+        onAdd={handleBulkAddSubmit}
+        lang={lang}
+        platform="unified"
+      />
+
+      {/* Clear Confirmation Modal */}
+      <ConfirmModal
+        isOpen={isConfirmClearOpen}
+        title={t.confirmClearTitle}
+        message={t.confirmClearText}
+        confirmText={t.confirmBtnConfirm}
+        cancelText={t.confirmBtnCancel}
+        onConfirm={() => setTags([])}
+        onCancel={() => setIsConfirmClearOpen(false)}
+      />
     </div>
   );
 };
