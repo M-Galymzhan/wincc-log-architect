@@ -6,7 +6,8 @@ import { Plus, Trash2, HardDrive, AlertTriangle, CheckCircle2, RefreshCw, FileSp
 
 interface ComfortTabProps {
   tags: ComfortTag[];
-  setTags: React.Dispatch<React.SetStateAction<ComfortTag[]>>;\n  config: ComfortConfig;
+  setTags: React.Dispatch<React.SetStateAction<ComfortTag[]>>;
+  config: ComfortConfig;
   setConfig: React.Dispatch<React.SetStateAction<ComfortConfig>>;
   result: ComfortResult;
   lang: Language;
