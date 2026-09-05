@@ -201,9 +201,9 @@ export const ComfortTab: React.FC<ComfortTabProps> = ({
                     setConfig({ ...config, retentionDays: 30 });
                   }
                 }}
-                className="p-2 text-sm font-semibold rounded-lg border border-slate-300 dark:border-slate-700 bg-white/80 dark:bg-slate-900 focus:border-emerald-600 focus:ring-2 focus:ring-emerald-500/20 outline-none"
+                className="p-2 text-sm font-semibold rounded-lg border border-slate-300 dark:border-slate-700 bg-white/80 dark:bg-slate-900 text-slate-900 dark:text-slate-100 focus:border-emerald-600 focus:ring-2 focus:ring-emerald-500/20 outline-none"
               />
-              <span className="text-[10px] text-slate-400">{lang === 'ru' ? 'Период хранения' : 'Retention days'}</span>
+              <span className="text-[10px] text-slate-500 dark:text-slate-400">{lang === 'ru' ? 'Период хранения' : 'Retention days'}</span>
             </div>
 
             <div className="flex flex-col gap-1">
@@ -225,9 +225,9 @@ export const ComfortTab: React.FC<ComfortTabProps> = ({
                     setConfig({ ...config, recordsPerLog: 50000 });
                   }
                 }}
-                className="p-2 text-sm font-semibold rounded-lg border border-slate-300 dark:border-slate-700 bg-white/80 dark:bg-slate-900 focus:border-emerald-600 focus:ring-2 focus:ring-emerald-500/20 outline-none"
+                className="p-2 text-sm font-semibold rounded-lg border border-slate-300 dark:border-slate-700 bg-white/80 dark:bg-slate-900 text-slate-900 dark:text-slate-100 focus:border-emerald-600 focus:ring-2 focus:ring-emerald-500/20 outline-none"
               />
-              <span className="text-[10px] text-slate-400">{t.recordsPerLogHelper}</span>
+              <span className="text-[10px] text-slate-500 dark:text-slate-400">{t.recordsPerLogHelper}</span>
             </div>
 
             <div className="flex flex-col gap-1">
@@ -237,7 +237,7 @@ export const ComfortTab: React.FC<ComfortTabProps> = ({
               <select
                 value={config.storageMediumMb}
                 onChange={(e) => setConfig({ ...config, storageMediumMb: parseInt(e.target.value, 10) || 2048 })}
-                className="p-2 text-sm font-semibold rounded-lg border border-slate-300 dark:border-slate-700 bg-white/80 dark:bg-slate-900 focus:border-emerald-600 focus:ring-2 focus:ring-emerald-500/20 outline-none"
+                className="p-2 text-sm font-semibold rounded-lg border border-slate-300 dark:border-slate-700 bg-white/80 dark:bg-slate-900 text-slate-900 dark:text-slate-100 focus:border-emerald-600 focus:ring-2 focus:ring-emerald-500/20 outline-none"
               >
                 <option value="512">SIMATIC SD 512 MB</option>
                 <option value="2048">SIMATIC SD 2 GB ({t.comfortStorageStandard})</option>
@@ -246,7 +246,7 @@ export const ComfortTab: React.FC<ComfortTabProps> = ({
                 <option value="16384">SIMATIC SD 16 GB</option>
                 <option value="32768">USB Flash 32 GB</option>
               </select>
-              <span className="text-[10px] text-slate-400">{t.comfortStorageCardHelp}</span>
+              <span className="text-[10px] text-slate-500 dark:text-slate-400">{t.comfortStorageCardHelp}</span>
             </div>
           </div>
 
@@ -306,7 +306,7 @@ export const ComfortTab: React.FC<ComfortTabProps> = ({
             <tbody className="divide-y divide-slate-200/60 dark:divide-slate-800/60">
               {tags.length === 0 ? (
                 <tr>
-                  <td colSpan={5} className="p-6 text-center text-xs text-slate-400">
+                  <td colSpan={5} className="p-6 text-center text-xs text-slate-500 dark:text-slate-300">
                     {lang === 'ru' ? 'Список тегов пуст. Нажмите «+ Добавить тег» или «+ Пакет тегов».' : 'Tag list is empty. Click "+ Add Tag" or "+ Bulk Tags" to configure.'}
                   </td>
                 </tr>
@@ -318,14 +318,14 @@ export const ComfortTab: React.FC<ComfortTabProps> = ({
                         type="text"
                         value={tag.description}
                         onChange={(e) => handleUpdateTag(tag.id, { description: e.target.value })}
-                        className="w-full p-1.5 text-xs rounded border border-slate-200 dark:border-slate-700 bg-white/90 dark:bg-slate-900 focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 outline-none"
+                        className="w-full p-1.5 text-xs rounded border border-slate-200 dark:border-slate-700 bg-white/90 dark:bg-slate-900 text-slate-900 dark:text-slate-100 focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 outline-none"
                       />
                     </td>
                     <td className="p-2.5">
                       <select
                         value={tag.mode}
                         onChange={(e) => handleUpdateTag(tag.id, { mode: e.target.value as 'cyclic' | 'onchange' })}
-                        className="p-1.5 text-xs rounded border border-slate-200 dark:border-slate-700 bg-white/90 dark:bg-slate-900 outline-none focus:ring-1 focus:ring-emerald-500"
+                        className="p-1.5 text-xs rounded border border-slate-200 dark:border-slate-700 bg-white/90 dark:bg-slate-900 text-slate-900 dark:text-slate-100 outline-none focus:ring-1 focus:ring-emerald-500"
                       >
                         <option value="cyclic">{t.modeCyclic}</option>
                         <option value="onchange">{t.modeOnChange}</option>
@@ -347,7 +347,7 @@ export const ComfortTab: React.FC<ComfortTabProps> = ({
                             handleUpdateTag(tag.id, { cycleSec: 1 });
                           }
                         }}
-                        className="w-20 p-1.5 text-xs font-mono rounded border border-slate-200 dark:border-slate-700 bg-white/90 dark:bg-slate-900 focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 outline-none disabled:opacity-40"
+                        className="w-20 p-1.5 text-xs font-mono rounded border border-slate-200 dark:border-slate-700 bg-white/90 dark:bg-slate-900 text-slate-900 dark:text-slate-100 focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 outline-none disabled:opacity-40"
                       />
                     </td>
                     <td className="p-2.5">
@@ -364,7 +364,7 @@ export const ComfortTab: React.FC<ComfortTabProps> = ({
                             handleUpdateTag(tag.id, { count: 1 });
                           }
                         }}
-                        className="w-16 p-1.5 text-xs font-mono rounded border border-slate-200 dark:border-slate-700 bg-white/90 dark:bg-slate-900 focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 outline-none"
+                        className="w-16 p-1.5 text-xs font-mono rounded border border-slate-200 dark:border-slate-700 bg-white/90 dark:bg-slate-900 text-slate-900 dark:text-slate-100 focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 outline-none"
                       />
                     </td>
                     <td className="p-2.5 text-right">

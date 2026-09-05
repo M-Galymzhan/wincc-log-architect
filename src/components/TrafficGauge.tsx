@@ -48,7 +48,7 @@ export const TrafficGauge: React.FC<TrafficGaugeProps> = ({ rate, maxRate = 800,
         />
       </div>
       
-      <div className="flex justify-between text-[10px] text-slate-400 dark:text-slate-500 font-mono">
+      <div className="flex justify-between text-[10px] text-slate-500 dark:text-slate-400 font-mono font-medium">
         <span>0 ({t.trafficIdle})</span>
         <span>300 ({lang === 'ru' ? 'Вним' : 'Warn'})</span>
         <span>500 ({t.trafficMaxSqlite})</span>

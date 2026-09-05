@@ -95,7 +95,7 @@ export const Header: React.FC<HeaderProps> = ({
               className={`px-2 py-1 rounded-md transition-all cursor-pointer ${
                 lang === 'ru'
                   ? 'bg-white dark:bg-slate-700 text-[#00646E] dark:text-[#00A3B5] shadow-xs'
-                  : 'text-slate-500 hover:text-slate-800 dark:hover:text-slate-200'
+                  : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-100'
               }`}
             >
               RU
@@ -105,7 +105,7 @@ export const Header: React.FC<HeaderProps> = ({
               className={`px-2 py-1 rounded-md transition-all cursor-pointer ${
                 lang === 'en'
                   ? 'bg-white dark:bg-slate-700 text-[#00646E] dark:text-[#00A3B5] shadow-xs'
-                  : 'text-slate-500 hover:text-slate-800 dark:hover:text-slate-200'
+                  : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-100'
               }`}
             >
               EN

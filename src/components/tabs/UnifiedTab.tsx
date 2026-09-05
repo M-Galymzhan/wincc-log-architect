@@ -179,7 +179,7 @@ export const UnifiedTab: React.FC<UnifiedTabProps> = ({
                   else if (val === 'ssd_custom') gb = config.storageSizeGb || 256;
                   setConfig({ ...config, storageMedium: val, storageSizeGb: gb });
                 }}
-                className="col-span-2 p-2 rounded-lg border border-slate-300 dark:border-slate-700 bg-white/80 dark:bg-slate-900 text-xs font-medium focus:border-[#00646E] focus:ring-2 focus:ring-[#00646E]/20 outline-none"
+                className="col-span-2 p-2 rounded-lg border border-slate-300 dark:border-slate-700 bg-white/80 dark:bg-slate-900 text-xs font-medium text-slate-900 dark:text-slate-100 focus:border-[#00646E] focus:ring-2 focus:ring-[#00646E]/20 outline-none"
               >
                 <option value="sd_512m">SIMATIC SD Card 512 MB</option>
                 <option value="sd_2g">SIMATIC SD Card 2 GB</option>
@@ -191,7 +191,7 @@ export const UnifiedTab: React.FC<UnifiedTabProps> = ({
 
               {config.storageMedium === 'ssd_custom' && (
                 <div className="col-span-2 flex items-center gap-2 mt-1">
-                  <span className="text-xs text-slate-500">{t.storageCustom}:</span>
+                  <span className="text-xs text-slate-700 dark:text-slate-300">{t.storageCustom}:</span>
                   <input
                     type="number"
                     min="1"
@@ -200,9 +200,9 @@ export const UnifiedTab: React.FC<UnifiedTabProps> = ({
                       const val = e.target.value === '' ? 1 : Math.max(1, parseFloat(e.target.value) || 1);
                       setConfig({ ...config, storageSizeGb: val });
                     }}
-                    className="p-1 px-2 text-xs rounded border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 w-24 font-mono focus:ring-2 focus:ring-[#00646E]/20 outline-none"
+                    className="p-1 px-2 text-xs rounded border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 w-24 font-mono focus:ring-2 focus:ring-[#00646E]/20 outline-none"
                   />
-                  <span className="text-xs font-semibold">GB</span>
+                  <span className="text-xs font-semibold text-slate-800 dark:text-slate-200">GB</span>
                 </div>
               )}
             </div>
@@ -243,13 +243,13 @@ export const UnifiedTab: React.FC<UnifiedTabProps> = ({
                     setConfig({ ...config, retentionDays: 30 });
                   }
                 }}
-                className="p-2 text-sm font-semibold rounded-lg border border-slate-300 dark:border-slate-700 bg-white/80 dark:bg-slate-900 focus:border-[#00646E] focus:ring-2 focus:ring-[#00646E]/20 outline-none"
+                className="p-2 text-sm font-semibold rounded-lg border border-slate-300 dark:border-slate-700 bg-white/80 dark:bg-slate-900 text-slate-900 dark:text-slate-100 focus:border-[#00646E] focus:ring-2 focus:ring-[#00646E]/20 outline-none"
               />
-              <span className="text-[10px] text-slate-400 leading-tight">{t.retentionHelper}</span>
+              <span className="text-[10px] text-slate-500 dark:text-slate-400 leading-tight">{t.retentionHelper}</span>
             </div>
 
             <div className="flex flex-col gap-1">
-              <label className="text-[11px] font-semibold text-slate-500 dark:text-slate-400">
+              <label className="text-[11px] font-semibold text-slate-600 dark:text-slate-300">
                 {t.segmentHours}
               </label>
               <input
@@ -265,13 +265,13 @@ export const UnifiedTab: React.FC<UnifiedTabProps> = ({
                     setConfig({ ...config, segmentHours: 24 });
                   }
                 }}
-                className="p-2 text-sm font-semibold rounded-lg border border-slate-300 dark:border-slate-700 bg-white/80 dark:bg-slate-900 focus:border-[#00646E] focus:ring-2 focus:ring-[#00646E]/20 outline-none"
+                className="p-2 text-sm font-semibold rounded-lg border border-slate-300 dark:border-slate-700 bg-white/80 dark:bg-slate-900 text-slate-900 dark:text-slate-100 focus:border-[#00646E] focus:ring-2 focus:ring-[#00646E]/20 outline-none"
               />
-              <span className="text-[10px] text-slate-400 leading-tight">{t.segmentHelper}</span>
+              <span className="text-[10px] text-slate-500 dark:text-slate-400 leading-tight">{t.segmentHelper}</span>
             </div>
 
             <div className="flex flex-col gap-1">
-              <label className="text-[11px] font-semibold text-slate-500 dark:text-slate-400">
+              <label className="text-[11px] font-semibold text-slate-600 dark:text-slate-300">
                 {t.entryBytes}
               </label>
               <input
@@ -287,13 +287,13 @@ export const UnifiedTab: React.FC<UnifiedTabProps> = ({
                     setConfig({ ...config, perEntryBytes: 50 });
                   }
                 }}
-                className="p-2 text-sm font-semibold rounded-lg border border-slate-300 dark:border-slate-700 bg-white/80 dark:bg-slate-900 focus:border-[#00646E] focus:ring-2 focus:ring-[#00646E]/20 outline-none"
+                className="p-2 text-sm font-semibold rounded-lg border border-slate-300 dark:border-slate-700 bg-white/80 dark:bg-slate-900 text-slate-900 dark:text-slate-100 focus:border-[#00646E] focus:ring-2 focus:ring-[#00646E]/20 outline-none"
               />
-              <span className="text-[10px] text-slate-400 leading-tight">{t.entryBytesHelper}</span>
+              <span className="text-[10px] text-slate-500 dark:text-slate-400 leading-tight">{t.entryBytesHelper}</span>
             </div>
 
             <div className="flex flex-col gap-1">
-              <label className="text-[11px] font-semibold text-slate-500 dark:text-slate-400">
+              <label className="text-[11px] font-semibold text-slate-600 dark:text-slate-300">
                 {t.headroom}
               </label>
               <input
@@ -304,9 +304,9 @@ export const UnifiedTab: React.FC<UnifiedTabProps> = ({
                   const val = e.target.value === '' ? 0 : Math.max(0, parseInt(e.target.value, 10) || 0);
                   setConfig({ ...config, headroomPct: val });
                 }}
-                className="p-2 text-sm font-semibold rounded-lg border border-slate-300 dark:border-slate-700 bg-white/80 dark:bg-slate-900 focus:border-[#00646E] focus:ring-2 focus:ring-[#00646E]/20 outline-none"
+                className="p-2 text-sm font-semibold rounded-lg border border-slate-300 dark:border-slate-700 bg-white/80 dark:bg-slate-900 text-slate-900 dark:text-slate-100 focus:border-[#00646E] focus:ring-2 focus:ring-[#00646E]/20 outline-none"
               />
-              <span className="text-[10px] text-slate-400 leading-tight">{t.headroomHelper}</span>
+              <span className="text-[10px] text-slate-500 dark:text-slate-400 leading-tight">{t.headroomHelper}</span>
             </div>
           </div>
 
@@ -317,16 +317,16 @@ export const UnifiedTab: React.FC<UnifiedTabProps> = ({
               <div className="flex items-center gap-2">
                 <Bell className="w-4 h-4 text-amber-500" />
                 <div>
-                  <div className="text-xs font-semibold">{t.alarmsToggle}</div>
+                  <div className="text-xs font-semibold text-slate-900 dark:text-white">{t.alarmsToggle}</div>
                   <input
                     type="number"
                     min="0"
                     disabled={!config.includeAlarms}
                     value={config.alarmsPerDay}
                     onChange={(e) => setConfig({ ...config, alarmsPerDay: Math.max(0, parseInt(e.target.value, 10) || 0) })}
-                    className="w-20 p-0.5 text-xs font-mono rounded border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 mt-1 disabled:opacity-50 focus:ring-1 focus:ring-[#00646E] outline-none"
+                    className="w-20 p-0.5 text-xs font-mono rounded border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 mt-1 disabled:opacity-50 focus:ring-1 focus:ring-[#00646E] outline-none"
                   />
-                  <span className="text-[10px] text-slate-400 ml-1.5">{t.alarmsPerDay}</span>
+                  <span className="text-[10px] text-slate-500 dark:text-slate-400 ml-1.5">{t.alarmsPerDay}</span>
                 </div>
               </div>
               <input
@@ -342,16 +342,16 @@ export const UnifiedTab: React.FC<UnifiedTabProps> = ({
               <div className="flex items-center gap-2">
                 <ShieldCheck className="w-4 h-4 text-emerald-500" />
                 <div>
-                  <div className="text-xs font-semibold">{t.auditToggle}</div>
+                  <div className="text-xs font-semibold text-slate-900 dark:text-white">{t.auditToggle}</div>
                   <input
                     type="number"
                     min="0"
                     disabled={!config.includeAudit}
                     value={config.auditEntriesPerDay}
                     onChange={(e) => setConfig({ ...config, auditEntriesPerDay: Math.max(0, parseInt(e.target.value, 10) || 0) })}
-                    className="w-20 p-0.5 text-xs font-mono rounded border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 mt-1 disabled:opacity-50 focus:ring-1 focus:ring-[#00646E] outline-none"
+                    className="w-20 p-0.5 text-xs font-mono rounded border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 mt-1 disabled:opacity-50 focus:ring-1 focus:ring-[#00646E] outline-none"
                   />
-                  <span className="text-[10px] text-slate-400 ml-1.5">{t.auditPerDay}</span>
+                  <span className="text-[10px] text-slate-500 dark:text-slate-400 ml-1.5">{t.auditPerDay}</span>
                 </div>
               </div>
               <input
@@ -419,7 +419,7 @@ export const UnifiedTab: React.FC<UnifiedTabProps> = ({
             <tbody className="divide-y divide-slate-200/60 dark:divide-slate-800/60">
               {tags.length === 0 ? (
                 <tr>
-                  <td colSpan={7} className="p-6 text-center text-xs text-slate-400">
+                  <td colSpan={7} className="p-6 text-center text-xs text-slate-500 dark:text-slate-300">
                     {lang === 'ru' ? 'Список тегов пуст. Нажмите «+ Добавить тег» или «+ Пакет тегов».' : 'Tag list is empty. Click "+ Add Tag" or "+ Bulk Tags" to configure.'}
                   </td>
                 </tr>
@@ -431,14 +431,14 @@ export const UnifiedTab: React.FC<UnifiedTabProps> = ({
                         type="text"
                         value={tag.description}
                         onChange={(e) => handleUpdateTag(tag.id, { description: e.target.value })}
-                        className="w-full p-1.5 text-xs rounded border border-slate-200 dark:border-slate-700 bg-white/90 dark:bg-slate-900 focus:border-[#00646E] focus:ring-1 focus:ring-[#00646E] outline-none font-medium"
+                        className="w-full p-1.5 text-xs rounded border border-slate-200 dark:border-slate-700 bg-white/90 dark:bg-slate-900 text-slate-900 dark:text-slate-100 focus:border-[#00646E] focus:ring-1 focus:ring-[#00646E] outline-none font-medium"
                       />
                     </td>
                     <td className="p-2.5">
                       <select
                         value={tag.dataType}
                         onChange={(e) => handleUpdateTag(tag.id, { dataType: e.target.value as UnifiedTag['dataType'] })}
-                        className="p-1.5 text-xs rounded border border-slate-200 dark:border-slate-700 bg-white/90 dark:bg-slate-900 outline-none focus:ring-1 focus:ring-[#00646E]"
+                        className="p-1.5 text-xs rounded border border-slate-200 dark:border-slate-700 bg-white/90 dark:bg-slate-900 text-slate-900 dark:text-slate-100 outline-none focus:ring-1 focus:ring-[#00646E]"
                       >
                         <option value="Real">Real (4B)</option>
                         <option value="LReal">LReal (8B)</option>
@@ -452,7 +452,7 @@ export const UnifiedTab: React.FC<UnifiedTabProps> = ({
                       <select
                         value={tag.mode}
                         onChange={(e) => handleUpdateTag(tag.id, { mode: e.target.value as 'cyclic' | 'onchange' })}
-                        className="p-1.5 text-xs rounded border border-slate-200 dark:border-slate-700 bg-white/90 dark:bg-slate-900 outline-none font-medium focus:ring-1 focus:ring-[#00646E]"
+                        className="p-1.5 text-xs rounded border border-slate-200 dark:border-slate-700 bg-white/90 dark:bg-slate-900 text-slate-900 dark:text-slate-100 outline-none font-medium focus:ring-1 focus:ring-[#00646E]"
                       >
                         <option value="cyclic">{t.modeCyclic}</option>
                         <option value="onchange">{t.modeOnChange}</option>
@@ -474,10 +474,10 @@ export const UnifiedTab: React.FC<UnifiedTabProps> = ({
                             handleUpdateTag(tag.id, { cycleSec: 1 });
                           }
                         }}
-                        className="w-20 p-1.5 text-xs font-mono rounded border border-slate-200 dark:border-slate-700 bg-white/90 dark:bg-slate-900 focus:border-[#00646E] focus:ring-1 focus:ring-[#00646E] outline-none disabled:opacity-40"
+                        className="w-20 p-1.5 text-xs font-mono rounded border border-slate-200 dark:border-slate-700 bg-white/90 dark:bg-slate-900 text-slate-900 dark:text-slate-100 focus:border-[#00646E] focus:ring-1 focus:ring-[#00646E] outline-none disabled:opacity-40"
                       />
                     </td>
-                    <td className="p-2.5 font-mono text-slate-600 dark:text-slate-300">
+                    <td className="p-2.5 font-mono text-slate-700 dark:text-slate-200 font-semibold">
                       {tag.entriesPerSec.toFixed(3)}
                     </td>
                     <td className="p-2.5">
@@ -494,7 +494,7 @@ export const UnifiedTab: React.FC<UnifiedTabProps> = ({
                             handleUpdateTag(tag.id, { count: 1 });
                           }
                         }}
-                        className="w-16 p-1.5 text-xs font-mono rounded border border-slate-200 dark:border-slate-700 bg-white/90 dark:bg-slate-900 focus:border-[#00646E] focus:ring-1 focus:ring-[#00646E] outline-none"
+                        className="w-16 p-1.5 text-xs font-mono rounded border border-slate-200 dark:border-slate-700 bg-white/90 dark:bg-slate-900 text-slate-900 dark:text-slate-100 focus:border-[#00646E] focus:ring-1 focus:ring-[#00646E] outline-none"
                       />
                     </td>
                     <td className="p-2.5 text-right">
@@ -521,7 +521,7 @@ export const UnifiedTab: React.FC<UnifiedTabProps> = ({
             <CheckCircle2 className="w-5 h-5 text-emerald-500" />
             {t.resultsTitle}
           </h2>
-          <span className="text-xs font-mono text-slate-500">
+          <span className="text-xs font-mono text-slate-600 dark:text-slate-300">
             {formatPlural(result.totalSegments, lang, ['сегмент', 'сегмента', 'сегментов'], ['segment', 'segments'])} {lang === 'ru' ? 'за' : 'over'} {formatPlural(config.retentionDays, lang, ['день', 'дня', 'дней'], ['day', 'days'])}
           </span>
         </div>

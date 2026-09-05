@@ -136,7 +136,7 @@ export const BulkAddModal: React.FC<BulkAddModalProps> = ({
               onBlur={() => {
                 if (count === '' || count < 1) setCount(50);
               }}
-              className="w-full p-2 text-sm font-semibold rounded-xl border border-slate-300 dark:border-slate-700 bg-white/80 dark:bg-slate-900 focus:border-[#00646E] focus:ring-2 focus:ring-[#00646E]/20 outline-none"
+              className="w-full p-2 text-sm font-semibold rounded-xl border border-slate-300 dark:border-slate-700 bg-white/80 dark:bg-slate-900 text-slate-900 dark:text-slate-100 focus:border-[#00646E] focus:ring-2 focus:ring-[#00646E]/20 outline-none"
             />
           </div>
 
@@ -150,9 +150,9 @@ export const BulkAddModal: React.FC<BulkAddModalProps> = ({
               required
               value={prefix}
               onChange={(e) => setPrefix(e.target.value)}
-              className="w-full p-2 text-xs font-medium rounded-xl border border-slate-300 dark:border-slate-700 bg-white/80 dark:bg-slate-900 focus:border-[#00646E] focus:ring-2 focus:ring-[#00646E]/20 outline-none"
+              className="w-full p-2 text-xs font-medium rounded-xl border border-slate-300 dark:border-slate-700 bg-white/80 dark:bg-slate-900 text-slate-900 dark:text-slate-100 focus:border-[#00646E] focus:ring-2 focus:ring-[#00646E]/20 outline-none"
             />
-            <p className="text-[10px] text-slate-400 mt-1">
+            <p className="text-[10px] text-slate-500 dark:text-slate-300 mt-1">
               {lang === 'ru' ? `Теги будут созданы в виде: ${prefix || 'Tag_'}1, ${prefix || 'Tag_'}2...` : `Tags will be created as: ${prefix || 'Tag_'}1, ${prefix || 'Tag_'}2...`}
             </p>
           </div>
@@ -176,7 +176,7 @@ export const BulkAddModal: React.FC<BulkAddModalProps> = ({
                     className={`text-[10px] font-mono font-semibold px-2 py-0.5 rounded-md border transition-all cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed ${
                       cycleSec === sec
                         ? 'bg-[#00646E] text-white border-[#00646E]'
-                        : 'border-slate-200 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-600 dark:text-slate-400'
+                        : 'border-slate-200 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-600 dark:text-slate-300'
                     }`}
                   >
                     {sec}s
@@ -201,7 +201,7 @@ export const BulkAddModal: React.FC<BulkAddModalProps> = ({
               onBlur={() => {
                 if (cycleSec === '' || cycleSec <= 0) setCycleSec(1);
               }}
-              className="w-full p-2 text-xs font-mono rounded-xl border border-slate-300 dark:border-slate-700 bg-white/80 dark:bg-slate-900 focus:border-[#00646E] focus:ring-2 focus:ring-[#00646E]/20 outline-none disabled:opacity-40"
+              className="w-full p-2 text-xs font-mono rounded-xl border border-slate-300 dark:border-slate-700 bg-white/80 dark:bg-slate-900 text-slate-900 dark:text-slate-100 focus:border-[#00646E] focus:ring-2 focus:ring-[#00646E]/20 outline-none disabled:opacity-40"
             />
           </div>
 
@@ -215,7 +215,7 @@ export const BulkAddModal: React.FC<BulkAddModalProps> = ({
                 <select
                   value={mode}
                   onChange={(e) => setMode(e.target.value as 'cyclic' | 'onchange')}
-                  className="w-full p-2 text-xs rounded-xl border border-slate-300 dark:border-slate-700 bg-white/80 dark:bg-slate-900 outline-none"
+                  className="w-full p-2 text-xs rounded-xl border border-slate-300 dark:border-slate-700 bg-white/80 dark:bg-slate-900 text-slate-900 dark:text-slate-100 outline-none"
                 >
                   <option value="cyclic">{t.modeCyclic}</option>
                   <option value="onchange">{t.modeOnChange}</option>
@@ -229,7 +229,7 @@ export const BulkAddModal: React.FC<BulkAddModalProps> = ({
                 <select
                   value={dataType}
                   onChange={(e) => setDataType(e.target.value as UnifiedTag['dataType'])}
-                  className="w-full p-2 text-xs rounded-xl border border-slate-300 dark:border-slate-700 bg-white/80 dark:bg-slate-900 outline-none"
+                  className="w-full p-2 text-xs rounded-xl border border-slate-300 dark:border-slate-700 bg-white/80 dark:bg-slate-900 text-slate-900 dark:text-slate-100 outline-none"
                 >
                   <option value="Real">Real (Float 4B)</option>
                   <option value="LReal">LReal (Double 8B)</option>
@@ -250,7 +250,7 @@ export const BulkAddModal: React.FC<BulkAddModalProps> = ({
               <select
                 value={mode}
                 onChange={(e) => setMode(e.target.value as 'cyclic' | 'onchange')}
-                className="w-full p-2 text-xs rounded-xl border border-slate-300 dark:border-slate-700 bg-white/80 dark:bg-slate-900 outline-none"
+                className="w-full p-2 text-xs rounded-xl border border-slate-300 dark:border-slate-700 bg-white/80 dark:bg-slate-900 text-slate-900 dark:text-slate-100 outline-none"
               >
                 <option value="cyclic">{t.modeCyclic}</option>
                 <option value="onchange">{t.modeOnChange}</option>

@@ -201,9 +201,9 @@ export const ProfessionalTab: React.FC<ProfessionalTabProps> = ({
                     setConfig({ ...config, retentionDays: 90 });
                   }
                 }}
-                className="p-2 text-sm font-semibold rounded-lg border border-slate-300 dark:border-slate-700 bg-white/80 dark:bg-slate-900 focus:border-purple-600 focus:ring-2 focus:ring-purple-500/20 outline-none"
+                className="p-2 text-sm font-semibold rounded-lg border border-slate-300 dark:border-slate-700 bg-white/80 dark:bg-slate-900 text-slate-900 dark:text-slate-100 focus:border-purple-600 focus:ring-2 focus:ring-purple-500/20 outline-none"
               />
-              <span className="text-[10px] text-slate-400">{lang === 'ru' ? 'Срок хранения в БД' : 'Retention period'}</span>
+              <span className="text-[10px] text-slate-500 dark:text-slate-400">{lang === 'ru' ? 'Срок хранения в БД' : 'Retention period'}</span>
             </div>
 
             <div className="flex flex-col gap-1">
@@ -218,9 +218,9 @@ export const ProfessionalTab: React.FC<ProfessionalTabProps> = ({
                   const val = e.target.value === '' ? 0 : Math.max(0, parseInt(e.target.value, 10) || 0);
                   setConfig({ ...config, alarmsPerHour: val });
                 }}
-                className="p-2 text-sm font-semibold rounded-lg border border-slate-300 dark:border-slate-700 bg-white/80 dark:bg-slate-900 focus:border-purple-600 focus:ring-2 focus:ring-purple-500/20 outline-none"
+                className="p-2 text-sm font-semibold rounded-lg border border-slate-300 dark:border-slate-700 bg-white/80 dark:bg-slate-900 text-slate-900 dark:text-slate-100 focus:border-purple-600 focus:ring-2 focus:ring-purple-500/20 outline-none"
               />
-              <span className="text-[10px] text-slate-400">Alarm Logging ({t.proAlarmsUnit})</span>
+              <span className="text-[10px] text-slate-500 dark:text-slate-400">Alarm Logging ({t.proAlarmsUnit})</span>
             </div>
 
             <div className="flex flex-col gap-1">
@@ -235,9 +235,9 @@ export const ProfessionalTab: React.FC<ProfessionalTabProps> = ({
                   const val = e.target.value === '' ? 0 : Math.max(0, parseInt(e.target.value, 10) || 0);
                   setConfig({ ...config, databaseHeadroomPct: val });
                 }}
-                className="p-2 text-sm font-semibold rounded-lg border border-slate-300 dark:border-slate-700 bg-white/80 dark:bg-slate-900 focus:border-purple-600 focus:ring-2 focus:ring-purple-500/20 outline-none"
+                className="p-2 text-sm font-semibold rounded-lg border border-slate-300 dark:border-slate-700 bg-white/80 dark:bg-slate-900 text-slate-900 dark:text-slate-100 focus:border-purple-600 focus:ring-2 focus:ring-purple-500/20 outline-none"
               />
-              <span className="text-[10px] text-slate-400">{lang === 'ru' ? 'Резерв фрагментации' : 'Index headroom'}</span>
+              <span className="text-[10px] text-slate-500 dark:text-slate-400">{lang === 'ru' ? 'Резерв фрагментации' : 'Index headroom'}</span>
             </div>
           </div>
 
@@ -299,7 +299,7 @@ export const ProfessionalTab: React.FC<ProfessionalTabProps> = ({
             <tbody className="divide-y divide-slate-200/60 dark:divide-slate-800/60">
               {tags.length === 0 ? (
                 <tr>
-                  <td colSpan={5} className="p-6 text-center text-xs text-slate-400">
+                  <td colSpan={5} className="p-6 text-center text-xs text-slate-500 dark:text-slate-300">
                     {lang === 'ru' ? 'Список тегов пуст. Нажмите «+ Добавить тег» или «+ Пакет тегов».' : 'Tag list is empty. Click "+ Add Tag" or "+ Bulk Tags" to configure.'}
                   </td>
                 </tr>
@@ -313,7 +313,7 @@ export const ProfessionalTab: React.FC<ProfessionalTabProps> = ({
                         type="text"
                         value={tag.description}
                         onChange={(e) => handleUpdateTag(tag.id, { description: e.target.value })}
-                        className="w-full p-1.5 text-xs rounded border border-slate-200 dark:border-slate-700 bg-white/90 dark:bg-slate-900 focus:border-purple-500 focus:ring-1 focus:ring-purple-500 outline-none font-medium"
+                        className="w-full p-1.5 text-xs rounded border border-slate-200 dark:border-slate-700 bg-white/90 dark:bg-slate-900 text-slate-900 dark:text-slate-100 focus:border-purple-500 focus:ring-1 focus:ring-purple-500 outline-none font-medium"
                       />
                     </td>
                     <td className="p-2.5">
@@ -345,7 +345,7 @@ export const ProfessionalTab: React.FC<ProfessionalTabProps> = ({
                             handleUpdateTag(tag.id, { cycleSec: 2 });
                           }
                         }}
-                        className="w-20 p-1.5 text-xs font-mono rounded border border-slate-200 dark:border-slate-700 bg-white/90 dark:bg-slate-900 focus:border-purple-500 focus:ring-1 focus:ring-purple-500 outline-none"
+                        className="w-20 p-1.5 text-xs font-mono rounded border border-slate-200 dark:border-slate-700 bg-white/90 dark:bg-slate-900 text-slate-900 dark:text-slate-100 focus:border-purple-500 focus:ring-1 focus:ring-purple-500 outline-none"
                       />
                     </td>
                     <td className="p-2.5">
@@ -362,7 +362,7 @@ export const ProfessionalTab: React.FC<ProfessionalTabProps> = ({
                             handleUpdateTag(tag.id, { count: 1 });
                           }
                         }}
-                        className="w-16 p-1.5 text-xs font-mono rounded border border-slate-200 dark:border-slate-700 bg-white/90 dark:bg-slate-900 focus:border-purple-500 focus:ring-1 focus:ring-purple-500 outline-none"
+                        className="w-16 p-1.5 text-xs font-mono rounded border border-slate-200 dark:border-slate-700 bg-white/90 dark:bg-slate-900 text-slate-900 dark:text-slate-100 focus:border-purple-500 focus:ring-1 focus:ring-purple-500 outline-none"
                       />
                     </td>
                     <td className="p-2.5 text-right">
