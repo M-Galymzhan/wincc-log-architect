@@ -5,8 +5,6 @@ export type ActiveTab = 'unified' | 'comfort' | 'professional';
 // WINCC UNIFIED
 export type UnifiedDeviceType = 'ucp' | 'pc_rt';
 
-export type DataType = 'Real' | 'LReal' | 'DInt' | 'Int' | 'Bool' | 'String';
-
 export interface UnifiedTag {
   id: string;
   description: string;
@@ -14,7 +12,7 @@ export interface UnifiedTag {
   cycleSec: number;
   entriesPerSec: number;
   count: number;
-  dataType: DataType;
+  dataType: 'Real' | 'LReal' | 'DInt' | 'Int' | 'Bool' | 'String';
 }
 
 export interface UnifiedConfig {
@@ -116,4 +114,10 @@ export interface ProfessionalResult {
   totalStorageGb: number;
   expressLimitExceeded: boolean;
   warnings: string[];
+}
+
+export interface ToastMessage {
+  id: string;
+  type: 'success' | 'error' | 'info' | 'warning';
+  message: string;
 }

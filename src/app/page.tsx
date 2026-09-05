@@ -1,9 +1,10 @@
 'use client';
-import React, { useState, useEffect } from 'react';
-import { ActiveTab, Language, Theme, UnifiedTag, UnifiedConfig, ComfortTag, ComfortConfig, ProfessionalTag, ProfessionalConfig } from '../lib/types';
+import React, { useState, useEffect, useCallback } from 'react';
+import { ActiveTab, Language, Theme, UnifiedTag, UnifiedConfig, ComfortTag, ComfortConfig, ProfessionalTag, ProfessionalConfig, ToastMessage } from '../lib/types';
 import { calculateUnified } from '../lib/calculator/unifiedEngine';
 import { calculateComfort } from '../lib/calculator/comfortEngine';
 import { calculateProfessional } from '../lib/calculator/professionalEngine';
+import { translations } from '../lib/i18n';
 import { Header } from '../components/Header';
 import { NavigationTabs } from '../components/NavigationTabs';
 import { UnifiedTab } from '../components/tabs/UnifiedTab';
@@ -11,8 +12,7 @@ import { ComfortTab } from '../components/tabs/ComfortTab';
 import { ProfessionalTab } from '../components/tabs/ProfessionalTab';
 import { TiaCheatSheetModal } from '../components/TiaCheatSheetModal';
 import { ReportModal } from '../components/ReportModal';
-import { Toast, ToastType } from '../components/Toast';
-import { translations } from '../lib/i18n';
+import { Toast } from '../components/Toast';
 
 export default function Home() {
   const [mounted, setMounted] = useState(false);
@@ -22,16 +22,16 @@ export default function Home() {
 
   const [isCheatSheetOpen, setIsCheatSheetOpen] = useState(false);
   const [isReportOpen, setIsReportOpen] = useState(false);
+  const [toasts, setToasts] = useState<ToastMessage[]>([]);
 
-  // Toast State
-  const [toast, setToast] = useState<{ message: string | null; type: ToastType }>({
-    message: null,
-    type: 'info',
-  });
+  const addToast = useCallback((message: string, type: ToastMessage['type'] = 'info') => {
+    const id = Math.random().toString(36).substring(2, 9);
+    setToasts((prev) => [...prev, { id, type, message }]);
+  }, []);
 
-  const showToast = (message: string, type: ToastType = 'info') => {
-    setToast({ message, type });
-  };
+  const removeToast = useCallback((id: string) => {
+    setToasts((prev) => prev.filter((t) => t.id !== id));
+  }, []);
 
   // 1. Unified State
   const [unifiedTags, setUnifiedTags] = useState<UnifiedTag[]>([
@@ -92,7 +92,7 @@ export default function Home() {
     setMounted(true);
     try {
       const savedLang = localStorage.getItem('wincc_lang') as Language;
-      if (savedLang) setLang(savedLang);
+      if (savedLang === 'ru' || savedLang === 'en') setLang(savedLang);
       const savedTheme = localStorage.getItem('wincc_theme') as Theme;
       if (savedTheme) {
         setTheme(savedTheme);
@@ -103,15 +103,15 @@ export default function Home() {
       const savedData = localStorage.getItem('wincc_project_data');
       if (savedData) {
         const parsed = JSON.parse(savedData);
-        if (parsed.unifiedTags && Array.isArray(parsed.unifiedTags)) setUnifiedTags(parsed.unifiedTags);
+        if (Array.isArray(parsed.unifiedTags)) setUnifiedTags(parsed.unifiedTags);
         if (parsed.unifiedConfig && typeof parsed.unifiedConfig === 'object') setUnifiedConfig(parsed.unifiedConfig);
-        if (parsed.comfortTags && Array.isArray(parsed.comfortTags)) setComfortTags(parsed.comfortTags);
+        if (Array.isArray(parsed.comfortTags)) setComfortTags(parsed.comfortTags);
         if (parsed.comfortConfig && typeof parsed.comfortConfig === 'object') setComfortConfig(parsed.comfortConfig);
-        if (parsed.proTags && Array.isArray(parsed.proTags)) setProTags(parsed.proTags);
+        if (Array.isArray(parsed.proTags)) setProTags(parsed.proTags);
         if (parsed.proConfig && typeof parsed.proConfig === 'object') setProConfig(parsed.proConfig);
       }
     } catch (e) {
-      console.error(e);
+      console.error('LocalStorage load error:', e);
     }
   }, []);
 
@@ -132,36 +132,30 @@ export default function Home() {
       };
       localStorage.setItem('wincc_project_data', JSON.stringify(payload));
     } catch (e) {
-      console.error(e);
+      console.error('LocalStorage save error:', e);
     }
   }, [lang, theme, unifiedTags, unifiedConfig, comfortTags, comfortConfig, proTags, proConfig, mounted]);
 
-  const t = translations[lang];
-
   // Export Project JSON
   const handleExportJson = () => {
-    try {
-      const payload = {
-        version: '1.1.0',
-        timestamp: new Date().toISOString(),
-        unified: { tags: unifiedTags, config: unifiedConfig },
-        comfort: { tags: comfortTags, config: comfortConfig },
-        professional: { tags: proTags, config: proConfig },
-      };
-      const blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' });
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = `wincc-log-architect-${new Date().toISOString().slice(0, 10)}.json`;
-      a.click();
-      URL.revokeObjectURL(url);
-      showToast(t.toastExportSuccess, 'success');
-    } catch {
-      showToast('Export failed', 'error');
-    }
+    const payload = {
+      version: '1.0.0',
+      timestamp: new Date().toISOString(),
+      unified: { tags: unifiedTags, config: unifiedConfig },
+      comfort: { tags: comfortTags, config: comfortConfig },
+      professional: { tags: proTags, config: proConfig },
+    };
+    const blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `wincc-log-architect-${new Date().toISOString().slice(0, 10)}.json`;
+    a.click();
+    URL.revokeObjectURL(url);
+    addToast(translations[lang].toastExportSuccess, 'success');
   };
 
-  // Import Project JSON with sanitization
+  // Import Project JSON with strict schema validation
   const handleImportJson = () => {
     const input = document.createElement('input');
     input.type = 'file';
@@ -173,104 +167,51 @@ export default function Home() {
       reader.onload = (ev) => {
         try {
           const parsed = JSON.parse(ev.target?.result as string);
-          if (!parsed || typeof parsed !== 'object') {
-            showToast(t.toastImportError, 'error');
-            return;
+          let loaded = false;
+
+          // Unified tags & config (supports both nested and flat schema)
+          const uTags = parsed.unified?.tags || parsed.unifiedTags;
+          if (Array.isArray(uTags)) {
+            setUnifiedTags(uTags);
+            loaded = true;
+          }
+          const uConfig = parsed.unified?.config || parsed.unifiedConfig;
+          if (uConfig && typeof uConfig === 'object') {
+            setUnifiedConfig(prev => ({ ...prev, ...uConfig }));
+            loaded = true;
           }
 
-          let loadedAny = false;
-
-          // Support new format (unified, comfort, professional) and legacy flat format
-          const rawUnifiedTags = parsed.unified?.tags || parsed.unifiedTags;
-          if (Array.isArray(rawUnifiedTags)) {
-            const valid = rawUnifiedTags.filter((tg: any) => tg && typeof tg === 'object');
-            if (valid.length > 0) {
-              setUnifiedTags(valid.map((tg: any) => ({
-                id: String(tg.id || Math.random().toString(36).substring(2, 9)),
-                description: String(tg.description || 'Tag'),
-                mode: tg.mode === 'onchange' ? 'onchange' : 'cyclic',
-                cycleSec: Math.max(0.01, Number(tg.cycleSec) || 1),
-                entriesPerSec: Math.max(0.0001, Number(tg.entriesPerSec) || 1),
-                count: Math.max(1, Math.floor(Number(tg.count) || 1)),
-                dataType: ['Real', 'LReal', 'DInt', 'Int', 'Bool', 'String'].includes(tg.dataType) ? tg.dataType : 'Real',
-              })));
-              loadedAny = true;
-            }
+          // Comfort tags & config (supports both nested and flat schema)
+          const cTags = parsed.comfort?.tags || parsed.comfortTags;
+          if (Array.isArray(cTags)) {
+            setComfortTags(cTags);
+            loaded = true;
+          }
+          const cConfig = parsed.comfort?.config || parsed.comfortConfig;
+          if (cConfig && typeof cConfig === 'object') {
+            setComfortConfig(prev => ({ ...prev, ...cConfig }));
+            loaded = true;
           }
 
-          const rawUnifiedCfg = parsed.unified?.config || parsed.unifiedConfig;
-          if (rawUnifiedCfg && typeof rawUnifiedCfg === 'object') {
-            setUnifiedConfig(prev => ({
-              ...prev,
-              ...rawUnifiedCfg,
-              retentionDays: Math.max(1, Number(rawUnifiedCfg.retentionDays) || prev.retentionDays),
-              segmentHours: Math.max(1, Number(rawUnifiedCfg.segmentHours) || prev.segmentHours),
-              storageSizeGb: Math.max(0.5, Number(rawUnifiedCfg.storageSizeGb) || prev.storageSizeGb),
-            }));
-            loadedAny = true;
+          // Professional tags & config (supports both nested and flat schema)
+          const pTags = parsed.professional?.tags || parsed.proTags;
+          if (Array.isArray(pTags)) {
+            setProTags(pTags);
+            loaded = true;
+          }
+          const pConfig = parsed.professional?.config || parsed.proConfig;
+          if (pConfig && typeof pConfig === 'object') {
+            setProConfig(prev => ({ ...prev, ...pConfig }));
+            loaded = true;
           }
 
-          const rawComfortTags = parsed.comfort?.tags || parsed.comfortTags;
-          if (Array.isArray(rawComfortTags)) {
-            const valid = rawComfortTags.filter((tg: any) => tg && typeof tg === 'object');
-            if (valid.length > 0) {
-              setComfortTags(valid.map((tg: any) => ({
-                id: String(tg.id || Math.random().toString(36).substring(2, 9)),
-                description: String(tg.description || 'Tag'),
-                mode: tg.mode === 'onchange' ? 'onchange' : 'cyclic',
-                cycleSec: Math.max(0.1, Number(tg.cycleSec) || 1),
-                count: Math.max(1, Math.floor(Number(tg.count) || 1)),
-              })));
-              loadedAny = true;
-            }
-          }
-
-          const rawComfortCfg = parsed.comfort?.config || parsed.comfortConfig;
-          if (rawComfortCfg && typeof rawComfortCfg === 'object') {
-            setComfortConfig(prev => ({
-              ...prev,
-              ...rawComfortCfg,
-              retentionDays: Math.max(1, Number(rawComfortCfg.retentionDays) || prev.retentionDays),
-              recordsPerLog: Math.max(100, Math.min(500000, Number(rawComfortCfg.recordsPerLog) || prev.recordsPerLog)),
-              storageMediumMb: Math.max(512, Number(rawComfortCfg.storageMediumMb) || prev.storageMediumMb),
-            }));
-            loadedAny = true;
-          }
-
-          const rawProTags = parsed.professional?.tags || parsed.proTags;
-          if (Array.isArray(rawProTags)) {
-            const valid = rawProTags.filter((tg: any) => tg && typeof tg === 'object');
-            if (valid.length > 0) {
-              setProTags(valid.map((tg: any) => ({
-                id: String(tg.id || Math.random().toString(36).substring(2, 9)),
-                description: String(tg.description || 'Tag'),
-                cycleSec: Math.max(0.1, Number(tg.cycleSec) || 1),
-                count: Math.max(1, Math.floor(Number(tg.count) || 1)),
-                archiveType: tg.archiveType === 'slow' ? 'slow' : 'fast',
-              })));
-              loadedAny = true;
-            }
-          }
-
-          const rawProCfg = parsed.professional?.config || parsed.proConfig;
-          if (rawProCfg && typeof rawProCfg === 'object') {
-            setProConfig(prev => ({
-              ...prev,
-              ...rawProCfg,
-              sqlEdition: (rawProCfg.sqlEdition === 'standard_enterprise' || rawProCfg.sqlEdition === 'standard') ? 'standard_enterprise' : 'express',
-              retentionDays: Math.max(1, Number(rawProCfg.retentionDays) || prev.retentionDays),
-              alarmsPerHour: Math.max(0, Number(rawProCfg.alarmsPerHour) || prev.alarmsPerHour),
-            }));
-            loadedAny = true;
-          }
-
-          if (loadedAny) {
-            showToast(t.toastImportSuccess, 'success');
+          if (loaded) {
+            addToast(translations[lang].toastImportSuccess, 'success');
           } else {
-            showToast(t.toastImportError, 'error');
+            addToast(translations[lang].toastImportError, 'error');
           }
         } catch {
-          showToast(t.toastImportError, 'error');
+          addToast(translations[lang].toastImportError, 'error');
         }
       };
       reader.readAsText(file);
@@ -278,10 +219,12 @@ export default function Home() {
     input.click();
   };
 
-  // Calculations
-  const unifiedResult = calculateUnified(unifiedTags, unifiedConfig);
-  const comfortResult = calculateComfort(comfortTags, comfortConfig);
-  const proResult = calculateProfessional(proTags, proConfig);
+  // Calculations with active language for localized warnings
+  const unifiedResult = calculateUnified(unifiedTags, unifiedConfig, lang);
+  const comfortResult = calculateComfort(comfortTags, comfortConfig, lang);
+  const proResult = calculateProfessional(proTags, proConfig, lang);
+
+  if (!mounted) return null;
 
   return (
     <div className="relative min-h-screen pb-16">
@@ -320,41 +263,47 @@ export default function Home() {
           lang={lang}
         />
 
-        {/* Tab 1: WinCC Unified */}
-        {activeTab === 'unified' && (
-          <UnifiedTab
-            tags={unifiedTags}
-            setTags={setUnifiedTags}
-            config={unifiedConfig}
-            setConfig={setUnifiedConfig}
-            result={unifiedResult}
-            lang={lang}
-          />
-        )}
+        {/* Tab Panels */}
+        <div role="tabpanel" id={`tabpanel-${activeTab}`} aria-labelledby={`tab-${activeTab}`}>
+          {/* Tab 1: WinCC Unified */}
+          {activeTab === 'unified' && (
+            <UnifiedTab
+              tags={unifiedTags}
+              setTags={setUnifiedTags}
+              config={unifiedConfig}
+              setConfig={setUnifiedConfig}
+              result={unifiedResult}
+              lang={lang}
+              onShowToast={addToast}
+            />
+          )}
 
-        {/* Tab 2: WinCC Comfort / Advanced */}
-        {activeTab === 'comfort' && (
-          <ComfortTab
-            tags={comfortTags}
-            setTags={setComfortTags}
-            config={comfortConfig}
-            setConfig={setComfortConfig}
-            result={comfortResult}
-            lang={lang}
-          />
-        )}
+          {/* Tab 2: WinCC Comfort / Advanced */}
+          {activeTab === 'comfort' && (
+            <ComfortTab
+              tags={comfortTags}
+              setTags={setComfortTags}
+              config={comfortConfig}
+              setConfig={setComfortConfig}
+              result={comfortResult}
+              lang={lang}
+              onShowToast={addToast}
+            />
+          )}
 
-        {/* Tab 3: WinCC Professional */}
-        {activeTab === 'professional' && (
-          <ProfessionalTab
-            tags={proTags}
-            setTags={setProTags}
-            config={proConfig}
-            setConfig={setProConfig}
-            result={proResult}
-            lang={lang}
-          />
-        )}
+          {/* Tab 3: WinCC Professional */}
+          {activeTab === 'professional' && (
+            <ProfessionalTab
+              tags={proTags}
+              setTags={setProTags}
+              config={proConfig}
+              setConfig={setProConfig}
+              result={proResult}
+              lang={lang}
+              onShowToast={addToast}
+            />
+          )}
+        </div>
       </main>
 
       {/* TIA Portal Cheat Sheet Modal */}
@@ -366,6 +315,7 @@ export default function Home() {
         unifiedData={{ config: unifiedConfig, result: unifiedResult }}
         comfortData={{ config: comfortConfig, result: comfortResult }}
         proData={{ config: proConfig, result: proResult }}
+        onShowToast={addToast}
       />
 
       {/* Project Report Modal */}
@@ -379,12 +329,8 @@ export default function Home() {
         proData={{ config: proConfig, result: proResult }}
       />
 
-      {/* Toast Notification Container */}
-      <Toast
-        message={toast.message}
-        type={toast.type}
-        onClose={() => setToast({ message: null, type: 'info' })}
-      />
+      {/* Toast Notifications */}
+      <Toast toasts={toasts} onDismiss={removeToast} />
     </div>
   );
 }

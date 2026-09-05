@@ -1,9 +1,9 @@
 'use client';
 import React, { useState } from 'react';
-import { UnifiedTag, UnifiedConfig, UnifiedResult, Language } from '../../lib/types';
-import { translations } from '../../lib/i18n';
+import { UnifiedTag, UnifiedConfig, UnifiedResult, Language, ToastMessage } from '../../lib/types';
+import { translations, formatPlural } from '../../lib/i18n';
 import { TrafficGauge } from '../TrafficGauge';
-import { BulkAddModal, BulkAddConfig } from '../BulkAddModal';
+import { BulkAddModal } from '../BulkAddModal';
 import { ConfirmModal } from '../ConfirmModal';
 import { 
   Plus, Trash2, Layers, AlertTriangle, CheckCircle2, 
@@ -17,6 +17,7 @@ interface UnifiedTabProps {
   setConfig: React.Dispatch<React.SetStateAction<UnifiedConfig>>;
   result: UnifiedResult;
   lang: Language;
+  onShowToast?: (message: string, type?: ToastMessage['type']) => void;
 }
 
 export const UnifiedTab: React.FC<UnifiedTabProps> = ({
@@ -26,10 +27,11 @@ export const UnifiedTab: React.FC<UnifiedTabProps> = ({
   setConfig,
   result,
   lang,
+  onShowToast,
 }) => {
   const t = translations[lang];
   const [isBulkModalOpen, setIsBulkModalOpen] = useState(false);
-  const [isConfirmClearOpen, setIsConfirmClearOpen] = useState(false);
+  const [isConfirmModalOpen, setIsConfirmModalOpen] = useState(false);
 
   const handleAddTag = () => {
     const newTag: UnifiedTag = {
@@ -42,38 +44,50 @@ export const UnifiedTab: React.FC<UnifiedTabProps> = ({
       dataType: 'Real',
     };
     setTags([...tags, newTag]);
+    if (onShowToast) onShowToast(lang === 'ru' ? 'Тег добавлен' : 'Tag added', 'success');
   };
 
-  const handleBulkAddSubmit = (bulkCfg: BulkAddConfig) => {
-    const isCyclic = bulkCfg.mode !== 'onchange';
-    const safeCycle = Math.max(0.01, bulkCfg.cycleSec || 1);
+  const handleBulkAddSubmit = (params: {
+    count: number;
+    prefix: string;
+    cycleSec: number;
+    mode: 'cyclic' | 'onchange';
+    dataType?: UnifiedTag['dataType'];
+  }) => {
+    const entriesPerSec = params.mode === 'cyclic'
+      ? Number((1 / Math.max(0.01, params.cycleSec)).toFixed(4))
+      : 0.0167;
+
     const newTag: UnifiedTag = {
       id: Math.random().toString(36).substring(2, 9),
-      description: `${bulkCfg.prefix}_${bulkCfg.count}x`,
-      mode: bulkCfg.mode || 'cyclic',
-      cycleSec: isCyclic ? safeCycle : 60,
-      entriesPerSec: isCyclic ? Number((1 / safeCycle).toFixed(4)) : 0.0167,
-      count: Math.max(1, bulkCfg.count || 1),
-      dataType: bulkCfg.dataType || 'Real',
+      description: `${params.prefix}${params.count}x`,
+      mode: params.mode,
+      cycleSec: params.cycleSec,
+      entriesPerSec,
+      count: params.count,
+      dataType: params.dataType || 'Real',
     };
-    setTags([...tags, newTag]);
+    setTags(prev => [...prev, newTag]);
+    if (onShowToast) onShowToast(t.toastBulkAdded, 'success');
   };
 
   const handleLoadSample = () => {
     setTags([
-      { id: '1', description: 'Fast PID Pressures (0.5s)', mode: 'cyclic', cycleSec: 0.5, entriesPerSec: 2, count: 40, dataType: 'Real' },
-      { id: '2', description: 'Motor Temperatures (2s)', mode: 'cyclic', cycleSec: 2, entriesPerSec: 0.5, count: 120, dataType: 'Real' },
-      { id: '3', description: 'Tank Levels & Flow (5s)', mode: 'cyclic', cycleSec: 5, entriesPerSec: 0.2, count: 80, dataType: 'Real' },
-      { id: '4', description: 'Valve States (On Change)', mode: 'onchange', cycleSec: 60, entriesPerSec: 0.0167, count: 200, dataType: 'Bool' },
+      { id: '1', description: lang === 'ru' ? 'Давление ПИД-контуров (0.5с)' : 'Fast PID Pressures (0.5s)', mode: 'cyclic', cycleSec: 0.5, entriesPerSec: 2, count: 40, dataType: 'Real' },
+      { id: '2', description: lang === 'ru' ? 'Температуры обмоток и подшипников (2с)' : 'Motor Temperatures (2s)', mode: 'cyclic', cycleSec: 2, entriesPerSec: 0.5, count: 120, dataType: 'Real' },
+      { id: '3', description: lang === 'ru' ? 'Уровни в резервуарах (5с)' : 'Tank Levels & Flow (5s)', mode: 'cyclic', cycleSec: 5, entriesPerSec: 0.2, count: 80, dataType: 'Real' },
+      { id: '4', description: lang === 'ru' ? 'Концевики и клапаны (По изм.)' : 'Valve States (On Change)', mode: 'onchange', cycleSec: 60, entriesPerSec: 0.0167, count: 200, dataType: 'Bool' },
     ]);
+    if (onShowToast) onShowToast(lang === 'ru' ? 'Загружен типовой проект тегов' : 'Sample project tags loaded', 'info');
   };
 
   const handleUpdateTag = (id: string, updates: Partial<UnifiedTag>) => {
-    setTags(tags.map(tagItem => {
-      if (tagItem.id !== id) return tagItem;
-      const updated = { ...tagItem, ...updates };
-      if (updates.mode === 'cyclic' && updated.cycleSec > 0) {
-        updated.entriesPerSec = Number((1 / Math.max(0.01, updated.cycleSec)).toFixed(4));
+    setTags(tags.map(tItem => {
+      if (tItem.id !== id) return tItem;
+      const updated = { ...tItem, ...updates };
+      if (updates.mode === 'cyclic' || (updates.cycleSec !== undefined && updated.mode === 'cyclic')) {
+        const cycle = Math.max(0.01, updated.cycleSec || 1);
+        updated.entriesPerSec = Number((1 / cycle).toFixed(4));
       } else if (updates.mode === 'onchange') {
         updated.entriesPerSec = 0.0167; // average 1 entry per minute
       }
@@ -82,7 +96,12 @@ export const UnifiedTab: React.FC<UnifiedTabProps> = ({
   };
 
   const handleRemoveTag = (id: string) => {
-    setTags(tags.filter(tagItem => tagItem.id !== id));
+    setTags(tags.filter(tItem => tItem.id !== id));
+  };
+
+  const handleClearAllConfirm = () => {
+    setTags([]);
+    if (onShowToast) onShowToast(t.toastCleared, 'info');
   };
 
   return (
@@ -97,7 +116,7 @@ export const UnifiedTab: React.FC<UnifiedTabProps> = ({
                 <Cpu className="w-5 h-5 text-[#00A3B5]" />
                 {t.unifiedDeviceTitle}
               </h2>
-              <span className="text-[11px] font-mono px-2 py-0.5 rounded bg-[#00646E]/10 text-[#00646E] dark:text-[#00A3B5] font-semibold">
+              <span className="text-[11px] font-mono px-2 py-0.5 rounded bg-[#00646E]/10 text-[#00646E] dark:text-[#00A3B5] font-semibold border border-[#00646E]/20">
                 SQLite Engine
               </span>
             </div>
@@ -105,37 +124,37 @@ export const UnifiedTab: React.FC<UnifiedTabProps> = ({
             <div className="space-y-2.5">
               <label className={`flex items-center gap-3 p-3 rounded-xl border transition-all cursor-pointer ${
                 config.deviceType === 'ucp'
-                  ? 'border-[#00646E] bg-[#00646E]/5 dark:bg-[#00A3B5]/10 shadow-xs'
+                  ? 'border-[#00646E] bg-[#00646E]/5 dark:bg-[#00A3B5]/10 shadow-xs ring-1 ring-[#00646E]/30'
                   : 'border-slate-200 dark:border-slate-800 hover:bg-slate-50 dark:hover:bg-slate-800/40'
               }`}>
                 <input
                   type="radio"
                   name="deviceType"
                   checked={config.deviceType === 'ucp'}
-                  onChange={() => setConfig({ ...config, deviceType: 'ucp', storageSizeGb: 12 })}
+                  onChange={() => setConfig({ ...config, deviceType: 'ucp', storageMedium: 'sd_12g', storageSizeGb: 12 })}
                   className="accent-[#00646E] w-4 h-4"
                 />
                 <div>
                   <div className="text-sm font-semibold text-slate-900 dark:text-white">{t.ucpModel}</div>
-                  <div className="text-xs text-slate-500 dark:text-slate-400">Embedded Linux, SIMATIC SD card / USB</div>
+                  <div className="text-xs text-slate-500 dark:text-slate-400">{t.ucpModelSub}</div>
                 </div>
               </label>
 
               <label className={`flex items-center gap-3 p-3 rounded-xl border transition-all cursor-pointer ${
                 config.deviceType === 'pc_rt'
-                  ? 'border-[#00646E] bg-[#00646E]/5 dark:bg-[#00A3B5]/10 shadow-xs'
+                  ? 'border-[#00646E] bg-[#00646E]/5 dark:bg-[#00A3B5]/10 shadow-xs ring-1 ring-[#00646E]/30'
                   : 'border-slate-200 dark:border-slate-800 hover:bg-slate-50 dark:hover:bg-slate-800/40'
               }`}>
                 <input
                   type="radio"
                   name="deviceType"
                   checked={config.deviceType === 'pc_rt'}
-                  onChange={() => setConfig({ ...config, deviceType: 'pc_rt', storageSizeGb: 120 })}
+                  onChange={() => setConfig({ ...config, deviceType: 'pc_rt', storageMedium: 'ssd_custom', storageSizeGb: 120 })}
                   className="accent-[#00646E] w-4 h-4"
                 />
                 <div>
                   <div className="text-sm font-semibold text-slate-900 dark:text-white">{t.pcRtModel}</div>
-                  <div className="text-xs text-slate-500 dark:text-slate-400">Windows Industrial PC, High-performance SSD</div>
+                  <div className="text-xs text-slate-500 dark:text-slate-400">{t.pcRtModelSub}</div>
                 </div>
               </label>
             </div>
@@ -150,7 +169,7 @@ export const UnifiedTab: React.FC<UnifiedTabProps> = ({
               <select
                 value={config.storageMedium}
                 onChange={(e) => {
-                  const val = e.target.value as any;
+                  const val = e.target.value as UnifiedConfig['storageMedium'];
                   let gb = 12;
                   if (val === 'sd_512m') gb = 0.5;
                   else if (val === 'sd_2g') gb = 2;
@@ -160,14 +179,14 @@ export const UnifiedTab: React.FC<UnifiedTabProps> = ({
                   else if (val === 'ssd_custom') gb = config.storageSizeGb || 256;
                   setConfig({ ...config, storageMedium: val, storageSizeGb: gb });
                 }}
-                className="col-span-2 p-2 rounded-lg border border-slate-300 dark:border-slate-700 bg-white/80 dark:bg-slate-900 text-xs font-medium focus:border-[#00646E] outline-none"
+                className="col-span-2 p-2 rounded-lg border border-slate-300 dark:border-slate-700 bg-white/80 dark:bg-slate-900 text-xs font-medium focus:border-[#00646E] focus:ring-2 focus:ring-[#00646E]/20 outline-none"
               >
                 <option value="sd_512m">SIMATIC SD Card 512 MB</option>
                 <option value="sd_2g">SIMATIC SD Card 2 GB</option>
-                <option value="sd_12g">SIMATIC SD Card 12 GB (Standard UCP)</option>
+                <option value="sd_12g">{t.storageSdCard12gUcp}</option>
                 <option value="sd_32g">SIMATIC SD Card 32 GB</option>
                 <option value="usb_128g">Industrial USB Flash 128 GB</option>
-                <option value="ssd_custom">Custom SSD / Hard Drive</option>
+                <option value="ssd_custom">{t.storageCustomSsd}</option>
               </select>
 
               {config.storageMedium === 'ssd_custom' && (
@@ -176,9 +195,12 @@ export const UnifiedTab: React.FC<UnifiedTabProps> = ({
                   <input
                     type="number"
                     min="1"
-                    value={config.storageSizeGb}
-                    onChange={(e) => setConfig({ ...config, storageSizeGb: Math.max(1, parseFloat(e.target.value) || 100) })}
-                    className="p-1 px-2 text-xs rounded border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 w-24 font-mono"
+                    value={config.storageSizeGb || ''}
+                    onChange={(e) => {
+                      const val = e.target.value === '' ? 1 : Math.max(1, parseFloat(e.target.value) || 1);
+                      setConfig({ ...config, storageSizeGb: val });
+                    }}
+                    className="p-1 px-2 text-xs rounded border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 w-24 font-mono focus:ring-2 focus:ring-[#00646E]/20 outline-none"
                   />
                   <span className="text-xs font-semibold">GB</span>
                 </div>
@@ -199,7 +221,7 @@ export const UnifiedTab: React.FC<UnifiedTabProps> = ({
               className="text-xs text-[#00646E] dark:text-[#00A3B5] hover:underline flex items-center gap-1 font-medium cursor-pointer"
             >
               <RefreshCw className="w-3 h-3" />
-              {t.loadDemoTags}
+              {lang === 'ru' ? 'Загрузить демо-теги' : 'Load Demo Tags'}
             </button>
           </div>
 
@@ -211,9 +233,17 @@ export const UnifiedTab: React.FC<UnifiedTabProps> = ({
               <input
                 type="number"
                 min="1"
-                value={config.retentionDays}
-                onChange={(e) => setConfig({ ...config, retentionDays: Math.max(1, parseInt(e.target.value, 10) || 1) })}
-                className="p-2 text-sm font-semibold rounded-lg border border-slate-300 dark:border-slate-700 bg-white/80 dark:bg-slate-900 focus:border-[#00646E] outline-none"
+                value={config.retentionDays || ''}
+                onChange={(e) => {
+                  const val = e.target.value === '' ? 0 : Math.max(0, parseInt(e.target.value, 10) || 0);
+                  setConfig({ ...config, retentionDays: val });
+                }}
+                onBlur={() => {
+                  if (!config.retentionDays || config.retentionDays < 1) {
+                    setConfig({ ...config, retentionDays: 30 });
+                  }
+                }}
+                className="p-2 text-sm font-semibold rounded-lg border border-slate-300 dark:border-slate-700 bg-white/80 dark:bg-slate-900 focus:border-[#00646E] focus:ring-2 focus:ring-[#00646E]/20 outline-none"
               />
               <span className="text-[10px] text-slate-400 leading-tight">{t.retentionHelper}</span>
             </div>
@@ -225,9 +255,17 @@ export const UnifiedTab: React.FC<UnifiedTabProps> = ({
               <input
                 type="number"
                 min="1"
-                value={config.segmentHours}
-                onChange={(e) => setConfig({ ...config, segmentHours: Math.max(1, parseInt(e.target.value, 10) || 1) })}
-                className="p-2 text-sm font-semibold rounded-lg border border-slate-300 dark:border-slate-700 bg-white/80 dark:bg-slate-900 focus:border-[#00646E] outline-none"
+                value={config.segmentHours || ''}
+                onChange={(e) => {
+                  const val = e.target.value === '' ? 0 : Math.max(0, parseInt(e.target.value, 10) || 0);
+                  setConfig({ ...config, segmentHours: val });
+                }}
+                onBlur={() => {
+                  if (!config.segmentHours || config.segmentHours < 1) {
+                    setConfig({ ...config, segmentHours: 24 });
+                  }
+                }}
+                className="p-2 text-sm font-semibold rounded-lg border border-slate-300 dark:border-slate-700 bg-white/80 dark:bg-slate-900 focus:border-[#00646E] focus:ring-2 focus:ring-[#00646E]/20 outline-none"
               />
               <span className="text-[10px] text-slate-400 leading-tight">{t.segmentHelper}</span>
             </div>
@@ -239,9 +277,17 @@ export const UnifiedTab: React.FC<UnifiedTabProps> = ({
               <input
                 type="number"
                 min="10"
-                value={config.perEntryBytes}
-                onChange={(e) => setConfig({ ...config, perEntryBytes: Math.max(10, parseInt(e.target.value, 10) || 50) })}
-                className="p-2 text-sm font-semibold rounded-lg border border-slate-300 dark:border-slate-700 bg-white/80 dark:bg-slate-900 focus:border-[#00646E] outline-none"
+                value={config.perEntryBytes || ''}
+                onChange={(e) => {
+                  const val = e.target.value === '' ? 0 : Math.max(0, parseInt(e.target.value, 10) || 0);
+                  setConfig({ ...config, perEntryBytes: val });
+                }}
+                onBlur={() => {
+                  if (!config.perEntryBytes || config.perEntryBytes < 10) {
+                    setConfig({ ...config, perEntryBytes: 50 });
+                  }
+                }}
+                className="p-2 text-sm font-semibold rounded-lg border border-slate-300 dark:border-slate-700 bg-white/80 dark:bg-slate-900 focus:border-[#00646E] focus:ring-2 focus:ring-[#00646E]/20 outline-none"
               />
               <span className="text-[10px] text-slate-400 leading-tight">{t.entryBytesHelper}</span>
             </div>
@@ -253,11 +299,14 @@ export const UnifiedTab: React.FC<UnifiedTabProps> = ({
               <input
                 type="number"
                 min="0"
-                value={config.headroomPct}
-                onChange={(e) => setConfig({ ...config, headroomPct: Math.max(0, parseInt(e.target.value, 10) || 0) })}
-                className="p-2 text-sm font-semibold rounded-lg border border-slate-300 dark:border-slate-700 bg-white/80 dark:bg-slate-900 focus:border-[#00646E] outline-none"
+                value={config.headroomPct !== undefined ? config.headroomPct : ''}
+                onChange={(e) => {
+                  const val = e.target.value === '' ? 0 : Math.max(0, parseInt(e.target.value, 10) || 0);
+                  setConfig({ ...config, headroomPct: val });
+                }}
+                className="p-2 text-sm font-semibold rounded-lg border border-slate-300 dark:border-slate-700 bg-white/80 dark:bg-slate-900 focus:border-[#00646E] focus:ring-2 focus:ring-[#00646E]/20 outline-none"
               />
-              <span className="text-[10px] text-slate-400 leading-tight">+30% для индексов</span>
+              <span className="text-[10px] text-slate-400 leading-tight">{t.headroomHelper}</span>
             </div>
           </div>
 
@@ -275,7 +324,7 @@ export const UnifiedTab: React.FC<UnifiedTabProps> = ({
                     disabled={!config.includeAlarms}
                     value={config.alarmsPerDay}
                     onChange={(e) => setConfig({ ...config, alarmsPerDay: Math.max(0, parseInt(e.target.value, 10) || 0) })}
-                    className="w-20 p-0.5 text-xs font-mono rounded border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 mt-1 disabled:opacity-50"
+                    className="w-20 p-0.5 text-xs font-mono rounded border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 mt-1 disabled:opacity-50 focus:ring-1 focus:ring-[#00646E] outline-none"
                   />
                   <span className="text-[10px] text-slate-400 ml-1.5">{t.alarmsPerDay}</span>
                 </div>
@@ -300,7 +349,7 @@ export const UnifiedTab: React.FC<UnifiedTabProps> = ({
                     disabled={!config.includeAudit}
                     value={config.auditEntriesPerDay}
                     onChange={(e) => setConfig({ ...config, auditEntriesPerDay: Math.max(0, parseInt(e.target.value, 10) || 0) })}
-                    className="w-20 p-0.5 text-xs font-mono rounded border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 mt-1 disabled:opacity-50"
+                    className="w-20 p-0.5 text-xs font-mono rounded border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 mt-1 disabled:opacity-50 focus:ring-1 focus:ring-[#00646E] outline-none"
                   />
                   <span className="text-[10px] text-slate-400 ml-1.5">{t.auditPerDay}</span>
                 </div>
@@ -325,7 +374,7 @@ export const UnifiedTab: React.FC<UnifiedTabProps> = ({
               {t.tagListTitle}
             </h2>
             <span className="text-xs font-bold px-2 py-0.5 rounded-full bg-slate-200 dark:bg-slate-800 text-slate-700 dark:text-slate-300">
-              {result.totalTags} {t.tagsCountSuffix}
+              {formatPlural(result.totalTags, lang, ['тег', 'тега', 'тегов'], ['tag', 'tags'])}
             </span>
           </div>
 
@@ -345,7 +394,7 @@ export const UnifiedTab: React.FC<UnifiedTabProps> = ({
               {t.btnAddBulk}
             </button>
             <button
-              onClick={() => setIsConfirmClearOpen(true)}
+              onClick={() => setIsConfirmModalOpen(true)}
               className="px-2.5 py-1.5 rounded-lg text-xs font-medium text-rose-500 hover:bg-rose-50 dark:hover:bg-rose-950/40 transition-all cursor-pointer"
             >
               {t.btnClearAll}
@@ -370,8 +419,8 @@ export const UnifiedTab: React.FC<UnifiedTabProps> = ({
             <tbody className="divide-y divide-slate-200/60 dark:divide-slate-800/60">
               {tags.length === 0 ? (
                 <tr>
-                  <td colSpan={7} className="p-8 text-center text-slate-400">
-                    {lang === 'ru' ? 'Теги процесса не добавлены. Добавьте тег или пакет.' : 'No process tags added yet. Click "+ Add Tag" or "+ Bulk Tags".'}
+                  <td colSpan={7} className="p-6 text-center text-xs text-slate-400">
+                    {lang === 'ru' ? 'Список тегов пуст. Нажмите «+ Добавить тег» или «+ Пакет тегов».' : 'Tag list is empty. Click "+ Add Tag" or "+ Bulk Tags" to configure.'}
                   </td>
                 </tr>
               ) : (
@@ -382,14 +431,14 @@ export const UnifiedTab: React.FC<UnifiedTabProps> = ({
                         type="text"
                         value={tag.description}
                         onChange={(e) => handleUpdateTag(tag.id, { description: e.target.value })}
-                        className="w-full p-1.5 text-xs rounded border border-slate-200 dark:border-slate-700 bg-white/90 dark:bg-slate-900 focus:border-[#00646E] outline-none font-medium"
+                        className="w-full p-1.5 text-xs rounded border border-slate-200 dark:border-slate-700 bg-white/90 dark:bg-slate-900 focus:border-[#00646E] focus:ring-1 focus:ring-[#00646E] outline-none font-medium"
                       />
                     </td>
                     <td className="p-2.5">
                       <select
                         value={tag.dataType}
-                        onChange={(e) => handleUpdateTag(tag.id, { dataType: e.target.value as any })}
-                        className="p-1.5 text-xs rounded border border-slate-200 dark:border-slate-700 bg-white/90 dark:bg-slate-900 outline-none"
+                        onChange={(e) => handleUpdateTag(tag.id, { dataType: e.target.value as UnifiedTag['dataType'] })}
+                        className="p-1.5 text-xs rounded border border-slate-200 dark:border-slate-700 bg-white/90 dark:bg-slate-900 outline-none focus:ring-1 focus:ring-[#00646E]"
                       >
                         <option value="Real">Real (4B)</option>
                         <option value="LReal">LReal (8B)</option>
@@ -402,8 +451,8 @@ export const UnifiedTab: React.FC<UnifiedTabProps> = ({
                     <td className="p-2.5">
                       <select
                         value={tag.mode}
-                        onChange={(e) => handleUpdateTag(tag.id, { mode: e.target.value as any })}
-                        className="p-1.5 text-xs rounded border border-slate-200 dark:border-slate-700 bg-white/90 dark:bg-slate-900 outline-none font-medium"
+                        onChange={(e) => handleUpdateTag(tag.id, { mode: e.target.value as 'cyclic' | 'onchange' })}
+                        className="p-1.5 text-xs rounded border border-slate-200 dark:border-slate-700 bg-white/90 dark:bg-slate-900 outline-none font-medium focus:ring-1 focus:ring-[#00646E]"
                       >
                         <option value="cyclic">{t.modeCyclic}</option>
                         <option value="onchange">{t.modeOnChange}</option>
@@ -415,9 +464,17 @@ export const UnifiedTab: React.FC<UnifiedTabProps> = ({
                         step="0.1"
                         min="0.01"
                         disabled={tag.mode === 'onchange'}
-                        value={tag.cycleSec}
-                        onChange={(e) => handleUpdateTag(tag.id, { cycleSec: Math.max(0.01, parseFloat(e.target.value) || 1) })}
-                        className="w-20 p-1.5 text-xs font-mono rounded border border-slate-200 dark:border-slate-700 bg-white/90 dark:bg-slate-900 focus:border-[#00646E] outline-none disabled:opacity-40"
+                        value={tag.cycleSec || ''}
+                        onChange={(e) => {
+                          const val = e.target.value === '' ? 0 : parseFloat(e.target.value) || 0;
+                          handleUpdateTag(tag.id, { cycleSec: val });
+                        }}
+                        onBlur={() => {
+                          if (!tag.cycleSec || tag.cycleSec <= 0) {
+                            handleUpdateTag(tag.id, { cycleSec: 1 });
+                          }
+                        }}
+                        className="w-20 p-1.5 text-xs font-mono rounded border border-slate-200 dark:border-slate-700 bg-white/90 dark:bg-slate-900 focus:border-[#00646E] focus:ring-1 focus:ring-[#00646E] outline-none disabled:opacity-40"
                       />
                     </td>
                     <td className="p-2.5 font-mono text-slate-600 dark:text-slate-300">
@@ -427,9 +484,17 @@ export const UnifiedTab: React.FC<UnifiedTabProps> = ({
                       <input
                         type="number"
                         min="1"
-                        value={tag.count}
-                        onChange={(e) => handleUpdateTag(tag.id, { count: Math.max(1, parseInt(e.target.value, 10) || 1) })}
-                        className="w-16 p-1.5 text-xs font-mono rounded border border-slate-200 dark:border-slate-700 bg-white/90 dark:bg-slate-900 focus:border-[#00646E] outline-none"
+                        value={tag.count || ''}
+                        onChange={(e) => {
+                          const val = e.target.value === '' ? 0 : parseInt(e.target.value, 10) || 0;
+                          handleUpdateTag(tag.id, { count: val });
+                        }}
+                        onBlur={() => {
+                          if (!tag.count || tag.count < 1) {
+                            handleUpdateTag(tag.id, { count: 1 });
+                          }
+                        }}
+                        className="w-16 p-1.5 text-xs font-mono rounded border border-slate-200 dark:border-slate-700 bg-white/90 dark:bg-slate-900 focus:border-[#00646E] focus:ring-1 focus:ring-[#00646E] outline-none"
                       />
                     </td>
                     <td className="p-2.5 text-right">
@@ -457,7 +522,7 @@ export const UnifiedTab: React.FC<UnifiedTabProps> = ({
             {t.resultsTitle}
           </h2>
           <span className="text-xs font-mono text-slate-500">
-            {result.totalSegments.toFixed(1)} {lang === 'ru' ? 'сегментов за' : 'segments in'} {config.retentionDays} {lang === 'ru' ? 'дн.' : 'days'}
+            {formatPlural(result.totalSegments, lang, ['сегмент', 'сегмента', 'сегментов'], ['segment', 'segments'])} {lang === 'ru' ? 'за' : 'over'} {formatPlural(config.retentionDays, lang, ['день', 'дня', 'дней'], ['day', 'days'])}
           </span>
         </div>
 
@@ -472,7 +537,7 @@ export const UnifiedTab: React.FC<UnifiedTabProps> = ({
               {result.entriesPerDay.toLocaleString()}
             </div>
             <div className="mt-2">
-              <TrafficGauge rate={result.totalEntriesPerSec} />
+              <TrafficGauge rate={result.totalEntriesPerSec} lang={lang} />
             </div>
           </div>
 
@@ -564,19 +629,19 @@ export const UnifiedTab: React.FC<UnifiedTabProps> = ({
         isOpen={isBulkModalOpen}
         onClose={() => setIsBulkModalOpen(false)}
         onAdd={handleBulkAddSubmit}
+        tab="unified"
         lang={lang}
-        platform="unified"
       />
 
       {/* Clear Confirmation Modal */}
       <ConfirmModal
-        isOpen={isConfirmClearOpen}
+        isOpen={isConfirmModalOpen}
+        onClose={() => setIsConfirmModalOpen(false)}
+        onConfirm={handleClearAllConfirm}
         title={t.confirmClearTitle}
-        message={t.confirmClearText}
-        confirmText={t.confirmBtnConfirm}
-        cancelText={t.confirmBtnCancel}
-        onConfirm={() => setTags([])}
-        onCancel={() => setIsConfirmClearOpen(false)}
+        message={t.confirmClearMsg}
+        confirmLabel={t.btnClear}
+        cancelLabel={t.btnCancel}
       />
     </div>
   );

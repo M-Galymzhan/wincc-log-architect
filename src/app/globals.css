@@ -82,4 +82,12 @@ body {
   .print-only {
     display: block !important;
   }
+  .fixed {
+    position: static !important;
+  }
+  div[class*="overflow-y-auto"],
+  div[class*="max-h-"] {
+    overflow: visible !important;
+    max-height: none !important;
+  }
 }

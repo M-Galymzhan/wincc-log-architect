@@ -38,13 +38,21 @@ export const NavigationTabs: React.FC<NavigationTabsProps> = ({ activeTab, setAc
   ];
 
   return (
-    <div className="flex items-center gap-2 p-1.5 rounded-2xl glass-panel max-w-4xl mx-auto mb-6 shadow-md overflow-x-auto">
+    <div
+      role="tablist"
+      aria-label="WinCC Systems"
+      className="flex items-center gap-2 p-1.5 rounded-2xl glass-panel max-w-4xl mx-auto mb-6 shadow-md overflow-x-auto"
+    >
       {tabs.map((tab) => {
         const Icon = tab.icon;
         const isActive = activeTab === tab.id;
         return (
           <button
             key={tab.id}
+            role="tab"
+            aria-selected={isActive}
+            id={`tab-${tab.id}`}
+            aria-controls={`tabpanel-${tab.id}`}
             onClick={() => setActiveTab(tab.id)}
             className={`flex-1 min-w-[200px] flex items-center justify-center gap-2.5 py-2.5 px-4 rounded-xl text-sm font-semibold transition-all duration-200 cursor-pointer ${
               isActive

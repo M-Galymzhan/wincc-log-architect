@@ -1,63 +1,75 @@
 'use client';
 import React, { useEffect } from 'react';
-import { CheckCircle2, AlertCircle, Info, X } from 'lucide-react';
+import { ToastMessage } from '../lib/types';
+import { CheckCircle2, AlertTriangle, AlertCircle, Info, X } from 'lucide-react';
 
-export type ToastType = 'success' | 'error' | 'info';
-
-export interface ToastProps {
-  message: string | null;
-  type?: ToastType;
-  onClose: () => void;
-  durationMs?: number;
+interface ToastProps {
+  toasts: ToastMessage[];
+  onDismiss: (id: string) => void;
 }
 
-export const Toast: React.FC<ToastProps> = ({
-  message,
-  type = 'info',
-  onClose,
-  durationMs = 3500,
+const ToastItem: React.FC<{ toast: ToastMessage; onDismiss: (id: string) => void }> = ({
+  toast,
+  onDismiss,
 }) => {
   useEffect(() => {
-    if (!message) return;
     const timer = setTimeout(() => {
-      onClose();
-    }, durationMs);
+      onDismiss(toast.id);
+    }, 4000);
     return () => clearTimeout(timer);
-  }, [message, durationMs, onClose]);
+  }, [toast.id, onDismiss]);
 
-  if (!message) return null;
+  let borderClass = 'border-emerald-500/50 text-emerald-900 dark:text-emerald-100 bg-emerald-50/90 dark:bg-emerald-950/90';
+  let Icon = CheckCircle2;
+  let iconColor = 'text-emerald-500';
 
-  const bgStyles = {
-    success: 'bg-emerald-950/90 border-emerald-500/40 text-emerald-100 shadow-emerald-950/50',
-    error: 'bg-rose-950/90 border-rose-500/40 text-rose-100 shadow-rose-950/50',
-    info: 'bg-[#00383D]/90 border-[#00A3B5]/40 text-[#E0F7FA] shadow-cyan-950/50',
-  }[type];
-
-  const IconComponent = {
-    success: CheckCircle2,
-    error: AlertCircle,
-    info: Info,
-  }[type];
-
-  const iconColor = {
-    success: 'text-emerald-400',
-    error: 'text-rose-400',
-    info: 'text-[#00E5FF]',
-  }[type];
+  if (toast.type === 'error') {
+    borderClass = 'border-rose-500/50 text-rose-900 dark:text-rose-100 bg-rose-50/90 dark:bg-rose-950/90';
+    Icon = AlertCircle;
+    iconColor = 'text-rose-500';
+  } else if (toast.type === 'warning') {
+    borderClass = 'border-amber-500/50 text-amber-900 dark:text-amber-100 bg-amber-50/90 dark:bg-amber-950/90';
+    Icon = AlertTriangle;
+    iconColor = 'text-amber-500';
+  } else if (toast.type === 'info') {
+    borderClass = 'border-[#00A3B5]/50 text-cyan-900 dark:text-cyan-100 bg-cyan-50/90 dark:bg-cyan-950/90';
+    Icon = Info;
+    iconColor = 'text-[#00A3B5]';
+  }
 
   return (
-    <div className="fixed bottom-6 right-6 z-50 animate-in fade-in slide-in-from-bottom-5 duration-300 pointer-events-auto">
-      <div className={`flex items-center gap-3 px-4 py-3 rounded-2xl border backdrop-blur-xl shadow-2xl min-w-[300px] max-w-md ${bgStyles}`}>
-        <IconComponent className={`w-5 h-5 shrink-0 ${iconColor}`} />
-        <p className="text-xs font-medium leading-snug flex-1 select-none">{message}</p>
-        <button
-          onClick={onClose}
-          className="p-1 rounded-lg hover:bg-white/10 text-white/60 hover:text-white transition-colors cursor-pointer"
-          aria-label="Close notification"
-        >
-          <X className="w-4 h-4" />
-        </button>
+    <div
+      className={`pointer-events-auto flex items-center justify-between gap-3 p-3.5 rounded-2xl border shadow-xl backdrop-blur-xl transition-all duration-300 transform translate-y-0 opacity-100 animate-in slide-in-from-bottom-2 ${borderClass}`}
+    >
+      <div className="flex items-center gap-2.5 min-w-0">
+        <Icon className={`w-5 h-5 shrink-0 ${iconColor}`} />
+        <p className="text-xs font-semibold leading-snug break-words">
+          {toast.message}
+        </p>
       </div>
+      <button
+        onClick={() => onDismiss(toast.id)}
+        className="p-1 rounded-lg text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 hover:bg-black/5 dark:hover:bg-white/10 transition-colors cursor-pointer shrink-0"
+        aria-label="Dismiss notification"
+      >
+        <X className="w-3.5 h-3.5" />
+      </button>
+    </div>
+  );
+};
+
+export const Toast: React.FC<ToastProps> = ({ toasts, onDismiss }) => {
+  if (toasts.length === 0) return null;
+
+  return (
+    <div 
+      role="status"
+      aria-live="polite"
+      className="fixed bottom-6 right-6 z-50 flex flex-col gap-2 max-w-sm w-full pointer-events-none px-4 sm:px-0"
+    >
+      {toasts.map((toast) => (
+        <ToastItem key={toast.id} toast={toast} onDismiss={onDismiss} />
+      ))}
     </div>
   );
 };

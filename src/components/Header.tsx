@@ -2,7 +2,7 @@
 import React from 'react';
 import { Language, Theme } from '../lib/types';
 import { translations } from '../lib/i18n';
-import { Sun, Moon, FileText, Download, Upload, Copy, Database, Cpu } from 'lucide-react';
+import { Sun, Moon, FileText, Download, Upload, Copy, Cpu } from 'lucide-react';
 
 interface HeaderProps {
   lang: Language;
