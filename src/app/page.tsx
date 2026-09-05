@@ -12,6 +12,8 @@ import { ComfortTab } from '../components/tabs/ComfortTab';
 import { ProfessionalTab } from '../components/tabs/ProfessionalTab';
 import { TiaCheatSheetModal } from '../components/TiaCheatSheetModal';
 import { ReportModal } from '../components/ReportModal';
+import { IndustryPresetsModal } from '../components/IndustryPresetsModal';
+import { IndustryPreset } from '../lib/presets';
 import { Toast } from '../components/Toast';
 
 export default function Home() {
@@ -22,6 +24,7 @@ export default function Home() {
 
   const [isCheatSheetOpen, setIsCheatSheetOpen] = useState(false);
   const [isReportOpen, setIsReportOpen] = useState(false);
+  const [isPresetsOpen, setIsPresetsOpen] = useState(false);
   const [toasts, setToasts] = useState<ToastMessage[]>([]);
 
   const addToast = useCallback((message: string, type: ToastMessage['type'] = 'info') => {
@@ -219,6 +222,17 @@ export default function Home() {
     input.click();
   };
 
+  const handleApplyPreset = (preset: IndustryPreset) => {
+    if (activeTab === 'unified') {
+      setUnifiedTags(preset.unifiedTags.map((t, i) => ({ ...t, id: `${preset.id}_${i + 1}` })));
+    } else if (activeTab === 'comfort') {
+      setComfortTags(preset.comfortTags.map((t, i) => ({ ...t, id: `${preset.id}_${i + 1}` })));
+    } else {
+      setProTags(preset.proTags.map((t, i) => ({ ...t, id: `${preset.id}_${i + 1}` })));
+    }
+    addToast(translations[lang].presetAppliedToast, 'success');
+  };
+
   // Calculations with active language for localized warnings
   const unifiedResult = calculateUnified(unifiedTags, unifiedConfig, lang);
   const comfortResult = calculateComfort(comfortTags, comfortConfig, lang);
@@ -250,17 +264,23 @@ export default function Home() {
         setTheme={setTheme}
         onOpenReport={() => setIsReportOpen(true)}
         onOpenCheatSheet={() => setIsCheatSheetOpen(true)}
+        onOpenPresets={() => setIsPresetsOpen(true)}
         onExportJson={handleExportJson}
         onImportJson={handleImportJson}
       />
 
       {/* Main Content Area */}
       <main className="max-w-7xl mx-auto px-4 lg:px-8 pt-6 relative z-10">
-        {/* Navigation Tabs */}
+        {/* Navigation Tabs with Warnings Indicator */}
         <NavigationTabs
           activeTab={activeTab}
           setActiveTab={setActiveTab}
           lang={lang}
+          warnings={{
+            unified: unifiedResult.warnings.length > 0,
+            comfort: comfortResult.warnings.length > 0,
+            professional: proResult.warnings.length > 0,
+          }}
         />
 
         {/* Tab Panels */}
@@ -327,6 +347,15 @@ export default function Home() {
         unifiedData={{ config: unifiedConfig, result: unifiedResult }}
         comfortData={{ config: comfortConfig, result: comfortResult }}
         proData={{ config: proConfig, result: proResult }}
+      />
+
+      {/* Industry Presets Modal */}
+      <IndustryPresetsModal
+        isOpen={isPresetsOpen}
+        onClose={() => setIsPresetsOpen(false)}
+        onSelectPreset={handleApplyPreset}
+        activeTab={activeTab}
+        lang={lang}
       />
 
       {/* Toast Notifications */}

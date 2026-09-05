@@ -7,8 +7,10 @@ import { BulkAddModal } from '../BulkAddModal';
 import { ConfirmModal } from '../ConfirmModal';
 import { 
   Plus, Trash2, Layers, AlertTriangle, CheckCircle2, 
-  ShieldCheck, Bell, Cpu, Clock, RefreshCw 
+  ShieldCheck, Bell, Cpu, Clock, RefreshCw, Download, Settings2 
 } from 'lucide-react';
+import { getSiemensArticle } from '../../lib/calculator/mlfbCatalog';
+import { generateTiaPortalCsv, downloadFile } from '../../lib/tiaExporter';
 
 interface UnifiedTabProps {
   tags: UnifiedTag[];
@@ -102,6 +104,12 @@ export const UnifiedTab: React.FC<UnifiedTabProps> = ({
   const handleClearAllConfirm = () => {
     setTags([]);
     if (onShowToast) onShowToast(t.toastCleared, 'info');
+  };
+
+  const handleExportTiaCsv = () => {
+    const csv = generateTiaPortalCsv('unified', tags, 'Unified_DataLog');
+    downloadFile(csv, `TIA_WinCC_Unified_Tags_${new Date().toISOString().slice(0, 10)}.csv`);
+    if (onShowToast) onShowToast(t.exportTiaSuccess, 'success');
   };
 
   return (
@@ -206,6 +214,26 @@ export const UnifiedTab: React.FC<UnifiedTabProps> = ({
                 </div>
               )}
             </div>
+
+            {/* Siemens MLFB Article Info */}
+            {(() => {
+              const article = getSiemensArticle(config.storageMedium);
+              return (
+                <div className="mt-3 p-2.5 rounded-xl bg-slate-100/90 dark:bg-slate-800/80 border border-slate-200/80 dark:border-slate-700/80 flex flex-col gap-1">
+                  <div className="flex items-center justify-between">
+                    <span className="text-[10px] uppercase font-bold tracking-wider text-slate-500 dark:text-slate-400">
+                      {t.mlfbSiemensArticle}
+                    </span>
+                    <span className="text-xs font-mono font-bold text-[#00646E] dark:text-[#00A3B5] bg-[#00646E]/10 dark:bg-[#00A3B5]/10 px-2 py-0.5 rounded border border-[#00646E]/20 dark:border-[#00A3B5]/20">
+                      {article.mlfb}
+                    </span>
+                  </div>
+                  <div className="text-[11px] text-slate-600 dark:text-slate-300">
+                    {lang === 'ru' ? article.descriptionRu : article.descriptionEn}
+                  </div>
+                </div>
+              );
+            })()}
           </div>
         </div>
 
@@ -225,7 +253,7 @@ export const UnifiedTab: React.FC<UnifiedTabProps> = ({
             </button>
           </div>
 
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3.5 mb-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5 mb-3">
             <div className="flex flex-col gap-1">
               <label className="text-[11px] font-semibold text-slate-500 dark:text-slate-400">
                 {t.retentionDays}
@@ -269,46 +297,56 @@ export const UnifiedTab: React.FC<UnifiedTabProps> = ({
               />
               <span className="text-[10px] text-slate-500 dark:text-slate-400 leading-tight">{t.segmentHelper}</span>
             </div>
-
-            <div className="flex flex-col gap-1">
-              <label className="text-[11px] font-semibold text-slate-600 dark:text-slate-300">
-                {t.entryBytes}
-              </label>
-              <input
-                type="number"
-                min="10"
-                value={config.perEntryBytes || ''}
-                onChange={(e) => {
-                  const val = e.target.value === '' ? 0 : Math.max(0, parseInt(e.target.value, 10) || 0);
-                  setConfig({ ...config, perEntryBytes: val });
-                }}
-                onBlur={() => {
-                  if (!config.perEntryBytes || config.perEntryBytes < 10) {
-                    setConfig({ ...config, perEntryBytes: 50 });
-                  }
-                }}
-                className="p-2 text-sm font-semibold rounded-lg border border-slate-300 dark:border-slate-700 bg-white/80 dark:bg-slate-900 text-slate-900 dark:text-slate-100 focus:border-[#00646E] focus:ring-2 focus:ring-[#00646E]/20 outline-none"
-              />
-              <span className="text-[10px] text-slate-500 dark:text-slate-400 leading-tight">{t.entryBytesHelper}</span>
-            </div>
-
-            <div className="flex flex-col gap-1">
-              <label className="text-[11px] font-semibold text-slate-600 dark:text-slate-300">
-                {t.headroom}
-              </label>
-              <input
-                type="number"
-                min="0"
-                value={config.headroomPct !== undefined ? config.headroomPct : ''}
-                onChange={(e) => {
-                  const val = e.target.value === '' ? 0 : Math.max(0, parseInt(e.target.value, 10) || 0);
-                  setConfig({ ...config, headroomPct: val });
-                }}
-                className="p-2 text-sm font-semibold rounded-lg border border-slate-300 dark:border-slate-700 bg-white/80 dark:bg-slate-900 text-slate-900 dark:text-slate-100 focus:border-[#00646E] focus:ring-2 focus:ring-[#00646E]/20 outline-none"
-              />
-              <span className="text-[10px] text-slate-500 dark:text-slate-400 leading-tight">{t.headroomHelper}</span>
-            </div>
           </div>
+
+          {/* Advanced Engineering Settings Accordion */}
+          <details className="border border-slate-200/80 dark:border-slate-800 rounded-xl p-2.5 bg-slate-50/60 dark:bg-slate-900/60 mb-3">
+            <summary className="cursor-pointer text-xs font-semibold text-slate-700 dark:text-slate-300 flex items-center gap-1.5 select-none hover:text-[#00646E] dark:hover:text-[#00A3B5] transition-colors">
+              <Settings2 className="w-3.5 h-3.5 text-[#00646E] dark:text-[#00A3B5]" />
+              <span>{t.advancedSettingsTitle}</span>
+              <span className="text-[10px] text-slate-400 ml-auto hidden sm:inline">{t.advancedSettingsHint}</span>
+            </summary>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-3 mt-2 border-t border-slate-200/60 dark:border-slate-800">
+              <div className="flex flex-col gap-1">
+                <label className="text-[11px] font-semibold text-slate-600 dark:text-slate-300">
+                  {t.entryBytes}
+                </label>
+                <input
+                  type="number"
+                  min="10"
+                  value={config.perEntryBytes || ''}
+                  onChange={(e) => {
+                    const val = e.target.value === '' ? 0 : Math.max(0, parseInt(e.target.value, 10) || 0);
+                    setConfig({ ...config, perEntryBytes: val });
+                  }}
+                  onBlur={() => {
+                    if (!config.perEntryBytes || config.perEntryBytes < 10) {
+                      setConfig({ ...config, perEntryBytes: 50 });
+                    }
+                  }}
+                  className="p-1.5 text-xs font-semibold rounded-lg border border-slate-300 dark:border-slate-700 bg-white/80 dark:bg-slate-900 text-slate-900 dark:text-slate-100 focus:border-[#00646E] focus:ring-2 focus:ring-[#00646E]/20 outline-none"
+                />
+                <span className="text-[10px] text-slate-500 dark:text-slate-400 leading-tight">{t.entryBytesHelper}</span>
+              </div>
+
+              <div className="flex flex-col gap-1">
+                <label className="text-[11px] font-semibold text-slate-600 dark:text-slate-300">
+                  {t.headroom}
+                </label>
+                <input
+                  type="number"
+                  min="0"
+                  value={config.headroomPct !== undefined ? config.headroomPct : ''}
+                  onChange={(e) => {
+                    const val = e.target.value === '' ? 0 : Math.max(0, parseInt(e.target.value, 10) || 0);
+                    setConfig({ ...config, headroomPct: val });
+                  }}
+                  className="p-1.5 text-xs font-semibold rounded-lg border border-slate-300 dark:border-slate-700 bg-white/80 dark:bg-slate-900 text-slate-900 dark:text-slate-100 focus:border-[#00646E] focus:ring-2 focus:ring-[#00646E]/20 outline-none"
+                />
+                <span className="text-[10px] text-slate-500 dark:text-slate-400 leading-tight">{t.headroomHelper}</span>
+              </div>
+            </div>
+          </details>
 
           {/* Alarm & Audit Trail Addons */}
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-3 border-t border-slate-200/60 dark:border-slate-800">
@@ -379,6 +417,14 @@ export const UnifiedTab: React.FC<UnifiedTabProps> = ({
           </div>
 
           <div className="flex items-center gap-2">
+            <button
+              onClick={handleExportTiaCsv}
+              className="px-3 py-1.5 rounded-lg text-xs font-semibold bg-emerald-600 hover:bg-emerald-500 text-white flex items-center gap-1.5 transition-all shadow-sm active:scale-95 cursor-pointer"
+              title={t.btnExportTiaCsv}
+            >
+              <Download className="w-3.5 h-3.5" />
+              <span className="hidden sm:inline">{t.btnExportTiaCsv}</span>
+            </button>
             <button
               onClick={handleAddTag}
               className="px-3 py-1.5 rounded-lg text-xs font-semibold bg-[#00646E] text-white hover:bg-[#004D54] flex items-center gap-1.5 transition-all shadow-sm active:scale-95 cursor-pointer"
@@ -459,23 +505,46 @@ export const UnifiedTab: React.FC<UnifiedTabProps> = ({
                       </select>
                     </td>
                     <td className="p-2.5">
-                      <input
-                        type="number"
-                        step="0.1"
-                        min="0.01"
-                        disabled={tag.mode === 'onchange'}
-                        value={tag.cycleSec || ''}
-                        onChange={(e) => {
-                          const val = e.target.value === '' ? 0 : parseFloat(e.target.value) || 0;
-                          handleUpdateTag(tag.id, { cycleSec: val });
-                        }}
-                        onBlur={() => {
-                          if (!tag.cycleSec || tag.cycleSec <= 0) {
-                            handleUpdateTag(tag.id, { cycleSec: 1 });
-                          }
-                        }}
-                        className="w-20 p-1.5 text-xs font-mono rounded border border-slate-200 dark:border-slate-700 bg-white/90 dark:bg-slate-900 text-slate-900 dark:text-slate-100 focus:border-[#00646E] focus:ring-1 focus:ring-[#00646E] outline-none disabled:opacity-40"
-                      />
+                      <div className="flex items-center gap-1">
+                        <input
+                          type="number"
+                          step="0.1"
+                          min="0.01"
+                          disabled={tag.mode === 'onchange'}
+                          value={tag.cycleSec || ''}
+                          onChange={(e) => {
+                            const val = e.target.value === '' ? 0 : parseFloat(e.target.value) || 0;
+                            handleUpdateTag(tag.id, { cycleSec: val });
+                          }}
+                          onBlur={() => {
+                            if (!tag.cycleSec || tag.cycleSec <= 0) {
+                              handleUpdateTag(tag.id, { cycleSec: 1 });
+                            }
+                          }}
+                          className="w-16 p-1.5 text-xs font-mono rounded border border-slate-200 dark:border-slate-700 bg-white/90 dark:bg-slate-900 text-slate-900 dark:text-slate-100 focus:border-[#00646E] focus:ring-1 focus:ring-[#00646E] outline-none disabled:opacity-40"
+                        />
+                        <select
+                          disabled={tag.mode === 'onchange'}
+                          value={[0.1, 0.5, 1, 2, 5, 10, 30, 60].includes(tag.cycleSec) ? tag.cycleSec : 'custom'}
+                          onChange={(e) => {
+                            if (e.target.value !== 'custom') {
+                              handleUpdateTag(tag.id, { cycleSec: parseFloat(e.target.value) });
+                            }
+                          }}
+                          className="p-1 text-[10px] rounded border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-slate-700 dark:text-slate-300 outline-none disabled:opacity-40 cursor-pointer"
+                          title={t.cycleQuickPresets}
+                        >
+                          <option value="custom">⚡</option>
+                          <option value="0.1">{t.cycle100ms}</option>
+                          <option value="0.5">{t.cycle500ms}</option>
+                          <option value="1">{t.cycle1s}</option>
+                          <option value="2">{t.cycle2s}</option>
+                          <option value="5">{t.cycle5s}</option>
+                          <option value="10">{t.cycle10s}</option>
+                          <option value="30">{t.cycle30s}</option>
+                          <option value="60">{t.cycle1m}</option>
+                        </select>
+                      </div>
                     </td>
                     <td className="p-2.5 font-mono text-slate-700 dark:text-slate-200 font-semibold">
                       {tag.entriesPerSec.toFixed(3)}

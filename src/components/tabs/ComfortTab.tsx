@@ -4,7 +4,9 @@ import { ComfortTag, ComfortConfig, ComfortResult, Language, ToastMessage } from
 import { translations, formatPlural } from '../../lib/i18n';
 import { BulkAddModal } from '../BulkAddModal';
 import { ConfirmModal } from '../ConfirmModal';
-import { Plus, Trash2, HardDrive, AlertTriangle, CheckCircle2, RefreshCw, FileSpreadsheet, Layers } from 'lucide-react';
+import { Plus, Trash2, HardDrive, AlertTriangle, CheckCircle2, RefreshCw, FileSpreadsheet, Layers, Download } from 'lucide-react';
+import { getSiemensArticle } from '../../lib/calculator/mlfbCatalog';
+import { generateTiaPortalCsv, downloadFile } from '../../lib/tiaExporter';
 
 interface ComfortTabProps {
   tags: ComfortTag[];
@@ -79,6 +81,12 @@ export const ComfortTab: React.FC<ComfortTabProps> = ({
   const handleClearAllConfirm = () => {
     setTags([]);
     if (onShowToast) onShowToast(t.toastCleared, 'info');
+  };
+
+  const handleExportTiaCsv = () => {
+    const csv = generateTiaPortalCsv('comfort', tags, 'Comfort_DataLog');
+    downloadFile(csv, `TIA_WinCC_Comfort_Tags_${new Date().toISOString().slice(0, 10)}.csv`);
+    if (onShowToast) onShowToast(t.exportTiaSuccess, 'success');
   };
 
   return (
@@ -250,6 +258,27 @@ export const ComfortTab: React.FC<ComfortTabProps> = ({
             </div>
           </div>
 
+          {/* Siemens MLFB Article Info */}
+          {(() => {
+            const mediumKey = config.storageMediumMb === 512 ? 'sd_512m' : config.storageMediumMb >= 32768 ? 'usb_128g' : 'sd_2g';
+            const article = getSiemensArticle(mediumKey);
+            return (
+              <div className="mt-3 p-2.5 rounded-xl bg-slate-100/90 dark:bg-slate-800/80 border border-slate-200/80 dark:border-slate-700/80 flex flex-col gap-1">
+                <div className="flex items-center justify-between">
+                  <span className="text-[10px] uppercase font-bold tracking-wider text-slate-500 dark:text-slate-400">
+                    {t.mlfbSiemensArticle}
+                  </span>
+                  <span className="text-xs font-mono font-bold text-emerald-600 dark:text-emerald-400 bg-emerald-600/10 dark:bg-emerald-400/10 px-2 py-0.5 rounded border border-emerald-600/20 dark:border-emerald-400/20">
+                    {article.mlfb}
+                  </span>
+                </div>
+                <div className="text-[11px] text-slate-600 dark:text-slate-300">
+                  {lang === 'ru' ? article.descriptionRu : article.descriptionEn}
+                </div>
+              </div>
+            );
+          })()}
+
           <div className="mt-4 p-3.5 rounded-xl bg-slate-50 dark:bg-slate-900/40 border border-slate-200/80 dark:border-slate-800 text-xs text-slate-600 dark:text-slate-300">
             <span className="font-semibold text-emerald-600 dark:text-emerald-400">
               {lang === 'ru' ? 'Правило TIA Portal: ' : 'TIA Portal Rule: '}
@@ -270,8 +299,16 @@ export const ComfortTab: React.FC<ComfortTabProps> = ({
           </h2>
           <div className="flex items-center gap-2">
             <button
+              onClick={handleExportTiaCsv}
+              className="px-3 py-1.5 rounded-lg text-xs font-semibold bg-emerald-600 hover:bg-emerald-500 text-white flex items-center gap-1.5 transition-all shadow-sm active:scale-95 cursor-pointer"
+              title={t.btnExportTiaCsv}
+            >
+              <Download className="w-3.5 h-3.5" />
+              <span className="hidden sm:inline">{t.btnExportTiaCsv}</span>
+            </button>
+            <button
               onClick={handleAddTag}
-              className="px-3 py-1.5 rounded-lg text-xs font-semibold bg-emerald-600 text-white hover:bg-emerald-700 flex items-center gap-1 cursor-pointer transition-all active:scale-95"
+              className="px-3 py-1.5 rounded-lg text-xs font-semibold bg-emerald-700 text-white hover:bg-emerald-800 flex items-center gap-1 cursor-pointer transition-all active:scale-95"
             >
               <Plus className="w-3.5 h-3.5" />
               {t.btnAddTag}
@@ -332,23 +369,46 @@ export const ComfortTab: React.FC<ComfortTabProps> = ({
                       </select>
                     </td>
                     <td className="p-2.5">
-                      <input
-                        type="number"
-                        step="0.5"
-                        min="0.1"
-                        disabled={tag.mode === 'onchange'}
-                        value={tag.cycleSec || ''}
-                        onChange={(e) => {
-                          const val = e.target.value === '' ? 0 : parseFloat(e.target.value) || 0;
-                          handleUpdateTag(tag.id, { cycleSec: val });
-                        }}
-                        onBlur={() => {
-                          if (!tag.cycleSec || tag.cycleSec <= 0) {
-                            handleUpdateTag(tag.id, { cycleSec: 1 });
-                          }
-                        }}
-                        className="w-20 p-1.5 text-xs font-mono rounded border border-slate-200 dark:border-slate-700 bg-white/90 dark:bg-slate-900 text-slate-900 dark:text-slate-100 focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 outline-none disabled:opacity-40"
-                      />
+                      <div className="flex items-center gap-1">
+                        <input
+                          type="number"
+                          step="0.5"
+                          min="0.1"
+                          disabled={tag.mode === 'onchange'}
+                          value={tag.cycleSec || ''}
+                          onChange={(e) => {
+                            const val = e.target.value === '' ? 0 : parseFloat(e.target.value) || 0;
+                            handleUpdateTag(tag.id, { cycleSec: val });
+                          }}
+                          onBlur={() => {
+                            if (!tag.cycleSec || tag.cycleSec <= 0) {
+                              handleUpdateTag(tag.id, { cycleSec: 1 });
+                            }
+                          }}
+                          className="w-16 p-1.5 text-xs font-mono rounded border border-slate-200 dark:border-slate-700 bg-white/90 dark:bg-slate-900 text-slate-900 dark:text-slate-100 focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 outline-none disabled:opacity-40"
+                        />
+                        <select
+                          disabled={tag.mode === 'onchange'}
+                          value={[0.1, 0.5, 1, 2, 5, 10, 30, 60].includes(tag.cycleSec) ? tag.cycleSec : 'custom'}
+                          onChange={(e) => {
+                            if (e.target.value !== 'custom') {
+                              handleUpdateTag(tag.id, { cycleSec: parseFloat(e.target.value) });
+                            }
+                          }}
+                          className="p-1 text-[10px] rounded border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-slate-700 dark:text-slate-300 outline-none disabled:opacity-40 cursor-pointer"
+                          title={t.cycleQuickPresets}
+                        >
+                          <option value="custom">⚡</option>
+                          <option value="0.1">{t.cycle100ms}</option>
+                          <option value="0.5">{t.cycle500ms}</option>
+                          <option value="1">{t.cycle1s}</option>
+                          <option value="2">{t.cycle2s}</option>
+                          <option value="5">{t.cycle5s}</option>
+                          <option value="10">{t.cycle10s}</option>
+                          <option value="30">{t.cycle30s}</option>
+                          <option value="60">{t.cycle1m}</option>
+                        </select>
+                      </div>
                     </td>
                     <td className="p-2.5">
                       <input

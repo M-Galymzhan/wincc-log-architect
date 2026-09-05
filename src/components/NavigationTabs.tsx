@@ -8,9 +8,14 @@ interface NavigationTabsProps {
   activeTab: ActiveTab;
   setActiveTab: (t: ActiveTab) => void;
   lang: Language;
+  warnings?: {
+    unified?: boolean;
+    comfort?: boolean;
+    professional?: boolean;
+  };
 }
 
-export const NavigationTabs: React.FC<NavigationTabsProps> = ({ activeTab, setActiveTab, lang }) => {
+export const NavigationTabs: React.FC<NavigationTabsProps> = ({ activeTab, setActiveTab, lang, warnings }) => {
   const t = translations[lang];
 
   const tabs = [
@@ -20,6 +25,7 @@ export const NavigationTabs: React.FC<NavigationTabsProps> = ({ activeTab, setAc
       badge: t.tabUnifiedBadge,
       icon: Layers,
       color: '#00A3B5',
+      hasWarning: warnings?.unified,
     },
     {
       id: 'comfort' as ActiveTab,
@@ -27,6 +33,7 @@ export const NavigationTabs: React.FC<NavigationTabsProps> = ({ activeTab, setAc
       badge: t.tabComfortBadge,
       icon: HardDrive,
       color: '#10B981',
+      hasWarning: warnings?.comfort,
     },
     {
       id: 'professional' as ActiveTab,
@@ -34,6 +41,7 @@ export const NavigationTabs: React.FC<NavigationTabsProps> = ({ activeTab, setAc
       badge: t.tabProfessionalBadge,
       icon: Database,
       color: '#8B5CF6',
+      hasWarning: warnings?.professional,
     },
   ];
 
@@ -54,7 +62,7 @@ export const NavigationTabs: React.FC<NavigationTabsProps> = ({ activeTab, setAc
             id={`tab-${tab.id}`}
             aria-controls={`tabpanel-${tab.id}`}
             onClick={() => setActiveTab(tab.id)}
-            className={`flex-1 min-w-[200px] flex items-center justify-center gap-2.5 py-2.5 px-4 rounded-xl text-sm font-semibold transition-all duration-200 cursor-pointer ${
+            className={`flex-1 min-w-[200px] flex items-center justify-center gap-2.5 py-2.5 px-4 rounded-xl text-sm font-semibold transition-all duration-200 cursor-pointer relative ${
               isActive
                 ? 'bg-gradient-to-r from-[#00646E] to-[#00828F] text-white shadow-lg shadow-[#00646E]/30 scale-[1.01]'
                 : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-100 hover:bg-white/40 dark:hover:bg-slate-800/50'
@@ -62,6 +70,13 @@ export const NavigationTabs: React.FC<NavigationTabsProps> = ({ activeTab, setAc
           >
             <Icon className="w-4 h-4" />
             <span>{tab.label}</span>
+            {tab.hasWarning && (
+              <span
+                title={t.tabHasWarnings}
+                className="w-2 h-2 rounded-full bg-amber-400 dark:bg-amber-300 ring-2 ring-amber-500/50 animate-pulse inline-block"
+                aria-label={t.tabHasWarnings}
+              />
+            )}
             <span
               className={`text-[10px] font-mono px-2 py-0.5 rounded-full border ${
                 isActive

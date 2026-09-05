@@ -2,7 +2,7 @@
 import React from 'react';
 import { Language, Theme } from '../lib/types';
 import { translations } from '../lib/i18n';
-import { Sun, Moon, FileText, Download, Upload, Copy, Cpu } from 'lucide-react';
+import { Sun, Moon, FileText, Download, Upload, Copy, Cpu, Sparkles } from 'lucide-react';
 
 interface HeaderProps {
   lang: Language;
@@ -11,6 +11,7 @@ interface HeaderProps {
   setTheme: (t: Theme) => void;
   onOpenReport: () => void;
   onOpenCheatSheet: () => void;
+  onOpenPresets: () => void;
   onExportJson: () => void;
   onImportJson: () => void;
 }
@@ -22,6 +23,7 @@ export const Header: React.FC<HeaderProps> = ({
   setTheme,
   onOpenReport,
   onOpenCheatSheet,
+  onOpenPresets,
   onExportJson,
   onImportJson,
 }) => {
@@ -52,6 +54,15 @@ export const Header: React.FC<HeaderProps> = ({
 
         {/* Action Controls */}
         <div className="flex items-center gap-2 flex-wrap">
+          {/* Industry Presets Library */}
+          <button
+            onClick={onOpenPresets}
+            className="btn px-3 py-1.5 rounded-lg text-xs font-semibold flex items-center gap-1.5 bg-gradient-to-r from-cyan-600 to-teal-600 hover:from-cyan-500 hover:to-teal-500 text-white shadow-md shadow-cyan-600/25 transition-all active:scale-95 cursor-pointer"
+          >
+            <Sparkles className="w-3.5 h-3.5" />
+            <span>{t.btnIndustryPresets}</span>
+          </button>
+
           {/* TIA Portal Cheat Sheet */}
           <button
             onClick={onOpenCheatSheet}

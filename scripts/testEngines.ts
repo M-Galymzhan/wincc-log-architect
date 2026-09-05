@@ -7,6 +7,9 @@ import { calculateUnified, getDataTypeBytes } from '../src/lib/calculator/unifie
 import { calculateComfort } from '../src/lib/calculator/comfortEngine';
 import { calculateProfessional } from '../src/lib/calculator/professionalEngine';
 import { UnifiedTag, UnifiedConfig, ComfortTag, ComfortConfig, ProfessionalTag, ProfessionalConfig } from '../src/lib/types';
+import { INDUSTRY_PRESETS } from '../src/lib/presets';
+import { generateTiaPortalCsv } from '../src/lib/tiaExporter';
+import { getSiemensArticle, SIEMENS_STORAGE_CATALOG } from '../src/lib/calculator/mlfbCatalog';
 
 let passedTests = 0;
 let totalTests = 0;
@@ -354,6 +357,58 @@ const proHighRate = calculateProfessional([
   databaseHeadroomPct: 25,
 });
 assert(proHighRate.warnings.some(w => w.includes('2 000') || w.includes('2000') || w.includes('RAID 10')), 'Professional: warns when total write rate exceeds 2000 rec/s');
+
+console.log('\n=== [4] INDUSTRY PRESETS VERIFICATION ===');
+assert(INDUSTRY_PRESETS.length === 4, 'Presets: exactly 4 industry presets exist');
+const presetIds = INDUSTRY_PRESETS.map(p => p.id);
+assert(presetIds.includes('pump_station'), 'Presets: includes pump_station');
+assert(presetIds.includes('boiler_house'), 'Presets: includes boiler_house');
+assert(presetIds.includes('pharma_gmp'), 'Presets: includes pharma_gmp');
+assert(presetIds.includes('hvac_vent'), 'Presets: includes hvac_vent');
+
+INDUSTRY_PRESETS.forEach(preset => {
+  assert(preset.unifiedTags.length > 0, `Presets [${preset.id}]: has valid unified tags`);
+  assert(preset.comfortTags.length > 0, `Presets [${preset.id}]: has valid comfort tags`);
+  assert(preset.proTags.length > 0, `Presets [${preset.id}]: has valid professional tags`);
+  assert(typeof preset.nameRu === 'string' && preset.nameRu.length > 0, `Presets [${preset.id}]: has nameRu`);
+  assert(typeof preset.nameEn === 'string' && preset.nameEn.length > 0, `Presets [${preset.id}]: has nameEn`);
+});
+
+console.log('\n=== [5] TIA PORTAL CSV EXPORTER VERIFICATION ===');
+const sampleUnifiedTags: UnifiedTag[] = [
+  { id: '1', description: 'Motor_Current_1', mode: 'cyclic', cycleSec: 1, entriesPerSec: 1, count: 2, dataType: 'Real' },
+  { id: '2', description: 'Alarm_Status', mode: 'onchange', cycleSec: 60, entriesPerSec: 0.0167, count: 4, dataType: 'Bool' },
+];
+const unifiedExportCsv = generateTiaPortalCsv('unified', sampleUnifiedTags, 'ProcessLog');
+assert(unifiedExportCsv.startsWith('\uFEFF'), 'TIA Exporter: output starts with UTF-8 BOM');
+assert(unifiedExportCsv.includes('Name;Data log;Logging mode;Logging cycle;Data type;Deadband;Smoothing;Comment'), 'TIA Exporter: unified has standard header');
+assert(unifiedExportCsv.includes('Motor_Current_1;ProcessLog;Cyclic;1 s;Real;0;None;'), 'TIA Exporter: unified cyclic tag row formatted correctly');
+assert(unifiedExportCsv.includes('Alarm_Status;ProcessLog;On change;None;Bool;0;None;'), 'TIA Exporter: unified onchange tag row formatted correctly');
+
+const sampleComfortTags: ComfortTag[] = [
+  { id: '1', description: 'Temp_Zone_1', mode: 'cyclic', cycleSec: 2, count: 5 }
+];
+const comfortExportCsv = generateTiaPortalCsv('comfort', sampleComfortTags, 'ComfortLog');
+assert(comfortExportCsv.includes('Name;Data log;Logging mode;Logging cycle;Acquisition cycle;Comment'), 'TIA Exporter: comfort has standard header');
+assert(comfortExportCsv.includes('Temp_Zone_1;ComfortLog;Cyclic;2 s;1 s;'), 'TIA Exporter: comfort tag row formatted correctly');
+
+const sampleProTags: ProfessionalTag[] = [
+  { id: '1', description: 'Vibro_Sensor', cycleSec: 0.5, count: 10, archiveType: 'fast' },
+  { id: '2', description: 'Daily_Total', cycleSec: 60, count: 5, archiveType: 'slow' },
+];
+const proExportCsv = generateTiaPortalCsv('professional', sampleProTags);
+assert(proExportCsv.includes('Name;Archive name;Archive type;Cycle time;Acquisition type;Comment'), 'TIA Exporter: professional has standard header');
+assert(proExportCsv.includes('Vibro_Sensor;TagLoggingFast;FAST;0.5 s;Cyclic;'), 'TIA Exporter: professional fast tag formatted correctly');
+assert(proExportCsv.includes('Daily_Total;TagLoggingSlow;SLOW;60 s;Cyclic;'), 'TIA Exporter: professional slow tag formatted correctly');
+
+console.log('\n=== [6] SIEMENS HARDWARE MLFB CATALOG VERIFICATION ===');
+assert(SIEMENS_STORAGE_CATALOG.sd_12g.mlfb === '6AV2181-4DB20-0AX0', 'MLFB: sd_12g is 6AV2181-4DB20-0AX0');
+assert(SIEMENS_STORAGE_CATALOG.sd_2g.mlfb === '6AV2181-4DB10-0AX0', 'MLFB: sd_2g is 6AV2181-4DB10-0AX0');
+assert(SIEMENS_STORAGE_CATALOG.sd_512m.mlfb === '6AV2181-4DB00-0AX0', 'MLFB: sd_512m is 6AV2181-4DB00-0AX0');
+assert(SIEMENS_STORAGE_CATALOG.usb_128g.mlfb === '6ES7648-0DC60-0AA0', 'MLFB: usb_128g is 6ES7648-0DC60-0AA0');
+assert(SIEMENS_STORAGE_CATALOG.ssd_custom.mlfb === '6ES7648-2BF30-0AA0', 'MLFB: ssd_custom is 6ES7648-2BF30-0AA0');
+assert(getSiemensArticle('sd_12g').capacityGb === 12, 'MLFB: getSiemensArticle(sd_12g) returns 12GB item');
+assert(getSiemensArticle('nonexistent_key').mlfb === '6AV2181-4DB20-0AX0', 'MLFB: fallback to sd_12g for unknown key');
 
 console.log(`\n========================================`);
 console.log(`TOTAL TESTS: ${totalTests} | PASSED: ${passedTests} | FAILED: ${totalTests - passedTests}`);

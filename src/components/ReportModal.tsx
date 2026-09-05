@@ -2,7 +2,8 @@
 import React, { useState, useEffect } from 'react';
 import { ActiveTab, Language, UnifiedResult, UnifiedConfig, ComfortResult, ComfortConfig, ProfessionalResult, ProfessionalConfig } from '../lib/types';
 import { translations, formatPlural } from '../lib/i18n';
-import { X, Printer, FileText, CheckCircle2, Cpu, HardDrive, Database } from 'lucide-react';
+import { X, Printer, FileText, CheckCircle2, Cpu, HardDrive, Database, Package } from 'lucide-react';
+import { getSiemensArticle } from '../lib/calculator/mlfbCatalog';
 
 interface ReportModalProps {
   isOpen: boolean;
@@ -312,6 +313,66 @@ export const ReportModal: React.FC<ReportModalProps> = ({
               </table>
             </div>
           )}
+
+          {/* Section: Siemens Hardware Bill of Materials (BoM) */}
+          <div className="mb-6 pt-4 border-t border-slate-200 dark:border-slate-800">
+            <h4 className="font-bold text-base text-slate-900 dark:text-white flex items-center gap-2 mb-3">
+              <Package className="w-4 h-4 text-cyan-600 dark:text-cyan-400" />
+              <span>{t.mlfbCardTitle}</span>
+            </h4>
+            <div className="overflow-x-auto rounded-xl border border-slate-200 dark:border-slate-800">
+              <table className="w-full text-xs text-left">
+                <thead className="bg-slate-100 dark:bg-slate-800/80 text-slate-600 dark:text-slate-300 font-semibold uppercase text-[10px] tracking-wider">
+                  <tr>
+                    <th className="p-2.5">{lang === 'ru' ? 'Подсистема' : 'Subsystem'}</th>
+                    <th className="p-2.5">{lang === 'ru' ? 'Наименование компонента' : 'Component Name'}</th>
+                    <th className="p-2.5 font-mono">{t.mlfbSiemensArticle}</th>
+                    <th className="p-2.5">{lang === 'ru' ? 'Емкость' : 'Capacity'}</th>
+                    <th className="p-2.5">{lang === 'ru' ? 'Рекомендация Siemens' : 'Recommended For'}</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-200 dark:divide-slate-800">
+                  {showUnified && (() => {
+                    const art = getSiemensArticle(unifiedData.config.storageMedium);
+                    return (
+                      <tr>
+                        <td className="p-2.5 font-semibold text-[#00646E] dark:text-[#00A3B5]">WinCC Unified</td>
+                        <td className="p-2.5">{art.name}</td>
+                        <td className="p-2.5 font-mono font-bold text-slate-900 dark:text-white">{art.mlfb}</td>
+                        <td className="p-2.5">{art.capacityGb} GB</td>
+                        <td className="p-2.5 text-slate-500 dark:text-slate-400">{art.recommendedFor}</td>
+                      </tr>
+                    );
+                  })()}
+                  {showComfort && (() => {
+                    const mediumKey = comfortData.config.storageMediumMb === 512 ? 'sd_512m' : comfortData.config.storageMediumMb >= 32768 ? 'usb_128g' : 'sd_2g';
+                    const art = getSiemensArticle(mediumKey);
+                    return (
+                      <tr>
+                        <td className="p-2.5 font-semibold text-emerald-600 dark:text-emerald-400">WinCC Comfort</td>
+                        <td className="p-2.5">{art.name}</td>
+                        <td className="p-2.5 font-mono font-bold text-slate-900 dark:text-white">{art.mlfb}</td>
+                        <td className="p-2.5">{art.capacityGb} GB</td>
+                        <td className="p-2.5 text-slate-500 dark:text-slate-400">{art.recommendedFor}</td>
+                      </tr>
+                    );
+                  })()}
+                  {showProfessional && (() => {
+                    const art = getSiemensArticle('ssd_custom');
+                    return (
+                      <tr>
+                        <td className="p-2.5 font-semibold text-purple-600 dark:text-purple-400">WinCC Professional</td>
+                        <td className="p-2.5">{art.name}</td>
+                        <td className="p-2.5 font-mono font-bold text-slate-900 dark:text-white">{art.mlfb}</td>
+                        <td className="p-2.5">{art.capacityGb} GB</td>
+                        <td className="p-2.5 text-slate-500 dark:text-slate-400">{art.recommendedFor}</td>
+                      </tr>
+                    );
+                  })()}
+                </tbody>
+              </table>
+            </div>
+          </div>
 
           {/* Verification Stamp */}
           <div className="mt-8 pt-6 border-t border-slate-200 dark:border-slate-800 flex flex-col sm:flex-row sm:items-center justify-between gap-2 text-xs text-slate-500 dark:text-slate-300">

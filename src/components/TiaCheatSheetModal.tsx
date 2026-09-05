@@ -3,7 +3,6 @@ import React, { useState, useEffect } from 'react';
 import { ActiveTab, Language, UnifiedResult, UnifiedConfig, ComfortResult, ComfortConfig, ProfessionalResult, ProfessionalConfig, ToastMessage } from '../lib/types';
 import { translations } from '../lib/i18n';
 import { X, Copy, Check } from 'lucide-react';
-import confetti from 'canvas-confetti';
 
 interface TiaCheatSheetModalProps {
   isOpen: boolean;
@@ -42,11 +41,6 @@ export const TiaCheatSheetModal: React.FC<TiaCheatSheetModalProps> = ({
   const copyToClipboard = (key: string, value: string) => {
     navigator.clipboard.writeText(value);
     setCopiedKey(key);
-    try {
-      confetti({ particleCount: 25, spread: 50, origin: { y: 0.6 } });
-    } catch {
-      // ignore
-    }
     if (onShowToast) onShowToast(t.toastCopied, 'success');
     setTimeout(() => setCopiedKey(null), 2000);
   };
