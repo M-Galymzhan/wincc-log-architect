@@ -30,19 +30,19 @@ export const Header: React.FC<HeaderProps> = ({
   const t = translations[lang];
 
   return (
-    <header className="glass-header sticky top-0 z-30 px-4 lg:px-8 py-3.5 transition-colors">
-      <div className="max-w-7xl mx-auto flex flex-col md:flex-row md:items-center justify-between gap-3">
+    <header className="glass-header sticky top-0 z-30 px-4 lg:px-8 py-3 transition-colors">
+      <div className="max-w-7xl mx-auto flex items-center justify-between gap-3">
         {/* Logo & Title */}
-        <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[#00646E] to-[#00A3B5] flex items-center justify-center text-white shadow-lg shadow-[#00646E]/30">
-            <Cpu className="w-6 h-6" />
+        <div className="flex items-center gap-3 min-w-0 shrink-0">
+          <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[#00646E] to-[#00A3B5] flex items-center justify-center text-white shadow-md shadow-[#00646E]/30 shrink-0">
+            <Cpu className="w-5 h-5 sm:w-6 sm:h-6" />
           </div>
-          <div>
-            <div className="flex items-center gap-2 flex-wrap">
-              <h1 className="font-bold text-lg lg:text-xl tracking-tight text-slate-900 dark:text-white">
+          <div className="min-w-0">
+            <div className="flex items-center gap-2">
+              <h1 className="font-bold text-base sm:text-lg lg:text-xl tracking-tight text-slate-900 dark:text-white whitespace-nowrap">
                 {t.appTitle}
               </h1>
-              <span className="text-[10px] uppercase font-bold tracking-wider px-2 py-0.5 rounded-full bg-[#00646E]/15 text-[#00646E] dark:bg-[#00A3B5]/20 dark:text-[#00A3B5] border border-[#00646E]/20 dark:border-[#00A3B5]/30">
+              <span className="text-[10px] uppercase font-bold tracking-wider px-2 py-0.5 rounded-full bg-[#00646E]/15 text-[#00646E] dark:bg-[#00A3B5]/20 dark:text-[#00A3B5] border border-[#00646E]/20 dark:border-[#00A3B5]/30 whitespace-nowrap shrink-0">
                 TIA V16-V20
               </span>
               <a
@@ -50,46 +50,54 @@ export const Header: React.FC<HeaderProps> = ({
                 target="_blank"
                 rel="noopener noreferrer"
                 title={lang === 'ru' ? 'Релиз v2.4.0 (кликните для просмотра коммитов на GitHub)' : 'Release v2.4.0 (click to view GitHub commits)'}
-                className="text-[10px] font-mono font-bold tracking-tight px-2 py-0.5 rounded-full bg-emerald-500/15 hover:bg-emerald-500/25 text-emerald-700 dark:text-emerald-300 border border-emerald-500/30 flex items-center gap-1.5 shadow-sm transition-all cursor-pointer active:scale-95"
+                className="text-[10px] font-mono font-bold tracking-tight px-2 py-0.5 rounded-full bg-emerald-500/15 hover:bg-emerald-500/25 text-emerald-700 dark:text-emerald-300 border border-emerald-500/30 flex items-center gap-1.5 shadow-sm transition-all cursor-pointer active:scale-95 whitespace-nowrap shrink-0"
               >
                 <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse shrink-0" />
                 <span>v2.4.0</span>
               </a>
             </div>
-            <p className="text-xs text-slate-500 dark:text-slate-400">
+            <p className="text-xs text-slate-500 dark:text-slate-400 truncate hidden md:block">
               {t.appSubtitle}
             </p>
           </div>
         </div>
 
         {/* Action Controls */}
-        <div className="flex items-center gap-2 flex-wrap">
+        <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
           {/* Industry Presets Library */}
           <button
             onClick={onOpenPresets}
-            className="btn px-3 py-1.5 rounded-lg text-xs font-semibold flex items-center gap-1.5 bg-gradient-to-r from-cyan-600 to-teal-600 hover:from-cyan-500 hover:to-teal-500 text-white shadow-md shadow-cyan-600/25 transition-all active:scale-95 cursor-pointer"
+            title={t.btnIndustryPresets}
+            className="btn px-2.5 sm:px-3 py-1.5 rounded-lg text-xs font-semibold flex items-center gap-1.5 bg-gradient-to-r from-cyan-600 to-teal-600 hover:from-cyan-500 hover:to-teal-500 text-white shadow-sm shadow-cyan-600/25 transition-all active:scale-95 cursor-pointer"
           >
             <Sparkles className="w-3.5 h-3.5 shrink-0" />
-            <span>{t.btnIndustryPresets}</span>
+            <span className="hidden lg:inline">{t.btnIndustryPresets}</span>
+            <span className="hidden sm:inline lg:hidden">{lang === 'ru' ? 'Шаблоны' : 'Presets'}</span>
           </button>
 
           {/* TIA Portal Cheat Sheet */}
           <button
             onClick={onOpenCheatSheet}
-            className="btn px-3 py-1.5 rounded-lg text-xs font-medium flex items-center gap-1.5 bg-[#00646E] hover:bg-[#004D54] text-white shadow-md shadow-[#00646E]/25 transition-all active:scale-95 cursor-pointer"
+            title={t.btnTiaCheatSheet}
+            className="btn px-2.5 sm:px-3 py-1.5 rounded-lg text-xs font-medium flex items-center gap-1.5 bg-[#00646E] hover:bg-[#004D54] text-white shadow-sm shadow-[#00646E]/25 transition-all active:scale-95 cursor-pointer"
           >
             <Copy className="w-3.5 h-3.5 shrink-0" />
-            <span>{t.btnTiaCheatSheet}</span>
+            <span className="hidden lg:inline">{t.btnTiaCheatSheet}</span>
+            <span className="hidden sm:inline lg:hidden">{lang === 'ru' ? 'Шпаргалка' : 'Cheat Sheet'}</span>
           </button>
 
           {/* Project Report Button */}
           <button
             onClick={onOpenReport}
-            className="btn px-3 py-1.5 rounded-lg text-xs font-medium flex items-center gap-1.5 bg-slate-200/80 dark:bg-slate-800 hover:bg-slate-300 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 border border-slate-300/60 dark:border-slate-700 transition-all active:scale-95 cursor-pointer"
+            title={t.btnReport}
+            className="btn px-2.5 sm:px-3 py-1.5 rounded-lg text-xs font-medium flex items-center gap-1.5 bg-slate-200/80 dark:bg-slate-800 hover:bg-slate-300 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 border border-slate-300/60 dark:border-slate-700 transition-all active:scale-95 cursor-pointer"
           >
             <FileText className="w-3.5 h-3.5 text-[#00A3B5] shrink-0" />
-            <span>{t.btnReport}</span>
+            <span className="hidden sm:inline">{t.btnReport}</span>
           </button>
+
+          {/* Separator */}
+          <div className="h-5 w-px bg-slate-300/60 dark:bg-slate-700 hidden sm:block mx-0.5" />
 
           {/* Export JSON */}
           <button
@@ -113,7 +121,7 @@ export const Header: React.FC<HeaderProps> = ({
           <div className="flex items-center rounded-lg p-0.5 bg-slate-200/80 dark:bg-slate-800 border border-slate-300/60 dark:border-slate-700 text-xs font-semibold">
             <button
               onClick={() => setLang('ru')}
-              className={`px-2 py-1 rounded-md transition-all cursor-pointer ${
+              className={`px-1.5 sm:px-2 py-1 rounded-md transition-all cursor-pointer ${
                 lang === 'ru'
                   ? 'bg-white dark:bg-slate-700 text-[#00646E] dark:text-[#00A3B5] shadow-xs'
                   : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-100'
@@ -123,7 +131,7 @@ export const Header: React.FC<HeaderProps> = ({
             </button>
             <button
               onClick={() => setLang('en')}
-              className={`px-2 py-1 rounded-md transition-all cursor-pointer ${
+              className={`px-1.5 sm:px-2 py-1 rounded-md transition-all cursor-pointer ${
                 lang === 'en'
                   ? 'bg-white dark:bg-slate-700 text-[#00646E] dark:text-[#00A3B5] shadow-xs'
                   : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-100'
@@ -136,7 +144,7 @@ export const Header: React.FC<HeaderProps> = ({
           {/* Theme Switch */}
           <button
             onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
-            className="p-2 rounded-lg bg-slate-200/80 dark:bg-slate-800 border border-slate-300/60 dark:border-slate-700 text-slate-700 dark:text-amber-400 hover:bg-slate-300 dark:hover:bg-slate-700 transition-all cursor-pointer"
+            className="p-1.5 sm:p-2 rounded-lg bg-slate-200/80 dark:bg-slate-800 border border-slate-300/60 dark:border-slate-700 text-slate-700 dark:text-amber-400 hover:bg-slate-300 dark:hover:bg-slate-700 transition-all cursor-pointer"
             title={theme === 'dark' ? 'Light Mode' : 'Dark Mode'}
           >
             {theme === 'dark' ? <Sun className="w-4 h-4 shrink-0" /> : <Moon className="w-4 h-4 text-slate-700 shrink-0" />}
