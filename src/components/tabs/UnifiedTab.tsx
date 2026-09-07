@@ -432,40 +432,42 @@ export const UnifiedTab: React.FC<UnifiedTabProps> = ({
             </span>
           </div>
 
-          <div className="flex items-center gap-2">
+          <div className="flex flex-wrap items-center gap-1.5 sm:gap-2">
             <button
               onClick={() => setIsImportModalOpen(true)}
-              className="px-3 py-1.5 rounded-lg text-xs font-semibold bg-[#00A3B5]/15 hover:bg-[#00A3B5]/25 text-[#00646E] dark:text-[#00A3B5] border border-[#00A3B5]/30 flex items-center gap-1.5 transition-all shadow-sm active:scale-95 cursor-pointer"
+              className="p-1.5 sm:px-3 sm:py-1.5 rounded-lg text-xs font-semibold bg-[#00A3B5]/15 hover:bg-[#00A3B5]/25 text-[#00646E] dark:text-[#00A3B5] border border-[#00A3B5]/30 flex items-center gap-1.5 transition-all shadow-sm active:scale-95 cursor-pointer shrink-0"
               title={t.btnImportTagsFull}
             >
-              <Upload className="w-3.5 h-3.5" />
+              <Upload className="w-3.5 h-3.5 shrink-0" />
               <span className="hidden sm:inline">{t.btnImportTags}</span>
             </button>
             <button
               onClick={handleExportTiaCsv}
-              className="px-3 py-1.5 rounded-lg text-xs font-semibold bg-emerald-600 hover:bg-emerald-500 text-white flex items-center gap-1.5 transition-all shadow-sm active:scale-95 cursor-pointer"
+              className="p-1.5 sm:px-3 sm:py-1.5 rounded-lg text-xs font-semibold bg-emerald-600 hover:bg-emerald-500 text-white flex items-center gap-1.5 transition-all shadow-sm active:scale-95 cursor-pointer shrink-0"
               title={t.btnExportTiaCsv}
             >
-              <Download className="w-3.5 h-3.5" />
+              <Download className="w-3.5 h-3.5 shrink-0" />
               <span className="hidden sm:inline">{t.btnExportTiaCsv}</span>
             </button>
             <button
               onClick={handleAddTag}
-              className="px-3 py-1.5 rounded-lg text-xs font-semibold bg-[#00646E] text-white hover:bg-[#004D54] flex items-center gap-1.5 transition-all shadow-sm active:scale-95 cursor-pointer"
+              className="px-2.5 sm:px-3 py-1.5 rounded-lg text-xs font-semibold bg-[#00646E] text-white hover:bg-[#004D54] flex items-center gap-1 sm:gap-1.5 transition-all shadow-sm active:scale-95 cursor-pointer shrink-0"
             >
-              <Plus className="w-3.5 h-3.5" />
-              {t.btnAddTag}
+              <Plus className="w-3.5 h-3.5 shrink-0" />
+              <span className="sm:hidden">{lang === 'ru' ? 'Тег' : 'Tag'}</span>
+              <span className="hidden sm:inline">{t.btnAddTag}</span>
             </button>
             <button
               onClick={() => setIsBulkModalOpen(true)}
-              className="px-3 py-1.5 rounded-lg text-xs font-semibold bg-slate-200/80 dark:bg-slate-800 text-slate-700 dark:text-slate-200 hover:bg-slate-300 dark:hover:bg-slate-700 flex items-center gap-1.5 transition-all shadow-sm active:scale-95 cursor-pointer"
+              className="px-2.5 sm:px-3 py-1.5 rounded-lg text-xs font-semibold bg-slate-200/80 dark:bg-slate-800 text-slate-700 dark:text-slate-200 hover:bg-slate-300 dark:hover:bg-slate-700 flex items-center gap-1 sm:gap-1.5 transition-all shadow-sm active:scale-95 cursor-pointer shrink-0"
             >
-              <Plus className="w-3.5 h-3.5" />
-              {t.btnAddBulk}
+              <Plus className="w-3.5 h-3.5 shrink-0" />
+              <span className="sm:hidden">{lang === 'ru' ? 'Пакет' : 'Bulk'}</span>
+              <span className="hidden sm:inline">{t.btnAddBulk}</span>
             </button>
             <button
               onClick={() => setIsConfirmModalOpen(true)}
-              className="px-2.5 py-1.5 rounded-lg text-xs font-medium text-rose-500 hover:bg-rose-50 dark:hover:bg-rose-950/40 transition-all active:scale-95 cursor-pointer"
+              className="px-2 sm:px-2.5 py-1.5 rounded-lg text-xs font-medium text-rose-500 hover:bg-rose-50 dark:hover:bg-rose-950/40 transition-all active:scale-95 cursor-pointer shrink-0 ml-auto sm:ml-0"
             >
               {t.btnClearAll}
             </button>

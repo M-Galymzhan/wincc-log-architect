@@ -219,7 +219,7 @@ export const Header: React.FC<HeaderProps> = ({
             className="flex-1 py-1.5 px-2 rounded-lg text-[11px] font-medium flex items-center justify-center gap-1 bg-slate-200/80 dark:bg-slate-800 hover:bg-slate-300 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 border border-slate-300/60 dark:border-slate-700 transition-all active:scale-95 cursor-pointer truncate shrink-0"
           >
             <FileText className="w-3.5 h-3.5 text-[#00A3B5] shrink-0" />
-            <span>{t.btnReport}</span>
+            <span>{lang === 'ru' ? 'Отчет' : 'Report'}</span>
           </button>
 
           {/* Export JSON */}
