@@ -478,6 +478,24 @@ export const UnifiedTab: React.FC<UnifiedTabProps> = ({
               </div>
             )}
 
+            {/* Dynamic File System Warning for Slot X52 with SDXC (> 32 GB) */}
+            {config.storageMedium === 'sd_custom_x52' && (config.storageSizeGb || 0) > 32 && (
+              <div className="mt-3 p-3 rounded-xl bg-red-500/10 dark:bg-red-500/15 border border-red-500/30 text-xs animate-in fade-in duration-200">
+                <div className="flex items-center justify-between gap-2 mb-1.5">
+                  <div className="flex items-center gap-1.5 font-bold text-red-700 dark:text-red-300">
+                    <AlertTriangle className="w-4 h-4 text-red-600 dark:text-red-400 shrink-0" />
+                    <span>{t.sdX52ExFatWarningTitle}</span>
+                  </div>
+                  <span className="text-[10px] font-mono uppercase font-bold tracking-wider px-2 py-0.5 rounded-full bg-red-500/20 text-red-800 dark:text-red-200 border border-red-500/30 shrink-0">
+                    {t.sdX52ExFatWarningBadge}
+                  </span>
+                </div>
+                <p className="text-[11px] text-red-900/90 dark:text-red-200/90 leading-relaxed">
+                  {t.sdX52ExFatWarningText}
+                </p>
+              </div>
+            )}
+
             {/* Siemens MLFB Article Info */}
             {(() => {
               const article = getSiemensArticle(config.storageMedium);

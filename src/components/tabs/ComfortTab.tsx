@@ -118,7 +118,7 @@ export const ComfortTab: React.FC<ComfortTabProps> = ({
             </h2>
 
             <div className="space-y-2.5">
-              <label className={`flex items-center gap-3 p-3 rounded-xl border transition-all cursor-pointer ${
+              <label className={`flex items-start gap-3 p-3 rounded-xl border transition-all cursor-pointer ${
                 config.deviceType === 'comfort_panel'
                   ? 'border-emerald-600 bg-emerald-600/5 dark:bg-emerald-500/10 ring-1 ring-emerald-500/30'
                   : 'border-slate-200 dark:border-slate-800 hover:bg-slate-50 dark:hover:bg-slate-800/40'
@@ -128,11 +128,22 @@ export const ComfortTab: React.FC<ComfortTabProps> = ({
                   name="comfortDevice"
                   checked={config.deviceType === 'comfort_panel'}
                   onChange={() => setConfig({ ...config, deviceType: 'comfort_panel', storageMediumMb: 2048 })}
-                  className="accent-emerald-600 w-4 h-4"
+                  className="accent-emerald-600 w-4 h-4 mt-0.5"
                 />
-                <div>
-                  <div className="text-sm font-semibold text-slate-900 dark:text-white">{t.comfortPanel}</div>
-                  <div className="text-xs text-slate-500 dark:text-slate-400">Windows CE, SIMATIC SD Card (X51 slot)</div>
+                <div className="flex-1 min-w-0">
+                  <div className="flex flex-wrap items-center justify-between gap-1.5">
+                    <div className="text-sm font-semibold text-slate-900 dark:text-white">{t.comfortPanel}</div>
+                    <span className="text-[10px] font-mono font-bold px-1.5 py-0.5 rounded bg-amber-500/15 text-amber-800 dark:text-amber-200 border border-amber-500/30 shrink-0">
+                      {t.comfortHardwareLimitBadge}
+                    </span>
+                  </div>
+                  <div className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">Windows CE 6.0, SIMATIC SD Card (X51 slot)</div>
+                  
+                  {/* Hardware Limit Alert for Comfort Panels */}
+                  <div className="mt-2 p-2 rounded-lg bg-amber-500/10 dark:bg-amber-500/15 border border-amber-500/30 text-[11px] text-amber-900 dark:text-amber-200 leading-relaxed flex items-start gap-1.5">
+                    <AlertTriangle className="w-3.5 h-3.5 text-amber-600 dark:text-amber-400 shrink-0 mt-0.5" />
+                    <span>{t.comfortHardwareLimitText}</span>
+                  </div>
                 </div>
               </label>
 

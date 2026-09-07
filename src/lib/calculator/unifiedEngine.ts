@@ -340,6 +340,14 @@ export function calculateUnified(
     }
   }
 
+  if (config.deviceType === 'ucp' && config.storageMedium === 'sd_custom_x52' && storageSizeGb > 32) {
+    warnings.push(
+      lang === 'ru'
+        ? `Внимание по файловой системе (SDXC ${storageSizeGb} GB): Слот SD X52 не поддерживает заводскую разметку exFAT! Обязательно отформатируйте карту в NTFS (рекомендация Siemens SIOS для надежности SQLite) или FAT32 перед установкой в панель.`
+        : `File system advisory (SDXC ${storageSizeGb} GB): SD Slot X52 does NOT support factory-default exFAT! The card must be formatted in NTFS (Siemens SIOS recommendation for SQLite integrity) or FAT32 before inserting into the panel.`
+    );
+  }
+
   if (totalTagsCount === 0 && totalEntriesPerDay === 0) {
     warnings.push(
       lang === 'ru'

@@ -517,6 +517,67 @@ export const ReportModal: React.FC<ReportModalProps> = ({
             </div>
           </div>
 
+          {/* Section: Siemens Storage Commissioning & Operation Requirements */}
+          <div className="mb-6 pt-4 border-t border-slate-200 dark:border-slate-800">
+            <h4 className="font-bold text-base text-slate-900 dark:text-white flex items-center gap-2 mb-1">
+              <HardDrive className="w-4 h-4 text-[#00A3B5]" />
+              <span>{t.reportStorageReqsTitle}</span>
+            </h4>
+            <p className="text-xs text-slate-500 dark:text-slate-400 mb-3">
+              {t.reportStorageReqsSub}
+            </p>
+            <div className="overflow-x-auto rounded-xl border border-slate-200 dark:border-slate-800">
+              <table className="w-full text-xs text-left">
+                <thead className="bg-slate-100 dark:bg-slate-800/80 text-slate-600 dark:text-slate-300 font-semibold uppercase text-[10px] tracking-wider">
+                  <tr>
+                    <th className="p-2.5 w-12 text-center">#</th>
+                    <th className="p-2.5 w-1/4">{lang === 'ru' ? 'Правило / Параметр' : 'Rule / Parameter'}</th>
+                    <th className="p-2.5 w-28">{lang === 'ru' ? 'Стандарт' : 'Standard'}</th>
+                    <th className="p-2.5">{lang === 'ru' ? 'Инженерное требование Siemens (SIOS)' : 'Siemens Engineering Requirement (SIOS)'}</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-200 dark:divide-slate-800">
+                  <tr>
+                    <td className="p-2.5 text-center font-bold font-mono text-[#00646E] dark:text-[#00A3B5]">1</td>
+                    <td className="p-2.5 font-semibold text-slate-900 dark:text-white">{t.storageChecklistRule1Title}</td>
+                    <td className="p-2.5 font-mono font-bold text-slate-700 dark:text-slate-300">{t.storageChecklistRule1Badge}</td>
+                    <td className="p-2.5 text-slate-600 dark:text-slate-300">{t.storageChecklistRule1Desc}</td>
+                  </tr>
+                  <tr>
+                    <td className="p-2.5 text-center font-bold font-mono text-[#00646E] dark:text-[#00A3B5]">2</td>
+                    <td className="p-2.5 font-semibold text-slate-900 dark:text-white">{t.storageChecklistRule2Title}</td>
+                    <td className="p-2.5 font-mono font-bold text-slate-700 dark:text-slate-300">{t.storageChecklistRule2Badge}</td>
+                    <td className="p-2.5 text-slate-600 dark:text-slate-300">{t.storageChecklistRule2Desc}</td>
+                  </tr>
+                  <tr>
+                    <td className="p-2.5 text-center font-bold font-mono text-[#00646E] dark:text-[#00A3B5]">3</td>
+                    <td className="p-2.5 font-semibold text-slate-900 dark:text-white">{t.storageChecklistRule3Title}</td>
+                    <td className="p-2.5 font-mono font-bold text-slate-700 dark:text-slate-300">{t.storageChecklistRule3Badge}</td>
+                    <td className="p-2.5 text-slate-600 dark:text-slate-300">{t.storageChecklistRule3Desc}</td>
+                  </tr>
+                  <tr>
+                    <td className="p-2.5 text-center font-bold font-mono text-[#00646E] dark:text-[#00A3B5]">4</td>
+                    <td className="p-2.5 font-semibold text-slate-900 dark:text-white">{t.storageChecklistRule4Title}</td>
+                    <td className="p-2.5 font-mono font-bold text-slate-700 dark:text-slate-300">{t.storageChecklistRule4Badge}</td>
+                    <td className="p-2.5 text-slate-600 dark:text-slate-300">{t.storageChecklistRule4Desc}</td>
+                  </tr>
+                  <tr>
+                    <td className="p-2.5 text-center font-bold font-mono text-[#00646E] dark:text-[#00A3B5]">5</td>
+                    <td className="p-2.5 font-semibold text-slate-900 dark:text-white">{t.storageChecklistRule5Title}</td>
+                    <td className="p-2.5 font-mono font-bold text-slate-700 dark:text-slate-300">{t.storageChecklistRule5Badge}</td>
+                    <td className="p-2.5 text-slate-600 dark:text-slate-300">{t.storageChecklistRule5Desc}</td>
+                  </tr>
+                  <tr>
+                    <td className="p-2.5 text-center font-bold font-mono text-[#00646E] dark:text-[#00A3B5]">6</td>
+                    <td className="p-2.5 font-semibold text-slate-900 dark:text-white">{t.storageChecklistRule6Title}</td>
+                    <td className="p-2.5 font-mono font-bold text-slate-700 dark:text-slate-300">{t.storageChecklistRule6Badge}</td>
+                    <td className="p-2.5 text-slate-600 dark:text-slate-300">{t.storageChecklistRule6Desc}</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+
           {/* Verification Stamp */}
           <div className="mt-8 pt-6 border-t border-slate-200 dark:border-slate-800 flex flex-col sm:flex-row sm:items-center justify-between gap-2 text-xs text-slate-500 dark:text-slate-300">
             <div className="flex items-center gap-2">

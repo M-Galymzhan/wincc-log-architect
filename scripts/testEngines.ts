@@ -11,6 +11,7 @@ import { INDUSTRY_PRESETS } from '../src/lib/presets';
 import { generateTiaPortalCsv, generateTiaPortalAlarmCsv } from '../src/lib/tiaExporter';
 import { getSiemensArticle, SIEMENS_STORAGE_CATALOG } from '../src/lib/calculator/mlfbCatalog';
 import { calculateUnifiedNetwork, calculateComfortNetwork, calculateProfessionalNetwork } from '../src/lib/calculator/networkEngine';
+import { translations } from '../src/lib/i18n';
 import fs from 'fs';
 import readXlsxFile from 'read-excel-file/universal';
 import { 
@@ -798,6 +799,92 @@ async function runAsyncTests() {
     const heavyResult = calculateUnified(heavyX52Tags, heavyX52Config, 'ru');
     const hasWearWarning = heavyResult.warnings.some(w => w.includes('High Endurance') || w.includes('Industrial'));
     assert(hasWearWarning, 'Storage X52: warning explicitly recommends High Endurance / Industrial card for Slot X52');
+
+    // =========================================================================
+    // Test Suite 12: Siemens Storage Commissioning Checklist & File System Rules
+    // =========================================================================
+    console.log('\n--- Test Suite 12: Siemens Storage Commissioning Checklist & File System Rules ---');
+
+    // 12.1 Slot X52 Dynamic exFAT Warning for SDXC (> 32 GB)
+    const sdxc64Config: UnifiedConfig = {
+      ...customX52Config,
+      storageMedium: 'sd_custom_x52',
+      storageSizeGb: 64,
+    };
+    const sdxc64ResultRu = calculateUnified(customTags, sdxc64Config, 'ru');
+    const hasExFatWarning64Ru = sdxc64ResultRu.warnings.some(w => w.includes('exFAT') && w.includes('NTFS'));
+    assert(hasExFatWarning64Ru, 'Storage X52: 64 GB card triggers exFAT warning in Russian (SDXC)');
+
+    const sdxc128Config: UnifiedConfig = {
+      ...customX52Config,
+      storageMedium: 'sd_custom_x52',
+      storageSizeGb: 128,
+    };
+    const sdxc128ResultEn = calculateUnified(customTags, sdxc128Config, 'en');
+    const hasExFatWarning128En = sdxc128ResultEn.warnings.some(w => w.includes('exFAT') && w.includes('NTFS'));
+    assert(hasExFatWarning128En, 'Storage X52: 128 GB card triggers exFAT warning in English (SDXC)');
+
+    // 12.2 Slot X52 Standard FAT32 SDHC (<= 32 GB) does NOT trigger exFAT warning
+    const sdhc32Config: UnifiedConfig = {
+      ...customX52Config,
+      storageMedium: 'sd_custom_x52',
+      storageSizeGb: 32,
+    };
+    const sdhc32Result = calculateUnified(customTags, sdhc32Config, 'ru');
+    const hasExFatWarning32 = sdhc32Result.warnings.some(w => w.includes('exFAT'));
+    assert(!hasExFatWarning32, 'Storage X52: 32 GB card does NOT trigger exFAT warning (Standard SDHC FAT32)');
+
+    const sdhc16Config: UnifiedConfig = {
+      ...customX52Config,
+      storageMedium: 'sd_custom_x52',
+      storageSizeGb: 16,
+    };
+    const sdhc16Result = calculateUnified(customTags, sdhc16Config, 'ru');
+    const hasExFatWarning16 = sdhc16Result.warnings.some(w => w.includes('exFAT'));
+    assert(!hasExFatWarning16, 'Storage X52: 16 GB card does NOT trigger exFAT warning (Standard SDHC FAT32)');
+
+    // 12.3 Standard Siemens SD card (sd_12g) does NOT trigger exFAT warning
+    const siemens12gConfig: UnifiedConfig = {
+      ...customX52Config,
+      storageMedium: 'sd_12g',
+      storageSizeGb: 12,
+    };
+    const siemens12gResult = calculateUnified(customTags, siemens12gConfig, 'ru');
+    const hasExFatWarning12g = siemens12gResult.warnings.some(w => w.includes('exFAT'));
+    assert(!hasExFatWarning12g, 'Storage Standard: Siemens 12 GB SD does NOT trigger exFAT warning');
+
+    // 12.4 PC Runtime with SSD does NOT trigger slot X52 exFAT warning
+    const pcRtConfig: UnifiedConfig = {
+      ...customX52Config,
+      deviceType: 'pc_rt',
+      storageMedium: 'ssd_custom',
+      storageSizeGb: 256,
+    };
+    const pcRtResult = calculateUnified(customTags, pcRtConfig, 'ru');
+    const hasExFatWarningPc = pcRtResult.warnings.some(w => w.includes('exFAT') && w.includes('X52'));
+    assert(!hasExFatWarningPc, 'Storage PC RT: SSD does NOT trigger slot X52 exFAT warning');
+
+    // 12.5 Siemens Commissioning Checklist: All 6 industrial rules verified in i18n (RU & EN)
+    assert(!!translations.ru.storageChecklistRule1Title && translations.ru.storageChecklistRule1Desc.includes('MBR'), 'Checklist RU: Rule 1 MBR partition rule verified');
+    assert(!!translations.ru.storageChecklistRule2Title && translations.ru.storageChecklistRule2Desc.includes('NTFS'), 'Checklist RU: Rule 2 File system NTFS/FAT32 rule verified');
+    assert(!!translations.ru.storageChecklistRule3Title && translations.ru.storageChecklistRule3Desc.includes('4096'), 'Checklist RU: Rule 3 Cluster size 4KB/32KB verified');
+    assert(!!translations.ru.storageChecklistRule4Title && translations.ru.storageChecklistRule4Desc.includes('ASCII'), 'Checklist RU: Rule 4 ASCII paths verified');
+    assert(!!translations.ru.storageChecklistRule5Title && (translations.ru.storageChecklistRule5Desc.includes('CloseAllLogs') || translations.ru.storageChecklistRule5Desc.includes('Safe Removal')), 'Checklist RU: Rule 5 Safe Removal verified');
+    assert(!!translations.ru.storageChecklistRule6Title && translations.ru.storageChecklistRule6Desc.includes('Lock') && translations.ru.storageChecklistRule6Desc.includes('UPS'), 'Checklist RU: Rule 6 Lock & UPS verified');
+
+    // Checklist EN
+    assert(!!translations.en.storageChecklistRule1Title && translations.en.storageChecklistRule1Desc.includes('MBR'), 'Checklist EN: Rule 1 MBR partition rule verified');
+    assert(!!translations.en.storageChecklistRule2Title && translations.en.storageChecklistRule2Desc.includes('NTFS'), 'Checklist EN: Rule 2 File system NTFS/FAT32 rule verified');
+    assert(!!translations.en.storageChecklistRule3Title && translations.en.storageChecklistRule3Desc.includes('4096'), 'Checklist EN: Rule 3 Cluster size 4KB/32KB verified');
+    assert(!!translations.en.storageChecklistRule4Title && translations.en.storageChecklistRule4Desc.includes('ASCII'), 'Checklist EN: Rule 4 ASCII paths verified');
+    assert(!!translations.en.storageChecklistRule5Title && (translations.en.storageChecklistRule5Desc.includes('CloseAllLogs') || translations.en.storageChecklistRule5Desc.includes('Safe Removal')), 'Checklist EN: Rule 5 Safe Removal verified');
+    assert(!!translations.en.storageChecklistRule6Title && translations.en.storageChecklistRule6Desc.includes('Lock') && translations.en.storageChecklistRule6Desc.includes('UPS'), 'Checklist EN: Rule 6 Lock & UPS verified');
+
+    // 12.6 Comfort Panel Hardware Limit & Report Storage Section
+    assert(translations.ru.comfortHardwareLimitText.includes('32 ГБ') && translations.ru.comfortHardwareLimitText.includes('FAT32'), 'Comfort Limit RU: Max 32 GB FAT32 limit verified');
+    assert(translations.en.comfortHardwareLimitText.includes('32 GB') && translations.en.comfortHardwareLimitText.includes('FAT32'), 'Comfort Limit EN: Max 32 GB FAT32 limit verified');
+    assert(!!translations.ru.reportStorageReqsTitle && !!translations.ru.reportStorageReqsSub, 'Report RU: Storage Requirements section texts verified');
+    assert(!!translations.en.reportStorageReqsTitle && !!translations.en.reportStorageReqsSub, 'Report EN: Storage Requirements section texts verified');
   }
 
   console.log(`\n========================================`);
