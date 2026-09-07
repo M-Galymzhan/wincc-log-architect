@@ -1,7 +1,7 @@
 # 📯 AI Handoff: Context Transmission
 
 > **Проект**: Siemens WinCC Log & Storage Architect (`wincc-log-architect`)  
-> **Текущая версия**: `v2.11.0`  
+> **Текущая версия**: `v2.11.1`  
 > **Дата фиксации**: 2026-09-07  
 > **Production URL**: [https://wincc-log-architect.vercel.app/](https://wincc-log-architect.vercel.app/)  
 > **GitHub**: [https://github.com/M-Galymzhan/wincc-log-architect.git](https://github.com/M-Galymzhan/wincc-log-architect.git) (branch: `main`)  
