@@ -8,7 +8,7 @@ import { calculateComfort } from '../src/lib/calculator/comfortEngine';
 import { calculateProfessional } from '../src/lib/calculator/professionalEngine';
 import { UnifiedTag, UnifiedAlarmTag, UnifiedConfig, ComfortTag, ComfortConfig, ProfessionalTag, ProfessionalConfig } from '../src/lib/types';
 import { INDUSTRY_PRESETS } from '../src/lib/presets';
-import { generateTiaPortalCsv } from '../src/lib/tiaExporter';
+import { generateTiaPortalCsv, generateTiaPortalAlarmCsv } from '../src/lib/tiaExporter';
 import { getSiemensArticle, SIEMENS_STORAGE_CATALOG } from '../src/lib/calculator/mlfbCatalog';
 import { calculateUnifiedNetwork, calculateComfortNetwork, calculateProfessionalNetwork } from '../src/lib/calculator/networkEngine';
 import fs from 'fs';
@@ -684,6 +684,120 @@ async function runAsyncTests() {
     // Segments rule 4MB & >= 200 MB
     assert(calculatedAlarmsLog?.sqliteSegmentMb === 4, `AlarmTags: segment is multiple of 4 MB (4 MB), got ${calculatedAlarmsLog?.sqliteSegmentMb}`);
     assert(calculatedAlarmsLog?.totalLogMb === 200, `AlarmTags: totalLogMb >= 200 MB, got ${calculatedAlarmsLog?.totalLogMb}`);
+
+    // 11. Custom SDHC (Slot X52) & Individual Log Parameters Verification
+    console.log('\n--- Test Suite 11: WinCC Unified Custom SDHC (Slot X52) & Individual Log Parameters ---');
+    const x52Article = getSiemensArticle('sd_custom_x52');
+    assert(x52Article !== undefined, 'Storage: sd_custom_x52 article exists in catalog');
+    assert(x52Article.type === 'sd', 'Storage: sd_custom_x52 is SD type');
+    assert(x52Article.mlfb.includes('USER-SDHC-X52'), `Storage: sd_custom_x52 MLFB is ${x52Article.mlfb}`);
+    assert(x52Article.descriptionRu.includes('High Endurance') || x52Article.descriptionRu.includes('Industrial'), 'Storage: RU description recommends High Endurance / Industrial');
+    assert(x52Article.descriptionEn.includes('High Endurance') || x52Article.descriptionEn.includes('Industrial'), 'Storage: EN description recommends High Endurance / Industrial');
+
+    // Sizing with custom 64 GB card for Slot X52
+    const customX52Config: UnifiedConfig = {
+      deviceType: 'ucp',
+      retentionDays: 30,
+      segmentHours: 24,
+      perEntryBytes: 50,
+      headroomPct: 30,
+      includeAlarms: false,
+      alarmsPerDay: 0,
+      includeAudit: false,
+      auditEntriesPerDay: 0,
+      storageMedium: 'sd_custom_x52',
+      storageSizeGb: 64,
+      dataLogs: [
+        {
+          id: 'dl_fast',
+          name: 'Fast_Pressure_Logs',
+          retentionDays: 60,  // Individual override: 60 days
+          segmentHours: 12,   // Individual override: 12 hours
+          enabled: true,
+        },
+        {
+          id: 'dl_slow',
+          name: 'Slow_Temp_Logs',
+          retentionDays: 15,  // Individual override: 15 days
+          segmentHours: 8,    // Individual override: 8 hours
+          enabled: true,
+        },
+      ],
+      alarmLogs: [
+        {
+          id: 'al_critical',
+          name: 'Critical_Alarms',
+          entriesPerDay: 40,
+          retentionDays: 90,  // Individual override: 90 days
+          segmentHours: 12,   // Individual override: 12 hours
+          enabled: true,
+        },
+      ],
+      alarmTags: [
+        { id: 'at_crit_1', name: 'Emergency_Trip', alarmClass: 'Alarm', triggerType: 'digital', eventsPerDay: 2, count: 5, alarmLogId: 'al_critical' }
+      ],
+    };
+
+    const customTags: UnifiedTag[] = [
+      { id: 't_fast', description: 'PID Pressures', mode: 'cyclic', cycleSec: 1, entriesPerSec: 1, count: 20, dataType: 'Real', dataLogId: 'dl_fast' },
+      { id: 't_slow', description: 'Motor Temps', mode: 'cyclic', cycleSec: 5, entriesPerSec: 0.2, count: 40, dataType: 'Real', dataLogId: 'dl_slow' },
+    ];
+
+    const customResult = calculateUnified(customTags, customX52Config);
+    const fastLogItem = customResult.logItems.find(i => i.id === 'dl_fast');
+    const slowLogItem = customResult.logItems.find(i => i.id === 'dl_slow');
+    const critAlarmItem = customResult.logItems.find(i => i.id === 'al_critical');
+
+    // Check individual retention and segment overrides for Data Log 1
+    assert(fastLogItem !== undefined, 'Individual DataLog: fastLogItem calculated');
+    assert(fastLogItem?.retentionDays === 60, `Individual DataLog: fast retention is 60 days, got ${fastLogItem?.retentionDays}`);
+    assert(fastLogItem?.segmentHours === 12, `Individual DataLog: fast segment is 12 hours, got ${fastLogItem?.segmentHours}`);
+    assert(fastLogItem?.totalSegments === 120, `Individual DataLog: fast totalSegments is 120 (60*24/12), got ${fastLogItem?.totalSegments}`);
+    assert(fastLogItem?.sqliteSegmentMb! % 4 === 0, 'Individual DataLog: fast sqliteSegmentMb is multiple of 4 MB');
+
+    // Check individual retention and segment overrides for Data Log 2
+    assert(slowLogItem !== undefined, 'Individual DataLog: slowLogItem calculated');
+    assert(slowLogItem?.retentionDays === 15, `Individual DataLog: slow retention is 15 days, got ${slowLogItem?.retentionDays}`);
+    assert(slowLogItem?.segmentHours === 8, `Individual DataLog: slow segment is 8 hours, got ${slowLogItem?.segmentHours}`);
+    assert(slowLogItem?.totalSegments === 45, `Individual DataLog: slow totalSegments is 45 (15*24/8), got ${slowLogItem?.totalSegments}`);
+    assert(slowLogItem?.sqliteSegmentMb! % 4 === 0, 'Individual DataLog: slow sqliteSegmentMb is multiple of 4 MB');
+
+    // Check individual retention and segment overrides for Alarm Log
+    assert(critAlarmItem !== undefined, 'Individual AlarmLog: critAlarmItem calculated');
+    assert(critAlarmItem?.retentionDays === 90, `Individual AlarmLog: alarm retention is 90 days, got ${critAlarmItem?.retentionDays}`);
+    assert(critAlarmItem?.segmentHours === 12, `Individual AlarmLog: alarm segment is 12 hours, got ${critAlarmItem?.segmentHours}`);
+    assert(critAlarmItem?.totalSegments === 180, `Individual AlarmLog: alarm totalSegments is 180 (90*24/12), got ${critAlarmItem?.totalSegments}`);
+    assert(critAlarmItem?.tagCount === 5, `Individual AlarmLog: tagCount is 5, got ${critAlarmItem?.tagCount}`);
+    assert(critAlarmItem?.entriesPerDay === 50, `Individual AlarmLog: entriesPerDay is 50 (2*5 + 40 base), got ${critAlarmItem?.entriesPerDay}`);
+
+    // Check custom 64 GB storage capacity occupancy
+    const expectedCapMb = 64 * 1024;
+    const expectedOccupancy = (customResult.totalStorageUsedMb / expectedCapMb) * 100;
+    assert(Math.abs(customResult.storageOccupancyPct - expectedOccupancy) < 0.01, `Storage X52: occupancy matches 64 GB capacity, got ${customResult.storageOccupancyPct}%`);
+    assert(customResult.estimatedFlashLifeYears > 0, 'Storage X52: flash life estimation is positive');
+
+    // Check Multi-log TIA CSV export with log resolution
+    const multiLogCsv = generateTiaPortalCsv('unified', customTags, 'Default_Log', customX52Config.dataLogs);
+    assert(multiLogCsv.includes('PID_Pressures;Fast_Pressure_Logs;Cyclic;1 s;Real;0;None;'), 'TIA Exporter MultiLog: routes tag to Fast_Pressure_Logs');
+    assert(multiLogCsv.includes('Motor_Temps;Slow_Temp_Logs;Cyclic;5 s;Real;0;None;'), 'TIA Exporter MultiLog: routes tag to Slow_Temp_Logs');
+
+    // Check TIA Alarm CSV exporter
+    const alarmExportCsv = generateTiaPortalAlarmCsv(customX52Config.alarmTags!, customX52Config.alarmLogs);
+    assert(alarmExportCsv.startsWith('\uFEFF'), 'TIA Alarm Exporter: starts with UTF-8 BOM');
+    assert(alarmExportCsv.includes('Name;Alarm log;Alarm class;Trigger type;Events per day;Count;Comment'), 'TIA Alarm Exporter: standard header');
+    assert(alarmExportCsv.includes('Emergency_Trip;Critical_Alarms;Alarm;digital;2;5;'), 'TIA Alarm Exporter: tag row formatted with target alarm log');
+
+    // Check Slot X52 flash wear warning mentions High Endurance or Industrial
+    const heavyX52Tags: UnifiedTag[] = [
+      { id: 'heavy_pid', description: 'Heavy_Pressure', mode: 'cyclic', cycleSec: 0.05, entriesPerSec: 20, count: 200, dataType: 'Real', dataLogId: 'dl_fast' }
+    ];
+    const heavyX52Config: UnifiedConfig = {
+      ...customX52Config,
+      storageSizeGb: 4, // small card to trigger flash wear warning
+    };
+    const heavyResult = calculateUnified(heavyX52Tags, heavyX52Config, 'ru');
+    const hasWearWarning = heavyResult.warnings.some(w => w.includes('High Endurance') || w.includes('Industrial'));
+    assert(hasWearWarning, 'Storage X52: warning explicitly recommends High Endurance / Industrial card for Slot X52');
   }
 
   console.log(`\n========================================`);

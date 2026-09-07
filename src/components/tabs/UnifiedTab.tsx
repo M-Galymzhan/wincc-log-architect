@@ -7,15 +7,16 @@ import {
 import { translations, formatPlural } from '../../lib/i18n';
 import { TrafficGauge } from '../TrafficGauge';
 import { BulkAddModal } from '../BulkAddModal';
+import { BulkAddAlarmModal } from '../BulkAddAlarmModal';
 import { ConfirmModal } from '../ConfirmModal';
 import { ImportTagsModal } from '../ImportTagsModal';
 import { 
   Plus, Trash2, Layers, AlertTriangle, CheckCircle2, 
-  ShieldCheck, Bell, BellRing, Cpu, Clock, RefreshCw, Download, Settings2, Upload,
+  ShieldCheck, ShieldAlert, Bell, BellRing, Cpu, Clock, RefreshCw, Download, Settings2, Upload,
   Database, Copy, Check, Filter
 } from 'lucide-react';
 import { getSiemensArticle } from '../../lib/calculator/mlfbCatalog';
-import { generateTiaPortalCsv, downloadFile } from '../../lib/tiaExporter';
+import { generateTiaPortalCsv, generateTiaPortalAlarmCsv, downloadFile } from '../../lib/tiaExporter';
 import { convertToUnifiedTags, ParsedTagItem } from '../../lib/tagImporter';
 import { NetworkBandwidthCard } from '../NetworkBandwidthCard';
 
@@ -40,6 +41,7 @@ export const UnifiedTab: React.FC<UnifiedTabProps> = ({
 }) => {
   const t = translations[lang];
   const [isBulkModalOpen, setIsBulkModalOpen] = useState(false);
+  const [isBulkAlarmModalOpen, setIsBulkAlarmModalOpen] = useState(false);
   const [isConfirmModalOpen, setIsConfirmModalOpen] = useState(false);
   const [isImportModalOpen, setIsImportModalOpen] = useState(false);
   const [copiedCellKey, setCopiedCellKey] = useState<string | null>(null);
@@ -52,13 +54,13 @@ export const UnifiedTab: React.FC<UnifiedTabProps> = ({
   // Multi-Log Accessors & Handlers
   const dataLogs: UnifiedDataLogConfig[] = config.dataLogs && config.dataLogs.length > 0
     ? config.dataLogs
-    : [{ id: 'default_data_log', name: 'Trend_Logs', enabled: true }];
+    : [{ id: 'default_data_log', name: 'Trend_Logs', retentionDays: config.retentionDays || 30, segmentHours: config.segmentHours || 24, enabled: true }];
 
   const alarmLogs: UnifiedAlarmLogConfig[] = config.alarmLogs !== undefined
     ? config.alarmLogs
     : [
-        { id: 'alarms_log', name: 'Alarms_log', entriesPerDay: 50, enabled: true },
-        { id: 'events_log', name: 'Events_log', entriesPerDay: 100, enabled: true },
+        { id: 'alarms_log', name: 'Alarms_log', entriesPerDay: 50, retentionDays: config.retentionDays || 30, segmentHours: config.segmentHours || 24, enabled: true },
+        { id: 'events_log', name: 'Events_log', entriesPerDay: 100, retentionDays: config.retentionDays || 30, segmentHours: config.segmentHours || 24, enabled: true },
       ];
 
   const alarmTags: UnifiedAlarmTag[] = config.alarmTags || [];
@@ -67,6 +69,8 @@ export const UnifiedTab: React.FC<UnifiedTabProps> = ({
     const newDl: UnifiedDataLogConfig = {
       id: Math.random().toString(36).substring(2, 9),
       name: `Data_Log_${dataLogs.length + 1}`,
+      retentionDays: config.retentionDays || 30,
+      segmentHours: config.segmentHours || 24,
       enabled: true,
     };
     setConfig(prev => ({ ...prev, dataLogs: [...dataLogs, newDl] }));
@@ -84,6 +88,8 @@ export const UnifiedTab: React.FC<UnifiedTabProps> = ({
       return;
     }
     const updated = dataLogs.filter(dl => dl.id !== id);
+    const fallbackId = updated[0]?.id || 'default_data_log';
+    setTags(tags.map(tItem => tItem.dataLogId === id ? { ...tItem, dataLogId: fallbackId } : tItem));
     setConfig(prev => ({ ...prev, dataLogs: updated }));
     if (activeDataLogFilter === id) setActiveDataLogFilter('all');
     if (onShowToast) onShowToast(lang === 'ru' ? 'Архив данных удален' : 'Data log removed', 'info');
@@ -94,6 +100,8 @@ export const UnifiedTab: React.FC<UnifiedTabProps> = ({
       id: Math.random().toString(36).substring(2, 9),
       name: `Alarm_Log_${alarmLogs.length + 1}`,
       entriesPerDay: 50,
+      retentionDays: config.retentionDays || 30,
+      segmentHours: config.segmentHours || 24,
       enabled: true,
     };
     setConfig(prev => ({ ...prev, alarmLogs: [...alarmLogs, newAl] }));
@@ -106,10 +114,43 @@ export const UnifiedTab: React.FC<UnifiedTabProps> = ({
   };
 
   const handleRemoveAlarmLog = (id: string) => {
+    if (alarmLogs.length <= 1) {
+      if (onShowToast) onShowToast(lang === 'ru' ? 'Должен остаться хотя бы один архив аварий' : 'At least one Alarm Log must remain', 'warning');
+      return;
+    }
     const updated = alarmLogs.filter(al => al.id !== id);
-    setConfig(prev => ({ ...prev, alarmLogs: updated }));
+    const fallbackId = updated[0]?.id || 'alarms_log';
+    setConfig(prev => ({
+      ...prev,
+      alarmLogs: updated,
+      alarmTags: (prev.alarmTags || []).map(at => at.alarmLogId === id ? { ...at, alarmLogId: fallbackId } : at),
+    }));
     if (activeAlarmLogFilter === id) setActiveAlarmLogFilter('all');
     if (onShowToast) onShowToast(lang === 'ru' ? 'Архив аварий удален' : 'Alarm log removed', 'info');
+  };
+
+  const handleApplyDefaultsToAll = () => {
+    const targetRetention = config.retentionDays || 30;
+    const targetSegment = config.segmentHours || 24;
+    const updatedDl = dataLogs.map(dl => ({
+      ...dl,
+      retentionDays: targetRetention,
+      segmentHours: targetSegment,
+    }));
+    const updatedAl = alarmLogs.map(al => ({
+      ...al,
+      retentionDays: targetRetention,
+      segmentHours: targetSegment,
+    }));
+    setConfig(prev => ({ ...prev, dataLogs: updatedDl, alarmLogs: updatedAl }));
+    if (onShowToast) {
+      onShowToast(
+        lang === 'ru'
+          ? 'Параметры по умолчанию применены ко всем архивам'
+          : 'Global defaults applied to all logs',
+        'success'
+      );
+    }
   };
 
   // Alarm Tags Handlers
@@ -133,24 +174,35 @@ export const UnifiedTab: React.FC<UnifiedTabProps> = ({
     if (onShowToast) onShowToast(lang === 'ru' ? 'Аварийный сигнал добавлен' : 'Alarm signal added', 'success');
   };
 
-  const handleAddAlarmBulk = () => {
-    const targetLogId = activeAlarmLogFilter !== 'all'
-      ? activeAlarmLogFilter
-      : (alarmLogs[0]?.id || 'alarms_log');
-    const newBatch: UnifiedAlarmTag[] = Array.from({ length: 5 }, (_, i) => ({
+  const handleBulkAddAlarmSubmit = (params: {
+    count: number;
+    prefix: string;
+    alarmClass: UnifiedAlarmTag['alarmClass'];
+    triggerType: UnifiedAlarmTag['triggerType'];
+    eventsPerDay: number;
+    alarmLogId: string;
+  }) => {
+    const newBatch: UnifiedAlarmTag[] = Array.from({ length: params.count }, (_, i) => ({
       id: Math.random().toString(36).substring(2, 9),
-      name: `Alarm_${alarmTags.length + i + 1}`,
-      alarmClass: 'Alarm',
-      triggerType: 'digital',
-      eventsPerDay: 2,
+      name: `${params.prefix}${alarmTags.length + i + 1}`,
+      alarmClass: params.alarmClass,
+      triggerType: params.triggerType,
+      eventsPerDay: params.eventsPerDay,
       count: 1,
-      alarmLogId: targetLogId,
+      alarmLogId: params.alarmLogId,
     }));
     setConfig(prev => ({
       ...prev,
       alarmTags: [...(prev.alarmTags || []), ...newBatch],
     }));
-    if (onShowToast) onShowToast(lang === 'ru' ? 'Добавлен пакет из 5 аварийных сигналов' : 'Added batch of 5 alarm signals', 'success');
+    if (onShowToast) {
+      onShowToast(
+        lang === 'ru'
+          ? `Добавлен пакет из ${params.count} аварийных сигналов`
+          : `Added batch of ${params.count} alarm signals`,
+        'success'
+      );
+    }
   };
 
   const handleUpdateAlarmTag = (id: string, patch: Partial<UnifiedAlarmTag>) => {
@@ -240,11 +292,12 @@ export const UnifiedTab: React.FC<UnifiedTabProps> = ({
   };
 
   const handleLoadSample = () => {
+    const defaultDlId = dataLogs[0]?.id || 'default_data_log';
     setTags([
-      { id: '1', description: lang === 'ru' ? 'Давление ПИД-контуров (0.5с)' : 'Fast PID Pressures (0.5s)', mode: 'cyclic', cycleSec: 0.5, entriesPerSec: 2, count: 40, dataType: 'Real' },
-      { id: '2', description: lang === 'ru' ? 'Температуры обмоток и подшипников (2с)' : 'Motor Temperatures (2s)', mode: 'cyclic', cycleSec: 2, entriesPerSec: 0.5, count: 120, dataType: 'Real' },
-      { id: '3', description: lang === 'ru' ? 'Уровни в резервуарах (5с)' : 'Tank Levels & Flow (5s)', mode: 'cyclic', cycleSec: 5, entriesPerSec: 0.2, count: 80, dataType: 'Real' },
-      { id: '4', description: lang === 'ru' ? 'Концевики и клапаны (По изм.)' : 'Valve States (On Change)', mode: 'onchange', cycleSec: 60, entriesPerSec: 0.0167, count: 200, dataType: 'Bool' },
+      { id: '1', description: lang === 'ru' ? 'Давление ПИД-контуров (0.5с)' : 'Fast PID Pressures (0.5s)', mode: 'cyclic', cycleSec: 0.5, entriesPerSec: 2, count: 40, dataType: 'Real', dataLogId: defaultDlId },
+      { id: '2', description: lang === 'ru' ? 'Температуры обмоток и подшипников (2с)' : 'Motor Temperatures (2s)', mode: 'cyclic', cycleSec: 2, entriesPerSec: 0.5, count: 120, dataType: 'Real', dataLogId: defaultDlId },
+      { id: '3', description: lang === 'ru' ? 'Уровни в резервуарах (5с)' : 'Tank Levels & Flow (5s)', mode: 'cyclic', cycleSec: 5, entriesPerSec: 0.2, count: 80, dataType: 'Real', dataLogId: defaultDlId },
+      { id: '4', description: lang === 'ru' ? 'Концевики и клапаны (По изм.)' : 'Valve States (On Change)', mode: 'onchange', cycleSec: 60, entriesPerSec: 0.0167, count: 200, dataType: 'Bool', dataLogId: defaultDlId },
     ]);
     if (onShowToast) onShowToast(lang === 'ru' ? 'Загружен типовой проект тегов' : 'Sample project tags loaded', 'info');
   };
@@ -273,9 +326,15 @@ export const UnifiedTab: React.FC<UnifiedTabProps> = ({
   };
 
   const handleExportTiaCsv = () => {
-    const csv = generateTiaPortalCsv('unified', tags, 'Unified_DataLog');
+    const csv = generateTiaPortalCsv('unified', tags, 'Unified_DataLog', dataLogs);
     downloadFile(csv, `TIA_WinCC_Unified_Tags_${new Date().toISOString().slice(0, 10)}.csv`);
     if (onShowToast) onShowToast(t.exportTiaSuccess, 'success');
+  };
+
+  const handleExportTiaAlarmCsv = () => {
+    const csv = generateTiaPortalAlarmCsv(alarmTags, alarmLogs);
+    downloadFile(csv, `TIA_WinCC_Unified_Alarms_${new Date().toISOString().slice(0, 10)}.csv`);
+    if (onShowToast) onShowToast(t.exportAlarmCsvSuccess, 'success');
   };
 
   return (
@@ -350,7 +409,8 @@ export const UnifiedTab: React.FC<UnifiedTabProps> = ({
                   else if (val === 'sd_12g') gb = 12;
                   else if (val === 'sd_32g') gb = 32;
                   else if (val === 'usb_128g') gb = 128;
-                  else if (val === 'ssd_custom') gb = config.storageSizeGb || 256;
+                  else if (val === 'sd_custom_x52') gb = config.storageMedium === 'sd_custom_x52' ? (config.storageSizeGb || 32) : 32;
+                  else if (val === 'ssd_custom') gb = config.storageMedium === 'ssd_custom' ? (config.storageSizeGb || 256) : 256;
                   setConfig({ ...config, storageMedium: val, storageSizeGb: gb });
                 }}
                 className="col-span-2 p-2 rounded-lg border border-slate-300 dark:border-slate-700 bg-white/80 dark:bg-slate-900 text-xs font-medium text-slate-900 dark:text-slate-100 focus:border-[#00646E] focus:ring-2 focus:ring-[#00646E]/20 outline-none"
@@ -359,13 +419,16 @@ export const UnifiedTab: React.FC<UnifiedTabProps> = ({
                 <option value="sd_2g">SIMATIC SD Card 2 GB</option>
                 <option value="sd_12g">{t.storageSdCard12gUcp}</option>
                 <option value="sd_32g">SIMATIC SD Card 32 GB</option>
+                <option value="sd_custom_x52">{t.storageSdCustomX52}</option>
                 <option value="usb_128g">Industrial USB Flash 128 GB</option>
                 <option value="ssd_custom">{t.storageCustomSsd}</option>
               </select>
 
-              {config.storageMedium === 'ssd_custom' && (
-                <div className="col-span-2 flex items-center gap-2 mt-1">
-                  <span className="text-xs text-slate-700 dark:text-slate-300">{t.storageCustom}:</span>
+              {(config.storageMedium === 'ssd_custom' || config.storageMedium === 'sd_custom_x52') && (
+                <div className="col-span-2 flex flex-wrap items-center gap-2 mt-1">
+                  <span className="text-xs text-slate-700 dark:text-slate-300">
+                    {config.storageMedium === 'sd_custom_x52' ? (lang === 'ru' ? 'Емкость SDHC (X52):' : 'SDHC (X52) capacity:') : `${t.storageCustom}:`}
+                  </span>
                   <input
                     type="number"
                     min="1"
@@ -377,9 +440,43 @@ export const UnifiedTab: React.FC<UnifiedTabProps> = ({
                     className="p-1 px-2 text-xs rounded border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 w-24 font-mono focus:ring-2 focus:ring-[#00646E]/20 outline-none"
                   />
                   <span className="text-xs font-semibold text-slate-800 dark:text-slate-200">GB</span>
+                  <div className="flex items-center gap-1">
+                    {(config.storageMedium === 'sd_custom_x52' ? [16, 32, 64, 128] : [120, 256, 512, 1024]).map((size) => (
+                      <button
+                        key={size}
+                        type="button"
+                        onClick={() => setConfig({ ...config, storageSizeGb: size })}
+                        className={`px-1.5 py-0.5 text-[10px] font-mono rounded transition-colors cursor-pointer ${
+                          config.storageSizeGb === size
+                            ? 'bg-[#00646E] text-white font-bold'
+                            : 'bg-slate-200/80 dark:bg-slate-800 text-slate-700 dark:text-slate-300 hover:bg-slate-300 dark:hover:bg-slate-700'
+                        }`}
+                      >
+                        {size}G
+                      </button>
+                    ))}
+                  </div>
                 </div>
               )}
             </div>
+
+            {/* High Endurance / Industrial Recommendation Banner for Slot X52 */}
+            {config.storageMedium === 'sd_custom_x52' && (
+              <div className="mt-3 p-3 rounded-xl bg-amber-500/10 dark:bg-amber-500/15 border border-amber-500/30 text-xs">
+                <div className="flex items-center justify-between gap-2 mb-1.5">
+                  <div className="flex items-center gap-1.5 font-bold text-amber-800 dark:text-amber-200">
+                    <ShieldAlert className="w-4 h-4 text-amber-600 dark:text-amber-400 shrink-0" />
+                    <span>{t.sdX52RecommendationTitle}</span>
+                  </div>
+                  <span className="text-[10px] font-mono uppercase font-bold tracking-wider px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-900 dark:text-amber-200 border border-amber-500/30 shrink-0">
+                    {t.sdX52RecommendationBadge}
+                  </span>
+                </div>
+                <p className="text-[11px] text-amber-900/90 dark:text-amber-200/90 leading-relaxed">
+                  {t.sdX52RecommendationText}
+                </p>
+              </div>
+            )}
 
             {/* Siemens MLFB Article Info */}
             {(() => {
@@ -405,18 +502,36 @@ export const UnifiedTab: React.FC<UnifiedTabProps> = ({
 
         {/* Global Parameters Card */}
         <div className="lg:col-span-7 glass-panel p-5 rounded-2xl">
-          <div className="flex items-center justify-between mb-3">
-            <h2 className="font-bold text-base text-slate-900 dark:text-white flex items-center gap-2">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-3">
+            <div className="flex items-center gap-2">
               <Clock className="w-5 h-5 text-[#00A3B5]" />
-              {t.globalParams}
-            </h2>
-            <button
-              onClick={handleLoadSample}
-              className="text-xs text-[#00646E] dark:text-[#00A3B5] hover:underline flex items-center gap-1 font-medium cursor-pointer"
-            >
-              <RefreshCw className="w-3 h-3" />
-              {lang === 'ru' ? 'Загрузить демо-теги' : 'Load Demo Tags'}
-            </button>
+              <div>
+                <h2 className="font-bold text-base text-slate-900 dark:text-white leading-tight">
+                  {t.globalParamsTitle}
+                </h2>
+                <p className="text-[10px] text-slate-500 dark:text-slate-400 mt-0.5">
+                  {t.globalParamsHint}
+                </p>
+              </div>
+            </div>
+            <div className="flex flex-wrap items-center gap-2 shrink-0">
+              <button
+                type="button"
+                onClick={handleApplyDefaultsToAll}
+                className="text-xs text-slate-600 dark:text-slate-300 hover:text-[#00646E] dark:hover:text-[#00A3B5] flex items-center gap-1 font-medium cursor-pointer border border-slate-200 dark:border-slate-700 px-2 py-1 rounded-lg bg-white/60 dark:bg-slate-800/60 transition-colors"
+                title={lang === 'ru' ? 'Применить текущие глобальные значения срока и сегмента ко всем созданным архивам' : 'Apply current global retention and segment to all existing logs'}
+              >
+                <RefreshCw className="w-3 h-3 text-[#00646E] dark:text-[#00A3B5]" />
+                <span>{t.btnApplyDefaultsToAll}</span>
+              </button>
+              <button
+                onClick={handleLoadSample}
+                className="text-xs text-[#00646E] dark:text-[#00A3B5] hover:underline flex items-center gap-1 font-medium cursor-pointer shrink-0"
+              >
+                <RefreshCw className="w-3 h-3" />
+                {lang === 'ru' ? 'Загрузить демо-теги' : 'Load Demo Tags'}
+              </button>
+            </div>
           </div>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5 mb-3">
@@ -538,35 +653,118 @@ export const UnifiedTab: React.FC<UnifiedTabProps> = ({
                 </button>
               </div>
 
-              <div className="space-y-1.5">
+              <div className="space-y-2">
                 {dataLogs.map((dl, idx) => {
                   const tagCountForDl = tags.filter(tItem => (tItem.dataLogId ? tItem.dataLogId === dl.id : idx === 0)).reduce((acc, tItem) => acc + (tItem.count || 0), 0);
+                  const logCalc = result.logItems.find(i => i.id === dl.id);
+                  const curRetention = dl.retentionDays !== undefined ? dl.retentionDays : config.retentionDays;
+                  const curSegment = dl.segmentHours !== undefined ? dl.segmentHours : config.segmentHours;
+
                   return (
-                    <div key={dl.id} className="flex items-center justify-between gap-2 p-2 rounded-lg bg-white/80 dark:bg-slate-900/80 border border-slate-200/70 dark:border-slate-800">
-                      <div className="flex items-center gap-2 flex-1 min-w-0">
-                        <input
-                          type="text"
-                          value={dl.name}
-                          onChange={(e) => handleUpdateDataLog(dl.id, { name: e.target.value })}
-                          placeholder={t.logNamePlaceholder}
-                          className="p-1 px-2 text-xs font-mono font-bold rounded border border-slate-200 dark:border-slate-700 bg-transparent text-slate-900 dark:text-white focus:border-[#00646E] outline-none flex-1 max-w-[180px]"
-                        />
-                        <span className="text-[10px] px-2 py-0.5 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 font-mono shrink-0">
-                          {tagCountForDl} {lang === 'ru' ? 'тегов' : 'tags'}
-                        </span>
+                    <div key={dl.id} className="p-2.5 rounded-xl bg-white/90 dark:bg-slate-900/90 border border-slate-200/80 dark:border-slate-800 space-y-2 shadow-2xs">
+                      {/* Top Header Row */}
+                      <div className="flex items-center justify-between gap-2">
+                        <div className="flex items-center gap-2 flex-1 min-w-0">
+                          <input
+                            type="checkbox"
+                            checked={dl.enabled !== false}
+                            onChange={(e) => handleUpdateDataLog(dl.id, { enabled: e.target.checked })}
+                            className="w-4 h-4 accent-[#00646E] cursor-pointer shrink-0"
+                            title={lang === 'ru' ? 'Включить/отключить архив' : 'Enable/disable log'}
+                          />
+                          <input
+                            type="text"
+                            value={dl.name}
+                            onChange={(e) => handleUpdateDataLog(dl.id, { name: e.target.value })}
+                            placeholder={t.logNamePlaceholder}
+                            className="p-1 px-2 text-xs font-mono font-bold rounded-lg border border-slate-200 dark:border-slate-700 bg-transparent text-slate-900 dark:text-white focus:border-[#00646E] outline-none flex-1 max-w-[200px]"
+                          />
+                          <span className="text-[10px] px-2 py-0.5 rounded-full bg-[#00646E]/10 text-[#00646E] dark:text-[#00A3B5] font-mono font-semibold shrink-0">
+                            {tagCountForDl} {lang === 'ru' ? 'тегов' : 'tags'}
+                          </span>
+                        </div>
+
+                        <div className="flex items-center gap-2 shrink-0">
+                          {logCalc && logCalc.totalLogMb > 0 && (
+                            <span className="text-[10px] font-mono text-slate-500 dark:text-slate-400 hidden sm:inline">
+                              {logCalc.sqliteSegmentMb} MB seg / {logCalc.totalLogMb} MB
+                            </span>
+                          )}
+                          {dataLogs.length > 1 && (
+                            <button
+                              type="button"
+                              onClick={() => handleRemoveDataLog(dl.id)}
+                              className="p-1 text-slate-400 hover:text-rose-500 rounded transition-colors cursor-pointer"
+                              title={lang === 'ru' ? 'Удалить Data Log' : 'Remove Data Log'}
+                            >
+                              <Trash2 className="w-3.5 h-3.5" />
+                            </button>
+                          )}
+                        </div>
                       </div>
 
-                      <div className="flex items-center gap-2 shrink-0">
-                        {dataLogs.length > 1 && (
-                          <button
-                            type="button"
-                            onClick={() => handleRemoveDataLog(dl.id)}
-                            className="p-1 text-slate-400 hover:text-rose-500 rounded transition-colors cursor-pointer"
-                            title={lang === 'ru' ? 'Удалить Data Log' : 'Remove Data Log'}
+                      {/* Individual Parameters Row: Retention Days & Segment Hours */}
+                      <div className="grid grid-cols-2 gap-2 pt-1.5 border-t border-slate-100 dark:border-slate-800/80 text-xs">
+                        <div className="flex items-center gap-1.5 bg-slate-50/80 dark:bg-slate-800/50 p-1.5 rounded-lg border border-slate-200/50 dark:border-slate-700/50">
+                          <span className="text-[10px] font-medium text-slate-500 dark:text-slate-400 shrink-0">
+                            {t.cardRetentionLabel}
+                          </span>
+                          <input
+                            type="number"
+                            min="1"
+                            value={curRetention}
+                            onChange={(e) => {
+                              const val = e.target.value === '' ? 1 : Math.max(1, parseInt(e.target.value, 10) || 1);
+                              handleUpdateDataLog(dl.id, { retentionDays: val });
+                            }}
+                            className="w-14 p-0.5 px-1 text-xs font-mono font-bold rounded border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-900 dark:text-white outline-none focus:ring-1 focus:ring-[#00646E]"
+                          />
+                          <span className="text-[10px] text-slate-400 font-mono">{t.unitDays}</span>
+                          {(curRetention !== config.retentionDays || curSegment !== config.segmentHours) && (
+                            <button
+                              type="button"
+                              onClick={() => handleUpdateDataLog(dl.id, { retentionDays: config.retentionDays, segmentHours: config.segmentHours })}
+                              title={`${t.btnResetToDefaults} (${config.retentionDays} ${t.unitDays}, ${config.segmentHours} ${t.unitHours})`}
+                              className="ml-auto p-0.5 text-slate-400 hover:text-[#00646E] dark:hover:text-[#00A3B5] transition-colors cursor-pointer"
+                            >
+                              <RefreshCw className="w-2.5 h-2.5" />
+                            </button>
+                          )}
+                        </div>
+
+                        <div className="flex items-center gap-1.5 bg-slate-50/80 dark:bg-slate-800/50 p-1.5 rounded-lg border border-slate-200/50 dark:border-slate-700/50">
+                          <span className="text-[10px] font-medium text-slate-500 dark:text-slate-400 shrink-0">
+                            {t.cardSegmentLabel}
+                          </span>
+                          <input
+                            type="number"
+                            min="1"
+                            value={curSegment}
+                            onChange={(e) => {
+                              const val = e.target.value === '' ? 1 : Math.max(1, parseInt(e.target.value, 10) || 1);
+                              handleUpdateDataLog(dl.id, { segmentHours: val });
+                            }}
+                            className="w-14 p-0.5 px-1 text-xs font-mono font-bold rounded border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-900 dark:text-white outline-none focus:ring-1 focus:ring-[#00646E]"
+                          />
+                          <span className="text-[10px] text-slate-400 font-mono">{t.unitHours}</span>
+                          <select
+                            value={[1, 8, 12, 24, 168].includes(curSegment) ? curSegment : 'custom'}
+                            onChange={(e) => {
+                              if (e.target.value !== 'custom') {
+                                handleUpdateDataLog(dl.id, { segmentHours: parseInt(e.target.value, 10) });
+                              }
+                            }}
+                            className="p-0.5 text-[10px] rounded border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-600 dark:text-slate-300 outline-none ml-auto cursor-pointer"
+                            title="Быстрый выбор сегмента"
                           >
-                            <Trash2 className="w-3.5 h-3.5" />
-                          </button>
-                        )}
+                            <option value="custom">⚡</option>
+                            <option value="1">1ч</option>
+                            <option value="8">8ч</option>
+                            <option value="12">12ч</option>
+                            <option value="24">24ч</option>
+                            <option value="168">7д</option>
+                          </select>
+                        </div>
                       </div>
                     </div>
                   );
@@ -601,58 +799,131 @@ export const UnifiedTab: React.FC<UnifiedTabProps> = ({
                   {lang === 'ru' ? 'Нет настроенных журналов алармов (нажмите «+ Alarm Log» для добавления)' : 'No alarm logs configured (click "+ Alarm Log" to add)'}
                 </div>
               ) : (
-                <div className="space-y-1.5">
+                <div className="space-y-2">
                   {alarmLogs.map((al, idx) => {
                     const matchingAlarmTags = alarmTags.filter((at) => (at.alarmLogId ? at.alarmLogId === al.id : idx === 0));
                     const tagsEvents = matchingAlarmTags.reduce((sum, at) => sum + (Math.max(0, at.eventsPerDay || 0) * Math.max(1, at.count || 1)), 0);
                     const tagsCount = matchingAlarmTags.reduce((sum, at) => sum + Math.max(1, at.count || 1), 0);
+                    const logCalc = result.logItems.find(i => i.id === al.id);
+                    const curRetention = al.retentionDays !== undefined ? al.retentionDays : config.retentionDays;
+                    const curSegment = al.segmentHours !== undefined ? al.segmentHours : config.segmentHours;
 
                     return (
-                      <div key={al.id} className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 p-2 rounded-lg bg-white/80 dark:bg-slate-900/80 border border-slate-200/70 dark:border-slate-800">
-                        <div className="flex items-center gap-2 flex-1 min-w-0">
-                          <input
-                            type="checkbox"
-                            checked={al.enabled}
-                            onChange={(e) => handleUpdateAlarmLog(al.id, { enabled: e.target.checked })}
-                            className="w-4 h-4 accent-[#00646E] cursor-pointer shrink-0"
-                          />
-                          <input
-                            type="text"
-                            value={al.name}
-                            disabled={!al.enabled}
-                            onChange={(e) => handleUpdateAlarmLog(al.id, { name: e.target.value })}
-                            placeholder={t.logNamePlaceholder}
-                            className="p-1 px-2 text-xs font-mono font-bold rounded border border-slate-200 dark:border-slate-700 bg-transparent text-slate-900 dark:text-white focus:border-[#00646E] outline-none flex-1 max-w-[170px] disabled:opacity-40"
-                          />
-                          {tagsCount > 0 && (
-                            <span className="text-[10px] px-2 py-0.5 rounded-full bg-amber-500/10 text-amber-700 dark:text-amber-400 font-mono font-semibold shrink-0" title={`${tagsEvents} ${t.eventsPerDayShort} ${t.fromAlarmTags}`}>
-                              {tagsCount} {lang === 'ru' ? 'сигн.' : 'sigs'} ({tagsEvents} {t.eventsPerDayShort})
-                            </span>
-                          )}
-                        </div>
-
-                        <div className="flex items-center gap-2 shrink-0 justify-end">
-                          <div className="flex items-center gap-1 shrink-0" title={t.baseManualEvents}>
-                            <span className="text-[10px] text-slate-400 font-mono">{lang === 'ru' ? '+ фон:' : '+ base:'}</span>
+                      <div key={al.id} className="p-2.5 rounded-xl bg-white/90 dark:bg-slate-900/90 border border-slate-200/80 dark:border-slate-800 space-y-2 shadow-2xs">
+                        {/* Header Row */}
+                        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                          <div className="flex items-center gap-2 flex-1 min-w-0">
                             <input
-                              type="number"
-                              min="0"
-                              disabled={!al.enabled}
-                              value={al.entriesPerDay}
-                              onChange={(e) => handleUpdateAlarmLog(al.id, { entriesPerDay: Math.max(0, parseInt(e.target.value, 10) || 0) })}
-                              className="w-16 p-1 text-xs font-mono rounded border border-slate-200 dark:border-slate-700 bg-transparent text-slate-900 dark:text-white outline-none focus:ring-1 focus:ring-[#00646E] disabled:opacity-40"
+                              type="checkbox"
+                              checked={al.enabled}
+                              onChange={(e) => handleUpdateAlarmLog(al.id, { enabled: e.target.checked })}
+                              className="w-4 h-4 accent-[#00646E] cursor-pointer shrink-0"
                             />
-                            <span className="text-[10px] text-slate-400 font-mono">{t.eventsPerDayShort}</span>
+                            <input
+                              type="text"
+                              value={al.name}
+                              disabled={!al.enabled}
+                              onChange={(e) => handleUpdateAlarmLog(al.id, { name: e.target.value })}
+                              placeholder={t.logNamePlaceholder}
+                              className="p-1 px-2 text-xs font-mono font-bold rounded-lg border border-slate-200 dark:border-slate-700 bg-transparent text-slate-900 dark:text-white focus:border-[#00646E] outline-none flex-1 max-w-[170px] disabled:opacity-40"
+                            />
+                            {tagsCount > 0 && (
+                              <span className="text-[10px] px-2 py-0.5 rounded-full bg-amber-500/10 text-amber-700 dark:text-amber-400 font-mono font-semibold shrink-0" title={`${tagsEvents} ${t.eventsPerDayShort} ${t.fromAlarmTags}`}>
+                                {tagsCount} {lang === 'ru' ? 'сигн.' : 'sigs'} ({tagsEvents} {t.eventsPerDayShort})
+                              </span>
+                            )}
                           </div>
 
-                          <button
-                            type="button"
-                            onClick={() => handleRemoveAlarmLog(al.id)}
-                            className="p-1 text-slate-400 hover:text-rose-500 rounded transition-colors cursor-pointer shrink-0"
-                            title={lang === 'ru' ? 'Удалить Alarm Log' : 'Remove Alarm Log'}
-                          >
-                            <Trash2 className="w-3.5 h-3.5" />
-                          </button>
+                          <div className="flex items-center gap-2 shrink-0 justify-end">
+                            <div className="flex items-center gap-1 shrink-0" title={t.baseManualEvents}>
+                              <span className="text-[10px] text-slate-400 font-mono">{lang === 'ru' ? '+ фон:' : '+ base:'}</span>
+                              <input
+                                type="number"
+                                min="0"
+                                disabled={!al.enabled}
+                                value={al.entriesPerDay}
+                                onChange={(e) => handleUpdateAlarmLog(al.id, { entriesPerDay: Math.max(0, parseInt(e.target.value, 10) || 0) })}
+                                className="w-16 p-1 text-xs font-mono rounded border border-slate-200 dark:border-slate-700 bg-transparent text-slate-900 dark:text-white outline-none focus:ring-1 focus:ring-[#00646E] disabled:opacity-40"
+                              />
+                              <span className="text-[10px] text-slate-400 font-mono">{t.eventsPerDayShort}</span>
+                            </div>
+
+                            <button
+                              type="button"
+                              onClick={() => handleRemoveAlarmLog(al.id)}
+                              className="p-1 text-slate-400 hover:text-rose-500 rounded transition-colors cursor-pointer shrink-0"
+                              title={lang === 'ru' ? 'Удалить Alarm Log' : 'Remove Alarm Log'}
+                            >
+                              <Trash2 className="w-3.5 h-3.5" />
+                            </button>
+                          </div>
+                        </div>
+
+                        {/* Individual Parameters Row: Retention Days & Segment Hours */}
+                        <div className="grid grid-cols-2 gap-2 pt-1.5 border-t border-slate-100 dark:border-slate-800/80 text-xs">
+                          <div className="flex items-center gap-1.5 bg-slate-50/80 dark:bg-slate-800/50 p-1.5 rounded-lg border border-slate-200/50 dark:border-slate-700/50">
+                            <span className="text-[10px] font-medium text-slate-500 dark:text-slate-400 shrink-0">
+                              {t.cardRetentionLabel}
+                            </span>
+                            <input
+                              type="number"
+                              min="1"
+                              disabled={!al.enabled}
+                              value={curRetention}
+                              onChange={(e) => {
+                                const val = e.target.value === '' ? 1 : Math.max(1, parseInt(e.target.value, 10) || 1);
+                                handleUpdateAlarmLog(al.id, { retentionDays: val });
+                              }}
+                              className="w-14 p-0.5 px-1 text-xs font-mono font-bold rounded border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-900 dark:text-white outline-none focus:ring-1 focus:ring-amber-500 disabled:opacity-40"
+                            />
+                            <span className="text-[10px] text-slate-400 font-mono">{t.unitDays}</span>
+                            {al.enabled && (curRetention !== config.retentionDays || curSegment !== config.segmentHours) && (
+                              <button
+                                type="button"
+                                onClick={() => handleUpdateAlarmLog(al.id, { retentionDays: config.retentionDays, segmentHours: config.segmentHours })}
+                                title={`${t.btnResetToDefaults} (${config.retentionDays} ${t.unitDays}, ${config.segmentHours} ${t.unitHours})`}
+                                className="ml-auto p-0.5 text-slate-400 hover:text-amber-600 dark:hover:text-amber-400 transition-colors cursor-pointer"
+                              >
+                                <RefreshCw className="w-2.5 h-2.5" />
+                              </button>
+                            )}
+                          </div>
+
+                          <div className="flex items-center gap-1.5 bg-slate-50/80 dark:bg-slate-800/50 p-1.5 rounded-lg border border-slate-200/50 dark:border-slate-700/50">
+                            <span className="text-[10px] font-medium text-slate-500 dark:text-slate-400 shrink-0">
+                              {t.cardSegmentLabel}
+                            </span>
+                            <input
+                              type="number"
+                              min="1"
+                              disabled={!al.enabled}
+                              value={curSegment}
+                              onChange={(e) => {
+                                const val = e.target.value === '' ? 1 : Math.max(1, parseInt(e.target.value, 10) || 1);
+                                handleUpdateAlarmLog(al.id, { segmentHours: val });
+                              }}
+                              className="w-14 p-0.5 px-1 text-xs font-mono font-bold rounded border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-900 dark:text-white outline-none focus:ring-1 focus:ring-amber-500 disabled:opacity-40"
+                            />
+                            <span className="text-[10px] text-slate-400 font-mono">{t.unitHours}</span>
+                            <select
+                              disabled={!al.enabled}
+                              value={[1, 8, 12, 24, 168].includes(curSegment) ? curSegment : 'custom'}
+                              onChange={(e) => {
+                                if (e.target.value !== 'custom') {
+                                  handleUpdateAlarmLog(al.id, { segmentHours: parseInt(e.target.value, 10) });
+                                }
+                              }}
+                              className="p-0.5 text-[10px] rounded border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-600 dark:text-slate-300 outline-none ml-auto cursor-pointer disabled:opacity-40"
+                              title="Быстрый выбор сегмента"
+                            >
+                              <option value="custom">⚡</option>
+                              <option value="1">1ч</option>
+                              <option value="8">8ч</option>
+                              <option value="12">12ч</option>
+                              <option value="24">24ч</option>
+                              <option value="168">7д</option>
+                            </select>
+                          </div>
                         </div>
                       </div>
                     );
@@ -803,12 +1074,20 @@ export const UnifiedTab: React.FC<UnifiedTabProps> = ({
                   <span>{t.btnAddAlarmTag}</span>
                 </button>
                 <button
-                  onClick={handleAddAlarmBulk}
+                  onClick={() => setIsBulkAlarmModalOpen(true)}
                   className="px-2.5 sm:px-3 py-1.5 rounded-lg text-xs font-semibold bg-amber-500/15 hover:bg-amber-500/25 text-amber-700 dark:text-amber-400 border border-amber-500/30 flex items-center gap-1 sm:gap-1.5 transition-all shadow-sm active:scale-95 cursor-pointer shrink-0"
-                  title={lang === 'ru' ? 'Добавить 5 типовых сигналов' : 'Add 5 sample alarm signals'}
+                  title={lang === 'ru' ? 'Пакетное добавление сигналов тревог и событий' : 'Bulk add alarm & event signals'}
                 >
                   <Plus className="w-3.5 h-3.5 shrink-0" />
                   <span>{t.btnAddAlarmBulk}</span>
+                </button>
+                <button
+                  onClick={handleExportTiaAlarmCsv}
+                  className="p-1.5 sm:px-3 sm:py-1.5 rounded-lg text-xs font-semibold bg-amber-600 hover:bg-amber-500 text-white flex items-center gap-1.5 transition-all shadow-sm active:scale-95 cursor-pointer shrink-0"
+                  title={t.btnExportAlarmCsv}
+                >
+                  <Download className="w-3.5 h-3.5 shrink-0" />
+                  <span className="hidden sm:inline">{t.btnExportAlarmCsv}</span>
                 </button>
                 <button
                   onClick={handleClearAlarmTags}
@@ -1186,7 +1465,9 @@ export const UnifiedTab: React.FC<UnifiedTabProps> = ({
             {t.resultsTitle}
           </h2>
           <span className="text-xs font-mono text-slate-600 dark:text-slate-300">
-            {formatPlural(result.totalSegments, lang, ['сегмент', 'сегмента', 'сегментов'], ['segment', 'segments'])} {lang === 'ru' ? 'за' : 'over'} {formatPlural(config.retentionDays, lang, ['день', 'дня', 'дней'], ['day', 'days'])}
+            {result.logItems.length > 1
+              ? `${result.logItems.filter(l => l.enabled).length} ${lang === 'ru' ? 'активных журналов' : 'active logs'}`
+              : `${formatPlural(result.totalSegments, lang, ['сегмент', 'сегмента', 'сегментов'], ['segment', 'segments'])} ${lang === 'ru' ? 'за' : 'over'} ${formatPlural(config.retentionDays, lang, ['день', 'дня', 'дней'], ['day', 'days'])}`}
           </span>
         </div>
 
@@ -1298,7 +1579,7 @@ export const UnifiedTab: React.FC<UnifiedTabProps> = ({
                   <td colSpan={5} className="p-3 text-slate-800 dark:text-slate-200">
                     <div className="flex items-center gap-2">
                       <span className="font-bold uppercase tracking-wider text-[11px] text-[#00646E] dark:text-[#00A3B5]">
-                        {t.totalStorageUsedBanner} ({config.storageMedium === 'usb_128g' ? 'USB-X61' : config.storageMedium.startsWith('sd') ? 'SD-X51' : 'SSD'} {config.storageSizeGb} GB):
+                        {t.totalStorageUsedBanner} ({config.storageMedium === 'usb_128g' ? 'USB-X61' : config.storageMedium === 'sd_custom_x52' ? 'SD-X52' : config.storageMedium.startsWith('sd') ? 'SD-X51' : 'SSD'} {config.storageSizeGb} GB):
                       </span>
                     </div>
                   </td>
@@ -1436,6 +1717,16 @@ export const UnifiedTab: React.FC<UnifiedTabProps> = ({
         onClose={() => setIsBulkModalOpen(false)}
         onAdd={handleBulkAddSubmit}
         tab="unified"
+        lang={lang}
+      />
+
+      {/* Bulk Add Alarm Modal */}
+      <BulkAddAlarmModal
+        isOpen={isBulkAlarmModalOpen}
+        onClose={() => setIsBulkAlarmModalOpen(false)}
+        onAdd={handleBulkAddAlarmSubmit}
+        alarmLogs={alarmLogs}
+        defaultAlarmLogId={activeAlarmLogFilter !== 'all' ? activeAlarmLogFilter : alarmLogs[0]?.id}
         lang={lang}
       />
 

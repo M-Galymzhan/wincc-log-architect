@@ -7,20 +7,23 @@ import { UnifiedTag, ComfortTag, ProfessionalTag, ActiveTab } from './types';
 export function generateTiaPortalCsv(
   tab: ActiveTab,
   tags: (UnifiedTag | ComfortTag | ProfessionalTag)[],
-  logName: string = 'ProcessDataLog'
+  logName: string = 'ProcessDataLog',
+  dataLogs?: { id: string; name: string }[]
 ): string {
   const BOM = '\uFEFF';
 
   if (tab === 'unified') {
     // WinCC Unified Logging Tag CSV structure
+    const dataLogMap = new Map((dataLogs || []).map(dl => [dl.id, dl.name]));
     const header = 'Name;Data log;Logging mode;Logging cycle;Data type;Deadband;Smoothing;Comment\r\n';
     const rows = (tags as UnifiedTag[]).map((tag, idx) => {
       const tagName = sanitizeName(tag.description || `Unified_Tag_${idx + 1}`);
+      const targetLog = (tag.dataLogId && dataLogMap.get(tag.dataLogId)) || logName;
       const mode = tag.mode === 'cyclic' ? 'Cyclic' : 'On change';
       const cycle = tag.mode === 'cyclic' ? `${tag.cycleSec} s` : 'None';
       const dataType = tag.dataType || 'Real';
       const comment = `Count: ${tag.count}x, Rate: ${tag.entriesPerSec} rec/s`;
-      return `${tagName};${logName};${mode};${cycle};${dataType};0;None;${comment}`;
+      return `${tagName};${targetLog};${mode};${cycle};${dataType};0;None;${comment}`;
     }).join('\r\n');
 
     return BOM + header + rows;
@@ -50,6 +53,24 @@ export function generateTiaPortalCsv(
 
     return BOM + header + rows;
   }
+}
+
+export function generateTiaPortalAlarmCsv(
+  alarmTags: import('./types').UnifiedAlarmTag[],
+  alarmLogs?: { id: string; name: string }[]
+): string {
+  const BOM = '\uFEFF';
+  const header = 'Name;Alarm log;Alarm class;Trigger type;Events per day;Count;Comment\r\n';
+  const alarmLogMap = new Map((alarmLogs || []).map(al => [al.id, al.name]));
+  const rows = alarmTags.map((at, idx) => {
+    const name = sanitizeName(at.name || `Alarm_${idx + 1}`);
+    const targetLog = (at.alarmLogId && alarmLogMap.get(at.alarmLogId)) || 'Alarms_log';
+    const totalEv = Math.round((at.eventsPerDay || 0) * (at.count || 1));
+    const comment = `Events: ${at.eventsPerDay}/day, Count: ${at.count}x, Total: ${totalEv} ev/day`;
+    return `${name};${targetLog};${at.alarmClass};${at.triggerType};${at.eventsPerDay};${at.count};${comment}`;
+  }).join('\r\n');
+
+  return BOM + header + rows;
 }
 
 function sanitizeName(name: string): string {

@@ -325,11 +325,19 @@ export function calculateUnified(
   }
 
   if (config.deviceType === 'ucp' && estimatedFlashLifeYears < 3 && totalEntriesPerDay > 0) {
-    warnings.push(
-      lang === 'ru'
-        ? `Предупреждение по износу Flash: Расчетный ресурс SD-карты составляет ${estimatedFlashLifeYears.toFixed(1)} г. Рекомендуется архивация на сетевой диск (NAS / SMB).`
-        : `Flash wear alert: Estimated SD card endurance is ${estimatedFlashLifeYears.toFixed(1)} years. Archiving to network share (NAS / SMB) is recommended.`
-    );
+    if (config.storageMedium === 'sd_custom_x52') {
+      warnings.push(
+        lang === 'ru'
+          ? `Предупреждение по износу Flash: Расчетный ресурс SD-карты составляет ${estimatedFlashLifeYears.toFixed(1)} г. Для слота X52 строго рекомендуется использовать карту High Endurance или Industrial (pSLC/MLC) с Power-Loss Protection, либо перейти на сетевой диск (NAS/SMB).`
+          : `Flash wear alert: Estimated SD card endurance is ${estimatedFlashLifeYears.toFixed(1)} years. For Slot X52, High Endurance or Industrial grade cards (pSLC/MLC) with Power-Loss Protection or network archiving (NAS/SMB) are strongly recommended.`
+      );
+    } else {
+      warnings.push(
+        lang === 'ru'
+          ? `Предупреждение по износу Flash: Расчетный ресурс SD-карты составляет ${estimatedFlashLifeYears.toFixed(1)} г. Рекомендуется архивация на сетевой диск (NAS / SMB).`
+          : `Flash wear alert: Estimated SD card endurance is ${estimatedFlashLifeYears.toFixed(1)} years. Archiving to network share (NAS / SMB) is recommended.`
+      );
+    }
   }
 
   if (totalTagsCount === 0 && totalEntriesPerDay === 0) {

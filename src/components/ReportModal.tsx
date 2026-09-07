@@ -213,6 +213,11 @@ export const ReportModal: React.FC<ReportModalProps> = ({
                     <td className="py-2 text-slate-500 dark:text-slate-400">{t.reportStorageUsage}</td>
                     <td className="py-2 font-semibold">
                       {unifiedData.config.storageSizeGb} GB ({unifiedData.result.storageOccupancyPct.toFixed(1)}%)
+                      {unifiedData.config.storageMedium === 'sd_custom_x52' && (
+                        <span className="ml-1.5 inline-block text-[10px] font-mono font-bold px-1.5 py-0.5 rounded bg-amber-500/15 text-amber-700 dark:text-amber-300 border border-amber-500/30">
+                          High Endurance / Industrial
+                        </span>
+                      )}
                     </td>
                     <td className="py-2 text-slate-500 dark:text-slate-400">{t.reportFlashEndurance}</td>
                     <td className="py-2 font-semibold text-emerald-600 dark:text-emerald-400 font-mono">
@@ -371,12 +376,19 @@ export const ReportModal: React.FC<ReportModalProps> = ({
                 <tbody className="divide-y divide-slate-200 dark:divide-slate-800">
                   {showUnified && (() => {
                     const art = getSiemensArticle(unifiedData.config.storageMedium);
+                    const effectiveGb = (unifiedData.config.storageMedium === 'ssd_custom' || unifiedData.config.storageMedium === 'sd_custom_x52')
+                      ? unifiedData.config.storageSizeGb
+                      : art.capacityGb;
                     return (
                       <tr>
                         <td className="p-2.5 font-semibold text-[#00646E] dark:text-[#00A3B5]">WinCC Unified</td>
-                        <td className="p-2.5">{art.name}</td>
+                        <td className="p-2.5">
+                          {unifiedData.config.storageMedium === 'sd_custom_x52'
+                            ? (lang === 'ru' ? 'Пользовательская SDHC/SDXC (Слот X52 Data)' : art.name)
+                            : art.name}
+                        </td>
                         <td className="p-2.5 font-mono font-bold text-slate-900 dark:text-white">{art.mlfb}</td>
-                        <td className="p-2.5">{art.capacityGb} GB</td>
+                        <td className="p-2.5">{effectiveGb} GB</td>
                         <td className="p-2.5 text-slate-500 dark:text-slate-400">{art.recommendedFor}</td>
                       </tr>
                     );

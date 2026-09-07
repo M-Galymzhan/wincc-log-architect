@@ -54,12 +54,15 @@ export const TiaCheatSheetModal: React.FC<TiaCheatSheetModalProps> = ({
       ? 'WinCC Unified — Свойства Data Logs и Alarm Logs (TIA Portal)'
       : 'WinCC Unified — Data Logs & Alarm Logs Properties (TIA Portal)';
     const isUsb = unifiedData.config.storageMedium === 'usb_128g';
+    const isX52 = unifiedData.config.storageMedium === 'sd_custom_x52';
     const path = unifiedData.config.deviceType === 'ucp'
-      ? (isUsb ? '/media/simatic/X61' : '/media/simatic/X51')
+      ? (isUsb ? '/media/simatic/X61' : isX52 ? '/media/simatic/X52' : '/media/simatic/X51')
       : 'C:\\ProgramData\\Siemens\\Automation\\LogData';
     const storageTip = unifiedData.config.deviceType === 'ucp'
       ? (isUsb
           ? (lang === 'ru' ? 'USB-накопитель в разъеме X61 панели Unified Comfort' : 'USB flash drive in port X61 of Unified Comfort')
+          : isX52
+          ? (lang === 'ru' ? 'Пользовательская SD-карта в слоте X52 (High Endurance / Industrial)' : 'User SD card in Slot X52 (High Endurance / Industrial)')
           : t.cheatTipStoragePathUcp)
       : t.cheatTipStoragePathPc;
 

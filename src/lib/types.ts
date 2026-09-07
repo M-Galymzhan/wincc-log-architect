@@ -75,7 +75,7 @@ export interface UnifiedConfig {
   alarmsPerDay: number;
   includeAudit: boolean;
   auditEntriesPerDay: number;
-  storageMedium: 'sd_512m' | 'sd_2g' | 'sd_12g' | 'sd_32g' | 'usb_128g' | 'ssd_custom';
+  storageMedium: 'sd_512m' | 'sd_2g' | 'sd_12g' | 'sd_32g' | 'usb_128g' | 'ssd_custom' | 'sd_custom_x52';
   storageSizeGb: number;
 }
 

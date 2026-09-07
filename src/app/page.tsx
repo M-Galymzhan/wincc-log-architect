@@ -51,11 +51,11 @@ export default function Home() {
     perEntryBytes: 50,
     headroomPct: 30,
     dataLogs: [
-      { id: 'default_data_log', name: 'Trend_Logs', enabled: true },
+      { id: 'default_data_log', name: 'Trend_Logs', retentionDays: 30, segmentHours: 24, enabled: true },
     ],
     alarmLogs: [
-      { id: 'alarms_log', name: 'Alarms_log', entriesPerDay: 50, enabled: true },
-      { id: 'events_log', name: 'Events_log', entriesPerDay: 100, enabled: true },
+      { id: 'alarms_log', name: 'Alarms_log', entriesPerDay: 50, retentionDays: 30, segmentHours: 24, enabled: true },
+      { id: 'events_log', name: 'Events_log', entriesPerDay: 100, retentionDays: 30, segmentHours: 24, enabled: true },
     ],
     alarmTags: [
       { id: 'alm_1', name: 'M101_Trip_Overload', alarmClass: 'Alarm', triggerType: 'digital', eventsPerDay: 2, count: 4, alarmLogId: 'alarms_log' },

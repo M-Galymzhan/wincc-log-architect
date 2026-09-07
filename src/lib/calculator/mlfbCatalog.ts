@@ -63,6 +63,15 @@ export const SIEMENS_STORAGE_CATALOG: Record<string, SiemensHardwareItem> = {
     descriptionEn: 'Industrial enterprise SSD for SIMATIC IPC and SCADA servers',
     recommendedFor: 'WinCC Unified PC RT / WinCC Professional',
   },
+  sd_custom_x52: {
+    name: 'User SDHC/SDXC Card (Slot X52 Data)',
+    mlfb: 'USER-SDHC-X52 (High Endurance / Industrial)',
+    capacityGb: 32,
+    type: 'sd',
+    descriptionRu: 'Сторонняя карта памяти SDHC/SDXC для слота X52 (Data). Для круглосуточного логирования 24/7 строго рекомендуется класс High Endurance или Industrial (pSLC/MLC/3D TLC Industrial) с защитой от сбоев питания.',
+    descriptionEn: 'Third-party SDHC/SDXC card for Slot X52 (Data). High Endurance or Industrial grade (pSLC/MLC/3D TLC Industrial) with power-loss protection is strongly recommended for 24/7 logging.',
+    recommendedFor: 'Unified Comfort Slot X52 (High Endurance / Industrial)',
+  },
 };
 
 export function getSiemensArticle(mediumKey: string): SiemensHardwareItem {
