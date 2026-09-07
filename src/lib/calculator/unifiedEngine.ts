@@ -27,7 +27,9 @@ export function calculateUnified(
 ): UnifiedResult {
   // 1. Sanitize config inputs
   const retentionDays = Math.max(1, Math.floor(config.retentionDays || 1));
-  const segmentHours = Math.max(1, Math.floor(config.segmentHours || 24));
+  const maxConfigSegmentHours = retentionDays * 24;
+  const rawSegmentHours = Math.max(1, Math.floor(config.segmentHours || 24));
+  const segmentHours = Math.min(maxConfigSegmentHours, rawSegmentHours);
   const perEntryBytes = Math.max(10, Math.floor(config.perEntryBytes || 50));
   const headroomPct = Math.max(0, config.headroomPct ?? 30);
   const factor = 1 + headroomPct / 100;
@@ -95,7 +97,9 @@ export function calculateUnified(
     const dlEntriesPerDay = Math.round(dlRatePerSec * 86400);
     const dlBytesPerDay = dlWeightedBytesPerSec * 86400;
     const dlRetentionDays = Math.max(1, Math.floor(dl.retentionDays || retentionDays));
-    const dlSegmentHours = Math.max(1, Math.floor(dl.segmentHours || segmentHours));
+    const dlMaxSegmentHours = dlRetentionDays * 24;
+    const dlRawSegmentHours = Math.max(1, Math.floor(dl.segmentHours || segmentHours));
+    const dlSegmentHours = Math.min(dlMaxSegmentHours, dlRawSegmentHours);
     const dlSegmentsPerDay = 24 / dlSegmentHours;
     const dlBytesPerSegment = dlSegmentsPerDay > 0 ? (dlBytesPerDay / dlSegmentsPerDay) * factor : 0;
     const dlRawSegmentMb = dlBytesPerSegment / (1024 * 1024);
@@ -162,7 +166,9 @@ export function calculateUnified(
     // Average Siemens SQLite alarm entry size ~180 bytes (text, timestamps, state, values)
     const alBytesPerDay = alEntriesPerDay * 180;
     const alRetentionDays = Math.max(1, Math.floor(al.retentionDays || retentionDays));
-    const alSegmentHours = Math.max(1, Math.floor(al.segmentHours || segmentHours));
+    const alMaxSegmentHours = alRetentionDays * 24;
+    const alRawSegmentHours = Math.max(1, Math.floor(al.segmentHours || segmentHours));
+    const alSegmentHours = Math.min(alMaxSegmentHours, alRawSegmentHours);
     const alSegmentsPerDay = 24 / alSegmentHours;
     const alBytesPerSegment = alSegmentsPerDay > 0 ? (alBytesPerDay / alSegmentsPerDay) * factor : 0;
     const alRawSegmentMb = alBytesPerSegment / (1024 * 1024);
@@ -256,12 +262,15 @@ export function calculateUnified(
   const totalEntriesPerDay = Math.round(logItems.reduce((acc, item) => item.enabled ? acc + item.entriesPerDay : acc, 0));
   const totalEntriesPerSec = totalRatePerSec;
 
-  // Primary Data Log values for backwards-compatible fields
-  const primaryDataLog = logItems.find((i) => i.category === 'data') || logItems[0];
-  const rawSegmentMb = primaryDataLog ? primaryDataLog.rawSegmentMb : 0;
-  const sqliteSegmentMb = primaryDataLog ? primaryDataLog.sqliteSegmentMb : 0;
-  const totalSegments = primaryDataLog ? primaryDataLog.totalSegments : 0;
-  const totalLogMb = totalStorageUsedMb > 0 ? totalStorageUsedMb : (primaryDataLog ? primaryDataLog.totalLogMb : 0);
+  // Max segment size across all active logs (Data Logs, Alarm Logs, Audit Trail)
+  const maxSegmentLog = activeLogItems.length > 0
+    ? activeLogItems.reduce((max, cur) => (cur.sqliteSegmentMb > max.sqliteSegmentMb ? cur : max), activeLogItems[0])
+    : (logItems.find((i) => i.category === 'data') || logItems[0]);
+
+  const rawSegmentMb = maxSegmentLog ? maxSegmentLog.rawSegmentMb : 0;
+  const sqliteSegmentMb = maxSegmentLog ? maxSegmentLog.sqliteSegmentMb : 0;
+  const totalSegments = maxSegmentLog ? maxSegmentLog.totalSegments : 0;
+  const totalLogMb = totalStorageUsedMb > 0 ? totalStorageUsedMb : (maxSegmentLog ? maxSegmentLog.totalLogMb : 0);
   const totalLogGb = totalLogMb / 1024;
 
   // Flash Wear & Lifespan estimation (TBW)
@@ -279,10 +288,32 @@ export function calculateUnified(
     trafficStatus = 'warning';
   }
 
-  // Rule of 3 segments (checked on data logs)
+  // Rule of 3 segments (checked on data logs and alarm logs)
   const rule3SegmentsValid = totalEntriesPerDay === 0 || logItems.filter((i) => i.enabled && i.entriesPerDay > 0).every((i) => i.totalSegments >= 3);
 
+  let segmentClamped = (config.segmentHours !== undefined && config.segmentHours > maxConfigSegmentHours);
+  dataLogConfigs.forEach((dl) => {
+    const dlRet = Math.max(1, Math.floor(dl.retentionDays || retentionDays));
+    if (dl.segmentHours !== undefined && dl.segmentHours > dlRet * 24) {
+      segmentClamped = true;
+    }
+  });
+  alarmLogConfigs.forEach((al) => {
+    const alRet = Math.max(1, Math.floor(al.retentionDays || retentionDays));
+    if (al.segmentHours !== undefined && al.segmentHours > alRet * 24) {
+      segmentClamped = true;
+    }
+  });
+
   const warnings: string[] = [];
+
+  if (segmentClamped) {
+    warnings.push(
+      lang === 'ru'
+        ? 'Период одного сегмента не может превышать общий срок хранения архива. Время сегмента автоматически ограничено пределом срока хранения.'
+        : 'A single segment duration cannot exceed the total retention period. Segment duration has been automatically clamped to the retention limit.'
+    );
+  }
 
   if (trafficStatus === 'critical') {
     warnings.push(

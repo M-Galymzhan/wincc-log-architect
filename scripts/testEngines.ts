@@ -1146,6 +1146,137 @@ async function runAsyncTests() {
     const customComfortWb = XLSX.read(generateTiaPortalXlsx('comfort', customComfort, 'Log'), { type: 'buffer' });
     const customComfortRows: any[][] = XLSX.utils.sheet_to_json(customComfortWb.Sheets['Hmi Tags'], { header: 1 });
     assert(customComfortRows[1][4] === 'Int', 'Comfort Custom DataType: Preserves Int, got ' + customComfortRows[1][4]);
+
+    console.log('\n=== [14] SEGMENT <= RETENTION PROTECTION & MULTI-LOG SEGMENT KPI SUITE ===');
+
+    // 14.1 Protection: Global segmentHours exceeding retentionDays * 24 is clamped
+    const testExceedSegment = calculateUnified([
+      { id: 't1', description: 'Flow', mode: 'cyclic', cycleSec: 1, entriesPerSec: 1, count: 10, dataType: 'Real' }
+    ], {
+      deviceType: 'ucp',
+      retentionDays: 1, // 1 day = 24 hours
+      segmentHours: 60, // 60 hours > 24 hours -> MUST clamp to 24h
+      perEntryBytes: 50,
+      headroomPct: 30,
+      includeAlarms: false,
+      alarmsPerDay: 0,
+      includeAudit: false,
+      auditEntriesPerDay: 0,
+      storageMedium: 'sd_12g',
+      storageSizeGb: 12,
+    });
+    assert(testExceedSegment.logItems[0].segmentHours === 24, `Protection: segmentHours 60h clamped to 24h (1 day), got ${testExceedSegment.logItems[0].segmentHours}`);
+    assert(testExceedSegment.warnings.some(w => w.includes('не может превышать') || w.includes('cannot exceed')), 'Protection: emits warning about segment exceeding retention');
+    assert(testExceedSegment.rule3SegmentsValid === false, 'Protection: 24h / 24h = 1 segment fails Siemens 3-segment rule');
+    assert(testExceedSegment.warnings.some(w => w.includes('3 сегмента') || w.includes('3 segments')), 'Protection: warns about 3-segment rule violation');
+
+    // 14.2 Protection: Individual Data Log segment exceeding its own retentionDays
+    const testDlExceed = calculateUnified([
+      { id: 't2', description: 'Pressure', mode: 'cyclic', cycleSec: 1, entriesPerSec: 1, count: 5, dataType: 'Real', dataLogId: 'dl_custom' }
+    ], {
+      deviceType: 'ucp',
+      retentionDays: 30,
+      segmentHours: 24,
+      perEntryBytes: 50,
+      headroomPct: 30,
+      includeAlarms: false,
+      alarmsPerDay: 0,
+      includeAudit: false,
+      auditEntriesPerDay: 0,
+      storageMedium: 'sd_12g',
+      storageSizeGb: 12,
+      dataLogs: [
+        { id: 'dl_custom', name: 'Custom_Log', retentionDays: 2, segmentHours: 72, enabled: true } // 2 days = 48h, segment 72h -> clamp to 48h
+      ],
+    });
+    const dlItem = testDlExceed.logItems.find(l => l.id === 'dl_custom');
+    assert(dlItem?.segmentHours === 48, `Protection: dl_custom segment 72h clamped to 48h (2 days), got ${dlItem?.segmentHours}`);
+    assert(testDlExceed.warnings.some(w => w.includes('не может превышать') || w.includes('cannot exceed')), 'Protection: dl_custom triggers clamp warning');
+
+    // 14.3 Protection: Individual Alarm Log segment exceeding retention
+    const testAlExceed = calculateUnified([], {
+      deviceType: 'ucp',
+      retentionDays: 30,
+      segmentHours: 24,
+      perEntryBytes: 50,
+      headroomPct: 30,
+      includeAlarms: true,
+      alarmsPerDay: 50,
+      includeAudit: false,
+      auditEntriesPerDay: 0,
+      storageMedium: 'sd_12g',
+      storageSizeGb: 12,
+      alarmLogs: [
+        { id: 'al_short', name: 'Short_Alarm_Log', entriesPerDay: 100, retentionDays: 1, segmentHours: 48, enabled: true } // 1 day = 24h, segment 48h -> clamp to 24h
+      ],
+    });
+    const alItem = testAlExceed.logItems.find(l => l.id === 'al_short');
+    assert(alItem?.segmentHours === 24, `Protection: al_short segment 48h clamped to 24h (1 day), got ${alItem?.segmentHours}`);
+    assert(testAlExceed.warnings.some(w => w.includes('не может превышать') || w.includes('cannot exceed')), 'Protection: al_short triggers clamp warning');
+
+    // 14.4 Multi-Log KPI: sqliteSegmentMb represents MAX segment size across all active logs
+    // Case A: Data Log is larger (e.g. 50 tags cyclic 0.1s -> large segment) than Alarm Log
+    const multiLogA = calculateUnified([
+      { id: 't3', description: 'Fast Tag', mode: 'cyclic', cycleSec: 0.1, entriesPerSec: 10, count: 50, dataType: 'Real', dataLogId: 'dl_heavy' }
+    ], {
+      deviceType: 'ucp',
+      retentionDays: 30,
+      segmentHours: 24,
+      perEntryBytes: 50,
+      headroomPct: 30,
+      includeAlarms: true,
+      alarmsPerDay: 50, // small alarm log
+      includeAudit: false,
+      auditEntriesPerDay: 0,
+      storageMedium: 'sd_12g',
+      storageSizeGb: 12,
+      dataLogs: [{ id: 'dl_heavy', name: 'Heavy_Data_Log', enabled: true }],
+      alarmLogs: [{ id: 'al_small', name: 'Small_Alarm_Log', entriesPerDay: 50, enabled: true }],
+    });
+    const heavyDlItem = multiLogA.logItems.find(l => l.id === 'dl_heavy');
+    const smallAlItem = multiLogA.logItems.find(l => l.id === 'al_small');
+    assert((heavyDlItem?.sqliteSegmentMb || 0) > (smallAlItem?.sqliteSegmentMb || 0), 'Multi-Log KPI: Heavy data log segment is larger than small alarm log');
+    assert(multiLogA.sqliteSegmentMb === heavyDlItem?.sqliteSegmentMb, `Multi-Log KPI: Overall sqliteSegmentMb matches heavy data log (${heavyDlItem?.sqliteSegmentMb} MB)`);
+
+    // Case B: Alarm Log has LARGER segment than Data Log (proves Alarm Log is NOT ignored in KPI!)
+    const multiLogB = calculateUnified([
+      { id: 't4', description: 'Slow Tag', mode: 'cyclic', cycleSec: 10, entriesPerSec: 0.1, count: 1, dataType: 'Bool', dataLogId: 'dl_light' }
+    ], {
+      deviceType: 'ucp',
+      retentionDays: 30,
+      segmentHours: 24,
+      perEntryBytes: 50,
+      headroomPct: 30,
+      includeAlarms: true,
+      alarmsPerDay: 500000, // huge alarm volume -> large segment
+      includeAudit: false,
+      auditEntriesPerDay: 0,
+      storageMedium: 'sd_32g',
+      storageSizeGb: 32,
+      dataLogs: [{ id: 'dl_light', name: 'Light_Data_Log', enabled: true }],
+      alarmLogs: [{ id: 'al_heavy', name: 'Heavy_Alarm_Log', entriesPerDay: 500000, enabled: true }],
+    });
+    const lightDlItem = multiLogB.logItems.find(l => l.id === 'dl_light');
+    const heavyAlItem = multiLogB.logItems.find(l => l.id === 'al_heavy');
+    assert((heavyAlItem?.sqliteSegmentMb || 0) > (lightDlItem?.sqliteSegmentMb || 0), `Multi-Log KPI: Heavy alarm log (${heavyAlItem?.sqliteSegmentMb} MB) > light data log (${lightDlItem?.sqliteSegmentMb} MB)`);
+    assert(multiLogB.sqliteSegmentMb === heavyAlItem?.sqliteSegmentMb, `Multi-Log KPI: Overall sqliteSegmentMb correctly reflects Alarm Log (${heavyAlItem?.sqliteSegmentMb} MB), not hardcoded to Data Log!`);
+
+    // Case C: Only Alarm Log active (0 tags in data log)
+    const multiLogC = calculateUnified([], {
+      deviceType: 'ucp',
+      retentionDays: 30,
+      segmentHours: 24,
+      perEntryBytes: 50,
+      headroomPct: 30,
+      includeAlarms: true,
+      alarmsPerDay: 200,
+      includeAudit: false,
+      auditEntriesPerDay: 0,
+      storageMedium: 'sd_12g',
+      storageSizeGb: 12,
+      alarmLogs: [{ id: 'al_only', name: 'Only_Alarm_Log', entriesPerDay: 200, enabled: true }],
+    });
+    assert(multiLogC.sqliteSegmentMb === 4, `Multi-Log KPI: When only Alarm Log is active, sqliteSegmentMb is 4 MB (not 0), got ${multiLogC.sqliteSegmentMb}`);
   }
 
   console.log(`\n========================================`);
