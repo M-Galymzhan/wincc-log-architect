@@ -2,7 +2,7 @@
 import React, { useState, useEffect } from 'react';
 import { ActiveTab, Language, UnifiedResult, UnifiedConfig, ComfortResult, ComfortConfig, ProfessionalResult, ProfessionalConfig } from '../lib/types';
 import { translations, formatPlural } from '../lib/i18n';
-import { X, Printer, FileText, CheckCircle2, Cpu, HardDrive, Database, Package } from 'lucide-react';
+import { X, Printer, FileText, CheckCircle2, Cpu, HardDrive, Database, Package, Activity } from 'lucide-react';
 import { getSiemensArticle } from '../lib/calculator/mlfbCatalog';
 
 interface ReportModalProps {
@@ -371,6 +371,100 @@ export const ReportModal: React.FC<ReportModalProps> = ({
                   })()}
                 </tbody>
               </table>
+            </div>
+          </div>
+
+          {/* Section: Industrial Ethernet Network Bandwidth Assessment */}
+          <div className="mb-6 pt-4 border-t border-slate-200 dark:border-slate-800">
+            <h4 className="font-bold text-base text-slate-900 dark:text-white flex items-center gap-2 mb-3">
+              <Activity className="w-4 h-4 text-cyan-600 dark:text-cyan-400" />
+              <span>{t.networkReportTitle}</span>
+            </h4>
+            <p className="text-xs text-slate-500 dark:text-slate-400 mb-3">
+              {t.networkReportDesc}
+            </p>
+            <div className="overflow-x-auto rounded-xl border border-slate-200 dark:border-slate-800 mb-3">
+              <table className="w-full text-xs text-left">
+                <thead className="bg-slate-100 dark:bg-slate-800/80 text-slate-600 dark:text-slate-300 font-semibold uppercase text-[10px] tracking-wider">
+                  <tr>
+                    <th className="p-2.5">{lang === 'ru' ? 'Подсистема' : 'Subsystem'}</th>
+                    <th className="p-2.5">{t.networkBandwidth}</th>
+                    <th className="p-2.5">{t.networkSaturation}</th>
+                    <th className="p-2.5">{t.networkDailyVolume}</th>
+                    <th className="p-2.5">{t.networkPacketsPerSec}</th>
+                    <th className="p-2.5">{lang === 'ru' ? 'Статус сети' : 'Network Status'}</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-200 dark:divide-slate-800">
+                  {showUnified && (
+                    <tr>
+                      <td className="p-2.5 font-semibold text-[#00646E] dark:text-[#00A3B5]">WinCC Unified</td>
+                      <td className="p-2.5 font-mono font-bold">
+                        {unifiedData.result.network.bandwidthKbps >= 1000
+                          ? `${unifiedData.result.network.bandwidthMbps} Mbps`
+                          : `${unifiedData.result.network.bandwidthKbps} Kbps`}
+                      </td>
+                      <td className="p-2.5 font-mono">{unifiedData.result.network.fastEthernetSaturationPct}%</td>
+                      <td className="p-2.5 font-mono">{unifiedData.result.network.dailyTrafficMb} MB/day</td>
+                      <td className="p-2.5 font-mono">~{unifiedData.result.network.telegramsPerSec} pkt/s</td>
+                      <td className="p-2.5 font-medium">
+                        {unifiedData.result.network.networkStatus === 'safe'
+                          ? t.networkStatusSafe
+                          : unifiedData.result.network.networkStatus === 'warning'
+                          ? t.networkStatusWarning
+                          : t.networkStatusCritical}
+                      </td>
+                    </tr>
+                  )}
+                  {showComfort && (
+                    <tr>
+                      <td className="p-2.5 font-semibold text-emerald-600 dark:text-emerald-400">WinCC Comfort</td>
+                      <td className="p-2.5 font-mono font-bold">
+                        {comfortData.result.network.bandwidthKbps >= 1000
+                          ? `${comfortData.result.network.bandwidthMbps} Mbps`
+                          : `${comfortData.result.network.bandwidthKbps} Kbps`}
+                      </td>
+                      <td className="p-2.5 font-mono">{comfortData.result.network.fastEthernetSaturationPct}%</td>
+                      <td className="p-2.5 font-mono">{comfortData.result.network.dailyTrafficMb} MB/day</td>
+                      <td className="p-2.5 font-mono">~{comfortData.result.network.telegramsPerSec} pkt/s</td>
+                      <td className="p-2.5 font-medium">
+                        {comfortData.result.network.networkStatus === 'safe'
+                          ? t.networkStatusSafe
+                          : comfortData.result.network.networkStatus === 'warning'
+                          ? t.networkStatusWarning
+                          : t.networkStatusCritical}
+                      </td>
+                    </tr>
+                  )}
+                  {showProfessional && (
+                    <tr>
+                      <td className="p-2.5 font-semibold text-purple-600 dark:text-purple-400">WinCC Professional</td>
+                      <td className="p-2.5 font-mono font-bold">
+                        {proData.result.network.bandwidthKbps >= 1000
+                          ? `${proData.result.network.bandwidthMbps} Mbps`
+                          : `${proData.result.network.bandwidthKbps} Kbps`}
+                      </td>
+                      <td className="p-2.5 font-mono">{proData.result.network.fastEthernetSaturationPct}%</td>
+                      <td className="p-2.5 font-mono">{proData.result.network.dailyTrafficMb} MB/day</td>
+                      <td className="p-2.5 font-mono">~{proData.result.network.telegramsPerSec} pkt/s</td>
+                      <td className="p-2.5 font-medium">
+                        {proData.result.network.networkStatus === 'safe'
+                          ? t.networkStatusSafe
+                          : proData.result.network.networkStatus === 'warning'
+                          ? t.networkStatusWarning
+                          : t.networkStatusCritical}
+                      </td>
+                    </tr>
+                  )}
+                </tbody>
+              </table>
+            </div>
+            {/* Top active recommendation */}
+            <div className="p-3 rounded-xl bg-slate-100 dark:bg-slate-800/60 text-xs text-slate-700 dark:text-slate-300">
+              <span className="font-semibold">{t.networkRecommendationTitle}: </span>
+              {activeTab === 'unified' && (lang === 'ru' ? unifiedData.result.network.recommendationRu : unifiedData.result.network.recommendationEn)}
+              {activeTab === 'comfort' && (lang === 'ru' ? comfortData.result.network.recommendationRu : comfortData.result.network.recommendationEn)}
+              {activeTab === 'professional' && (lang === 'ru' ? proData.result.network.recommendationRu : proData.result.network.recommendationEn)}
             </div>
           </div>
 

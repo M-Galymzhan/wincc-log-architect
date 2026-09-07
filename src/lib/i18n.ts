@@ -213,6 +213,20 @@ export const translations = {
     cycle30s: '30 с',
     cycle1m: '1 мин',
     cycle10m: '10 мин',
+    
+    // Network Bandwidth
+    networkCardTitle: 'Нагрузка сети Industrial Ethernet',
+    networkBandwidth: 'Полоса пропускания',
+    networkSaturation: 'Загрузка 100BASE-TX',
+    networkDailyVolume: 'Суточный трафик',
+    networkMonthlyVolume: 'Месячный объем',
+    networkPacketsPerSec: 'Телеграммы / пакеты',
+    networkStatusSafe: 'Норма (< 2%)',
+    networkStatusWarning: 'Внимание (2–10%)',
+    networkStatusCritical: 'Критично (> 10%)',
+    networkRecommendationTitle: 'Инженерная рекомендация по топологии',
+    networkReportTitle: 'Оценка сетевой нагрузки Industrial Ethernet (Network Sizing)',
+    networkReportDesc: 'Расчет полосы пропускания и трафика опроса тегов между ПЛК и WinCC',
   },
   en: {
     appTitle: 'Siemens WinCC Log & Storage Architect',
@@ -415,6 +429,20 @@ export const translations = {
     cycle30s: '30 s',
     cycle1m: '1 min',
     cycle10m: '10 min',
+    
+    // Network Bandwidth
+    networkCardTitle: 'Industrial Ethernet Network Load',
+    networkBandwidth: 'Bandwidth',
+    networkSaturation: '100BASE-TX Saturation',
+    networkDailyVolume: 'Daily Volume',
+    networkMonthlyVolume: 'Monthly Volume',
+    networkPacketsPerSec: 'Telegrams / packets',
+    networkStatusSafe: 'Safe (< 2%)',
+    networkStatusWarning: 'Moderate (2–10%)',
+    networkStatusCritical: 'Critical (> 10%)',
+    networkRecommendationTitle: 'Engineering Topology Recommendation',
+    networkReportTitle: 'Industrial Ethernet Network Sizing Assessment',
+    networkReportDesc: 'Calculated polling bandwidth and traffic between PLC and WinCC',
   }
 };
 

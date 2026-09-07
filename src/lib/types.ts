@@ -29,6 +29,18 @@ export interface UnifiedConfig {
   storageSizeGb: number;
 }
 
+export interface NetworkMetrics {
+  bandwidthKbps: number;
+  bandwidthMbps: number;
+  fastEthernetSaturationPct: number;
+  dailyTrafficMb: number;
+  monthlyTrafficGb: number;
+  telegramsPerSec: number;
+  networkStatus: 'safe' | 'warning' | 'critical';
+  recommendationRu: string;
+  recommendationEn: string;
+}
+
 export interface UnifiedResult {
   totalTags: number;
   totalEntriesPerSec: number;
@@ -42,6 +54,7 @@ export interface UnifiedResult {
   rule3SegmentsValid: boolean;
   storageOccupancyPct: number;
   estimatedFlashLifeYears: number;
+  network: NetworkMetrics;
   warnings: string[];
 }
 
@@ -76,6 +89,7 @@ export interface ComfortResult {
   totalArchiveSizeMb: number;
   totalArchiveSizeGb: number;
   storageOccupancyPct: number;
+  network: NetworkMetrics;
   warnings: string[];
 }
 
@@ -113,6 +127,7 @@ export interface ProfessionalResult {
   estimatedLdfSizeGb: number;
   totalStorageGb: number;
   expressLimitExceeded: boolean;
+  network: NetworkMetrics;
   warnings: string[];
 }
 

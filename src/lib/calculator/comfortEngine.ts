@@ -1,4 +1,5 @@
 import { ComfortTag, ComfortConfig, ComfortResult, Language } from '../types';
+import { calculateComfortNetwork } from './networkEngine';
 
 export function calculateComfort(
   tags: ComfortTag[],
@@ -121,6 +122,7 @@ export function calculateComfort(
     totalArchiveSizeMb,
     totalArchiveSizeGb,
     storageOccupancyPct,
+    network: calculateComfortNetwork(tags),
     warnings,
   };
 }

@@ -1,4 +1,5 @@
 import { ProfessionalTag, ProfessionalConfig, ProfessionalResult, Language } from '../types';
+import { calculateProfessionalNetwork } from './networkEngine';
 
 export function calculateProfessional(
   tags: ProfessionalTag[],
@@ -103,6 +104,7 @@ export function calculateProfessional(
     estimatedLdfSizeGb,
     totalStorageGb,
     expressLimitExceeded,
+    network: calculateProfessionalNetwork(tags),
     warnings,
   };
 }

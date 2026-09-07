@@ -11,6 +11,7 @@ import {
 } from 'lucide-react';
 import { getSiemensArticle } from '../../lib/calculator/mlfbCatalog';
 import { generateTiaPortalCsv, downloadFile } from '../../lib/tiaExporter';
+import { NetworkBandwidthCard } from '../NetworkBandwidthCard';
 
 interface UnifiedTabProps {
   tags: UnifiedTag[];
@@ -675,6 +676,11 @@ export const UnifiedTab: React.FC<UnifiedTabProps> = ({
               </span>
             </div>
           </div>
+        </div>
+
+        {/* Industrial Ethernet Network Load */}
+        <div className="mb-6">
+          <NetworkBandwidthCard network={result.network} lang={lang} />
         </div>
 
         {/* Warnings & Siemens Recommendations Box */}

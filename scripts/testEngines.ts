@@ -10,6 +10,7 @@ import { UnifiedTag, UnifiedConfig, ComfortTag, ComfortConfig, ProfessionalTag, 
 import { INDUSTRY_PRESETS } from '../src/lib/presets';
 import { generateTiaPortalCsv } from '../src/lib/tiaExporter';
 import { getSiemensArticle, SIEMENS_STORAGE_CATALOG } from '../src/lib/calculator/mlfbCatalog';
+import { calculateUnifiedNetwork, calculateComfortNetwork, calculateProfessionalNetwork } from '../src/lib/calculator/networkEngine';
 
 let passedTests = 0;
 let totalTests = 0;
@@ -409,6 +410,56 @@ assert(SIEMENS_STORAGE_CATALOG.usb_128g.mlfb === '6ES7648-0DC60-0AA0', 'MLFB: us
 assert(SIEMENS_STORAGE_CATALOG.ssd_custom.mlfb === '6ES7648-2BF30-0AA0', 'MLFB: ssd_custom is 6ES7648-2BF30-0AA0');
 assert(getSiemensArticle('sd_12g').capacityGb === 12, 'MLFB: getSiemensArticle(sd_12g) returns 12GB item');
 assert(getSiemensArticle('nonexistent_key').mlfb === '6AV2181-4DB20-0AX0', 'MLFB: fallback to sd_12g for unknown key');
+
+console.log('\n=== [7] INDUSTRIAL ETHERNET NETWORK BANDWIDTH VERIFICATION ===');
+// Empty tags check
+const emptyNet = calculateUnifiedNetwork([]);
+assert(emptyNet.bandwidthKbps === 0, 'Network: empty tags bandwidth is 0 Kbps');
+assert(emptyNet.bandwidthMbps === 0, 'Network: empty tags bandwidth is 0 Mbps');
+assert(emptyNet.dailyTrafficMb === 0, 'Network: empty tags daily traffic is 0 MB');
+assert(emptyNet.networkStatus === 'safe', 'Network: empty tags status is safe');
+
+// Unified network calculation
+const unifiedNet = calculateUnifiedNetwork(sampleUnifiedTags);
+assert(unifiedNet.bandwidthKbps > 0, 'Network: Unified tags produces non-zero Kbps');
+assert(unifiedNet.dailyTrafficMb > 0, 'Network: Unified tags produces non-zero daily MB');
+assert(unifiedNet.networkStatus === 'safe', 'Network: Moderate load is safe (< 2 Mbps)');
+
+// Comfort network calculation
+const comfortNet = calculateComfortNetwork(sampleComfortTags);
+assert(comfortNet.bandwidthKbps > 0, 'Network: Comfort tags produces non-zero Kbps');
+assert(comfortNet.fastEthernetSaturationPct >= 0, 'Network: Comfort computes Fast Ethernet saturation %');
+
+// Professional network calculation
+const proNet = calculateProfessionalNetwork(sampleProTags);
+assert(proNet.bandwidthKbps > 0, 'Network: Professional tags produces non-zero Kbps');
+
+// Heavy load test (> 10 Mbps)
+const heavyTags: UnifiedTag[] = [
+  { id: '1', description: 'Fast10ms', mode: 'cyclic', cycleSec: 0.01, entriesPerSec: 100, count: 500, dataType: 'Real' } // 50,000 rec/s = ~11.2 Mbps
+];
+const heavyNet = calculateUnifiedNetwork(heavyTags);
+assert(heavyNet.bandwidthMbps >= 10, 'Network: Heavy traffic exceeds 10 Mbps threshold');
+assert(heavyNet.networkStatus === 'critical', 'Network: Heavy traffic marked as critical');
+assert(heavyNet.recommendationRu.includes('1000BASE-T'), 'Network: High load recommends Gigabit/isolation in RU');
+assert(heavyNet.recommendationEn.includes('1000BASE-T'), 'Network: High load recommends Gigabit/isolation in EN');
+
+// Integration in engines
+const unifiedRes = calculateUnified(sampleUnifiedTags, {
+  deviceType: 'ucp',
+  retentionDays: 30,
+  segmentHours: 24,
+  perEntryBytes: 50,
+  headroomPct: 30,
+  includeAlarms: false,
+  alarmsPerDay: 0,
+  includeAudit: false,
+  auditEntriesPerDay: 0,
+  storageMedium: 'sd_12g',
+  storageSizeGb: 12,
+});
+assert(unifiedRes.network !== undefined, 'Unified engine returns network metrics');
+assert(unifiedRes.network.bandwidthKbps > 0, 'Unified engine network metrics populated');
 
 console.log(`\n========================================`);
 console.log(`TOTAL TESTS: ${totalTests} | PASSED: ${passedTests} | FAILED: ${totalTests - passedTests}`);

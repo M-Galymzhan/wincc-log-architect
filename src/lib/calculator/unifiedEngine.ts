@@ -1,4 +1,5 @@
 import { UnifiedTag, UnifiedConfig, UnifiedResult, Language } from '../types';
+import { calculateUnifiedNetwork } from './networkEngine';
 
 export function getDataTypeBytes(dataType: UnifiedTag['dataType'] | undefined, baseBytes: number = 50): number {
   const scale = baseBytes / 50;
@@ -179,6 +180,7 @@ export function calculateUnified(
     rule3SegmentsValid,
     storageOccupancyPct,
     estimatedFlashLifeYears,
+    network: calculateUnifiedNetwork(tags),
     warnings,
   };
 }

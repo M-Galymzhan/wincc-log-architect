@@ -7,6 +7,7 @@ import { ConfirmModal } from '../ConfirmModal';
 import { Plus, Trash2, Database, AlertTriangle, CheckCircle2, RefreshCw, Zap, Server, Download } from 'lucide-react';
 import { getSiemensArticle } from '../../lib/calculator/mlfbCatalog';
 import { generateTiaPortalCsv, downloadFile } from '../../lib/tiaExporter';
+import { NetworkBandwidthCard } from '../NetworkBandwidthCard';
 
 interface ProfessionalTabProps {
   tags: ProfessionalTag[];
@@ -515,6 +516,11 @@ export const ProfessionalTab: React.FC<ProfessionalTabProps> = ({
               {lang === 'ru' ? 'Включая журнал LDF:' : 'Including LDF:'} ~{result.estimatedLdfSizeGb.toFixed(2)} GB
             </div>
           </div>
+        </div>
+
+        {/* Industrial Ethernet Network Load */}
+        <div className="mb-6">
+          <NetworkBandwidthCard network={result.network} lang={lang} />
         </div>
 
         {/* Warnings */}

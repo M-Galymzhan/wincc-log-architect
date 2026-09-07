@@ -7,6 +7,7 @@ import { ConfirmModal } from '../ConfirmModal';
 import { Plus, Trash2, HardDrive, AlertTriangle, CheckCircle2, RefreshCw, FileSpreadsheet, Layers, Download } from 'lucide-react';
 import { getSiemensArticle } from '../../lib/calculator/mlfbCatalog';
 import { generateTiaPortalCsv, downloadFile } from '../../lib/tiaExporter';
+import { NetworkBandwidthCard } from '../NetworkBandwidthCard';
 
 interface ComfortTabProps {
   tags: ComfortTag[];
@@ -518,6 +519,11 @@ export const ComfortTab: React.FC<ComfortTabProps> = ({
               />
             </div>
           </div>
+        </div>
+
+        {/* Industrial Ethernet Network Load */}
+        <div className="mb-6">
+          <NetworkBandwidthCard network={result.network} lang={lang} />
         </div>
 
         {/* Warnings */}
