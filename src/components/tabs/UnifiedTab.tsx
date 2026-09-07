@@ -427,7 +427,7 @@ export const UnifiedTab: React.FC<UnifiedTabProps> = ({
               {(config.storageMedium === 'ssd_custom' || config.storageMedium === 'sd_custom_x52') && (
                 <div className="col-span-2 flex flex-wrap items-center gap-2 mt-1">
                   <span className="text-xs text-slate-700 dark:text-slate-300">
-                    {config.storageMedium === 'sd_custom_x52' ? (lang === 'ru' ? 'Емкость SDHC (X52):' : 'SDHC (X52) capacity:') : `${t.storageCustom}:`}
+                    {config.storageMedium === 'sd_custom_x52' ? (lang === 'ru' ? 'Емкость SDHC/SDXC (X52):' : 'SDHC/SDXC (X52) capacity:') : `${t.storageCustom}:`}
                   </span>
                   <input
                     type="number"
@@ -461,7 +461,7 @@ export const UnifiedTab: React.FC<UnifiedTabProps> = ({
             </div>
 
             {/* High Endurance / Industrial Recommendation Banner for Slot X52 */}
-            {config.storageMedium === 'sd_custom_x52' && (
+            {config.deviceType === 'ucp' && config.storageMedium === 'sd_custom_x52' && (
               <div className="mt-3 p-3 rounded-xl bg-amber-500/10 dark:bg-amber-500/15 border border-amber-500/30 text-xs">
                 <div className="flex items-center justify-between gap-2 mb-1.5">
                   <div className="flex items-center gap-1.5 font-bold text-amber-800 dark:text-amber-200">
@@ -479,7 +479,7 @@ export const UnifiedTab: React.FC<UnifiedTabProps> = ({
             )}
 
             {/* Dynamic File System Warning for Slot X52 with SDXC (> 32 GB) */}
-            {config.storageMedium === 'sd_custom_x52' && (config.storageSizeGb || 0) > 32 && (
+            {config.deviceType === 'ucp' && config.storageMedium === 'sd_custom_x52' && (config.storageSizeGb || 0) > 32 && (
               <div className="mt-3 p-3 rounded-xl bg-red-500/10 dark:bg-red-500/15 border border-red-500/30 text-xs animate-in fade-in duration-200">
                 <div className="flex items-center justify-between gap-2 mb-1.5">
                   <div className="flex items-center gap-1.5 font-bold text-red-700 dark:text-red-300">

@@ -348,6 +348,17 @@ export function calculateUnified(
     );
   }
 
+  // Siemens Rule 4: ASCII-only log names (no Cyrillic, no spaces, no special symbols)
+  const invalidNameLogs = logItems.filter((i) => i.name && !/^[A-Za-z0-9_.-]+$/.test(i.name));
+  if (invalidNameLogs.length > 0) {
+    const invalidNames = invalidNameLogs.map((i) => `"${i.name}"`).join(', ');
+    warnings.push(
+      lang === 'ru'
+        ? `Нарушено правило Siemens SIOS (ASCII Only): имена журналов ${invalidNames} содержат пробелы, кириллицу или спецсимволы (#, $, @, &). Разрешены только символы латиницы (A-Z, a-z), цифры и подчеркивание.`
+        : `Siemens SIOS ASCII naming rule violated: log names ${invalidNames} contain spaces, non-ASCII characters, or special symbols (#, $, @, &). Only Latin characters (A-Z, a-z), numbers, and underscores are allowed.`
+    );
+  }
+
   if (totalTagsCount === 0 && totalEntriesPerDay === 0) {
     warnings.push(
       lang === 'ru'

@@ -74,6 +74,14 @@ export function calculateComfort(
     );
   }
 
+  if (config.deviceType === 'comfort_panel' && storageMediumMb > 32768) {
+    warnings.push(
+      lang === 'ru'
+        ? 'Аппаратное ограничение Windows CE 6.0: Панели SIMATIC Comfort аппаратно поддерживают карты памяти объемом не более 32 ГБ (SDHC, FAT32). Накопители SDXC (> 32 ГБ) не поддерживаются контроллером слота.'
+        : 'Windows CE 6.0 hardware limitation: SIMATIC Comfort Panels support memory cards up to 32 GB (SDHC, FAT32). SDXC media (> 32 GB) is not supported by the panel hardware controller.'
+    );
+  }
+
   if (config.deviceType === 'comfort_panel' && totalRatePerSec > 50) {
     warnings.push(
       lang === 'ru'

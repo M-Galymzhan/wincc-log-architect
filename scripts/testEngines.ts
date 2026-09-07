@@ -885,6 +885,78 @@ async function runAsyncTests() {
     assert(translations.en.comfortHardwareLimitText.includes('32 GB') && translations.en.comfortHardwareLimitText.includes('FAT32'), 'Comfort Limit EN: Max 32 GB FAT32 limit verified');
     assert(!!translations.ru.reportStorageReqsTitle && !!translations.ru.reportStorageReqsSub, 'Report RU: Storage Requirements section texts verified');
     assert(!!translations.en.reportStorageReqsTitle && !!translations.en.reportStorageReqsSub, 'Report EN: Storage Requirements section texts verified');
+
+    // 12.7 Rule 4: Siemens ASCII-Only Paths & Log Naming Validation
+    const invalidLogConfig: UnifiedConfig = {
+      ...customX52Config,
+      dataLogs: [
+        { id: 'bad_dl', name: 'Журнал Давления', enabled: true },
+      ],
+      alarmLogs: [
+        { id: 'bad_al', name: 'Alarms #1', entriesPerDay: 100, enabled: true },
+      ],
+    };
+    const invalidLogResultRu = calculateUnified(customTags, invalidLogConfig, 'ru');
+    const hasAsciiWarningRu = invalidLogResultRu.warnings.some(w => w.includes('ASCII Only') && w.includes('Журнал Давления') && w.includes('Alarms #1'));
+    assert(hasAsciiWarningRu, 'Naming Rule 4: flags Cyrillic and special symbols (#) in RU');
+
+    const invalidLogResultEn = calculateUnified(customTags, invalidLogConfig, 'en');
+    const hasAsciiWarningEn = invalidLogResultEn.warnings.some(w => w.includes('ASCII naming rule violated') && w.includes('Журнал Давления'));
+    assert(hasAsciiWarningEn, 'Naming Rule 4: flags illegal log names in EN');
+
+    const validLogResult = calculateUnified(customTags, customX52Config, 'ru');
+    const hasNoAsciiWarning = !validLogResult.warnings.some(w => w.includes('ASCII Only'));
+    assert(hasNoAsciiWarning, 'Naming Rule 4: valid ASCII log names pass without warning');
+
+    // 12.8 Comfort Panel 32 GB Hardware Limit Engine Validation
+    const comfort64Config: ComfortConfig = {
+      deviceType: 'comfort_panel',
+      format: 'rdb',
+      retentionDays: 30,
+      recordsPerLog: 50000,
+      logMethod: 'circular',
+      storageMediumMb: 65536, // 64 GB > 32 GB limit
+    };
+    const comfort64ResultRu = calculateComfort([{ id: 'c1', description: 'Tag1', mode: 'cyclic', cycleSec: 1, count: 10 }], comfort64Config, 'ru');
+    const hasComfortLimitRu = comfort64ResultRu.warnings.some(w => w.includes('32 ГБ') && w.includes('SDXC'));
+    assert(hasComfortLimitRu, 'Comfort Limit Engine: flags >32 GB for Comfort Panel in RU');
+
+    const comfort64ResultEn = calculateComfort([{ id: 'c1', description: 'Tag1', mode: 'cyclic', cycleSec: 1, count: 10 }], comfort64Config, 'en');
+    const hasComfortLimitEn = comfort64ResultEn.warnings.some(w => w.includes('32 GB') && w.includes('SDXC'));
+    assert(hasComfortLimitEn, 'Comfort Limit Engine: flags >32 GB for Comfort Panel in EN');
+
+    const comfort32Config: ComfortConfig = {
+      ...comfort64Config,
+      storageMediumMb: 32768, // 32 GB within limit
+    };
+    const comfort32Result = calculateComfort([{ id: 'c1', description: 'Tag1', mode: 'cyclic', cycleSec: 1, count: 10 }], comfort32Config, 'ru');
+    const hasNoComfortLimit32 = !comfort32Result.warnings.some(w => w.includes('SDXC'));
+    assert(hasNoComfortLimit32, 'Comfort Limit Engine: 32 GB SDHC does not trigger limit warning');
+
+    const rtAdv64Config: ComfortConfig = {
+      ...comfort64Config,
+      deviceType: 'rt_advanced', // PC has no 32 GB limit
+    };
+    const rtAdv64Result = calculateComfort([{ id: 'c1', description: 'Tag1', mode: 'cyclic', cycleSec: 1, count: 10 }], rtAdv64Config, 'ru');
+    const hasNoRtAdvLimit = !rtAdv64Result.warnings.some(w => w.includes('Windows CE 6.0'));
+    assert(hasNoRtAdvLimit, 'Comfort Limit Engine: PC RT Advanced is not constrained by 32 GB limit');
+
+    // 12.9 Boundary values testing for storageSizeGb
+    const boundary32_5Config: UnifiedConfig = {
+      ...customX52Config,
+      storageMedium: 'sd_custom_x52',
+      storageSizeGb: 32.5,
+    };
+    const boundary32_5Result = calculateUnified(customTags, boundary32_5Config, 'ru');
+    assert(boundary32_5Result.warnings.some(w => w.includes('exFAT')), 'Storage Boundary: 32.5 GB flags exFAT advisory');
+
+    const negativeConfig: UnifiedConfig = {
+      ...customX52Config,
+      storageMedium: 'sd_custom_x52',
+      storageSizeGb: -10,
+    };
+    const negativeResult = calculateUnified(customTags, negativeConfig, 'ru');
+    assert(!negativeResult.warnings.some(w => w.includes('exFAT')), 'Storage Boundary: negative size clamps safely and does not flag exFAT');
   }
 
   console.log(`\n========================================`);

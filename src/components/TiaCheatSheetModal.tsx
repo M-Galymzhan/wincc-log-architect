@@ -30,17 +30,39 @@ export const TiaCheatSheetModal: React.FC<TiaCheatSheetModalProps> = ({
   const [modalView, setModalView] = useState<'properties' | 'checklist'>('properties');
   const [checkedRules, setCheckedRules] = useState<Record<number, boolean>>({});
 
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      try {
+        const saved = localStorage.getItem('wincc_storage_checklist');
+        if (saved) setCheckedRules(JSON.parse(saved));
+      } catch {}
+    }
+  }, []);
+
   const toggleRule = (ruleNum: number) => {
-    setCheckedRules((prev) => ({ ...prev, [ruleNum]: !prev[ruleNum] }));
+    setCheckedRules((prev) => {
+      const next = { ...prev, [ruleNum]: !prev[ruleNum] };
+      try {
+        localStorage.setItem('wincc_storage_checklist', JSON.stringify(next));
+      } catch {}
+      return next;
+    });
   };
 
   const handleCheckAll = () => {
-    setCheckedRules({ 1: true, 2: true, 3: true, 4: true, 5: true, 6: true });
+    const allChecked = { 1: true, 2: true, 3: true, 4: true, 5: true, 6: true };
+    setCheckedRules(allChecked);
+    try {
+      localStorage.setItem('wincc_storage_checklist', JSON.stringify(allChecked));
+    } catch {}
     if (onShowToast) onShowToast(lang === 'ru' ? 'Все 6 правил отмечены' : 'All 6 rules checked', 'info');
   };
 
   const handleResetChecklist = () => {
     setCheckedRules({});
+    try {
+      localStorage.removeItem('wincc_storage_checklist');
+    } catch {}
     if (onShowToast) onShowToast(lang === 'ru' ? 'Отметки чек-листа сброшены' : 'Checklist reset', 'info');
   };
 
@@ -120,6 +142,21 @@ export const TiaCheatSheetModal: React.FC<TiaCheatSheetModalProps> = ({
       value: path,
       tip: storageTip,
     });
+
+    if (unifiedData.config.deviceType === 'ucp') {
+      const isSdxc = isX52 && (unifiedData.config.storageSizeGb || 0) > 32;
+      items.push({
+        label: 'File system (Slot requirements)',
+        value: isX52
+          ? (isSdxc ? 'NTFS (recommended) / FAT32 [exFAT not supported]' : 'NTFS (recommended) / FAT32')
+          : isUsb
+          ? 'NTFS / FAT32 / exFAT'
+          : 'Siemens System Card (Pre-formatted FAT32 / MBR)',
+        tip: isX52
+          ? (lang === 'ru' ? 'Слот X52 поддерживает только NTFS и FAT32. Заводской exFAT не распознается.' : 'Slot X52 supports NTFS and FAT32 only. Factory exFAT is not supported.')
+          : t.cheatTipMultiple4Mb,
+      });
+    }
   } else if (activeTab === 'comfort') {
     title = lang === 'ru'
       ? 'WinCC Comfort / Advanced — Настройки архивации (TIA Portal)'
@@ -130,6 +167,13 @@ export const TiaCheatSheetModal: React.FC<TiaCheatSheetModalProps> = ({
       { label: 'Log type / Storage location', value: comfortData.config.format === 'rdb' ? 'RDB (binary)' : 'CSV (ASCII)', tip: t.cheatTipFormat },
       { label: 'Path to storage', value: comfortData.config.deviceType === 'comfort_panel' ? '\\Storage Card SD\\Logs' : 'C:\\Logs', tip: comfortData.config.deviceType === 'comfort_panel' ? t.cheatTipComfortStoragePath : t.cheatTipComfortStoragePathPc },
     ];
+    if (comfortData.config.deviceType === 'comfort_panel') {
+      items.push({
+        label: 'Storage medium requirement',
+        value: 'FAT32 (Max 32 GB SDHC / MBR)',
+        tip: t.comfortHardwareLimitText,
+      });
+    }
   } else {
     title = lang === 'ru'
       ? 'WinCC Professional — Архивация тегов и SQL Server'
