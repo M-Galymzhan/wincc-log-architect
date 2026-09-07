@@ -16,9 +16,17 @@ import {
   Database, Copy, Check, Filter
 } from 'lucide-react';
 import { getSiemensArticle } from '../../lib/calculator/mlfbCatalog';
-import { generateTiaPortalCsv, generateTiaPortalAlarmCsv, downloadFile } from '../../lib/tiaExporter';
+import { 
+  generateTiaPortalCsv, 
+  generateTiaPortalAlarmCsv, 
+  generateTiaPortalXlsx, 
+  generateTiaPortalAlarmXlsx, 
+  downloadFile, 
+  downloadXlsxFile 
+} from '../../lib/tiaExporter';
 import { convertToUnifiedTags, ParsedTagItem } from '../../lib/tagImporter';
 import { NetworkBandwidthCard } from '../NetworkBandwidthCard';
+import { ExportTiaDropdown } from '../ExportTiaDropdown';
 
 interface UnifiedTabProps {
   tags: UnifiedTag[];
@@ -331,10 +339,22 @@ export const UnifiedTab: React.FC<UnifiedTabProps> = ({
     if (onShowToast) onShowToast(t.exportTiaSuccess, 'success');
   };
 
+  const handleExportTiaXlsx = () => {
+    const xlsxData = generateTiaPortalXlsx('unified', tags, 'Unified_DataLog', dataLogs);
+    downloadXlsxFile(xlsxData, `TIA_WinCC_Unified_Tags_${new Date().toISOString().slice(0, 10)}.xlsx`);
+    if (onShowToast) onShowToast(t.exportTiaXlsxSuccess, 'success');
+  };
+
   const handleExportTiaAlarmCsv = () => {
     const csv = generateTiaPortalAlarmCsv(alarmTags, alarmLogs);
     downloadFile(csv, `TIA_WinCC_Unified_Alarms_${new Date().toISOString().slice(0, 10)}.csv`);
     if (onShowToast) onShowToast(t.exportAlarmCsvSuccess, 'success');
+  };
+
+  const handleExportTiaAlarmXlsx = () => {
+    const xlsxData = generateTiaPortalAlarmXlsx(alarmTags, alarmLogs);
+    downloadXlsxFile(xlsxData, `TIA_WinCC_Unified_Alarms_${new Date().toISOString().slice(0, 10)}.xlsx`);
+    if (onShowToast) onShowToast(t.exportAlarmXlsxSuccess, 'success');
   };
 
   return (
@@ -1051,14 +1071,14 @@ export const UnifiedTab: React.FC<UnifiedTabProps> = ({
                   <Upload className="w-3.5 h-3.5 shrink-0" />
                   <span className="hidden sm:inline">{t.btnImportTags}</span>
                 </button>
-                <button
-                  onClick={handleExportTiaCsv}
-                  className="p-1.5 sm:px-3 sm:py-1.5 rounded-lg text-xs font-semibold bg-emerald-600 hover:bg-emerald-500 text-white flex items-center gap-1.5 transition-all shadow-sm active:scale-95 cursor-pointer shrink-0"
-                  title={t.btnExportTiaCsv}
-                >
-                  <Download className="w-3.5 h-3.5 shrink-0" />
-                  <span className="hidden sm:inline">{t.btnExportTiaCsv}</span>
-                </button>
+                <ExportTiaDropdown
+                  onExportXlsx={handleExportTiaXlsx}
+                  onExportCsv={handleExportTiaCsv}
+                  lang={lang}
+                  themeColor="emerald"
+                  buttonLabel={lang === 'ru' ? 'Экспорт TIA' : 'Export TIA'}
+                  tooltipTitle={t.btnExportTia}
+                />
                 <button
                   onClick={handleAddTag}
                   className="px-2.5 sm:px-3 py-1.5 rounded-lg text-xs font-semibold bg-[#00646E] text-white hover:bg-[#004D54] flex items-center gap-1 sm:gap-1.5 transition-all shadow-sm active:scale-95 cursor-pointer shrink-0"
@@ -1099,14 +1119,14 @@ export const UnifiedTab: React.FC<UnifiedTabProps> = ({
                   <Plus className="w-3.5 h-3.5 shrink-0" />
                   <span>{t.btnAddAlarmBulk}</span>
                 </button>
-                <button
-                  onClick={handleExportTiaAlarmCsv}
-                  className="p-1.5 sm:px-3 sm:py-1.5 rounded-lg text-xs font-semibold bg-amber-600 hover:bg-amber-500 text-white flex items-center gap-1.5 transition-all shadow-sm active:scale-95 cursor-pointer shrink-0"
-                  title={t.btnExportAlarmCsv}
-                >
-                  <Download className="w-3.5 h-3.5 shrink-0" />
-                  <span className="hidden sm:inline">{t.btnExportAlarmCsv}</span>
-                </button>
+                <ExportTiaDropdown
+                  onExportXlsx={handleExportTiaAlarmXlsx}
+                  onExportCsv={handleExportTiaAlarmCsv}
+                  lang={lang}
+                  themeColor="amber"
+                  buttonLabel={lang === 'ru' ? 'Экспорт TIA' : 'Export TIA'}
+                  tooltipTitle={lang === 'ru' ? 'Экспорт аварийных сигналов в TIA Portal' : 'Export alarm tags to TIA Portal'}
+                />
                 <button
                   onClick={handleClearAlarmTags}
                   className="px-2 sm:px-2.5 py-1.5 rounded-lg text-xs font-medium text-rose-500 hover:bg-rose-50 dark:hover:bg-rose-950/40 transition-all active:scale-95 cursor-pointer shrink-0 ml-auto sm:ml-0"

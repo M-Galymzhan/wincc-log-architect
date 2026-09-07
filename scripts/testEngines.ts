@@ -8,7 +8,15 @@ import { calculateComfort } from '../src/lib/calculator/comfortEngine';
 import { calculateProfessional } from '../src/lib/calculator/professionalEngine';
 import { UnifiedTag, UnifiedAlarmTag, UnifiedConfig, ComfortTag, ComfortConfig, ProfessionalTag, ProfessionalConfig } from '../src/lib/types';
 import { INDUSTRY_PRESETS } from '../src/lib/presets';
-import { generateTiaPortalCsv, generateTiaPortalAlarmCsv } from '../src/lib/tiaExporter';
+import * as XLSX from 'xlsx';
+import { 
+  generateTiaPortalCsv, 
+  generateTiaPortalAlarmCsv, 
+  generateTiaPortalXlsx, 
+  generateTiaPortalAlarmXlsx, 
+  formatTiaCycle, 
+  TIA_HMI_TAGS_HEADERS 
+} from '../src/lib/tiaExporter';
 import { getSiemensArticle, SIEMENS_STORAGE_CATALOG } from '../src/lib/calculator/mlfbCatalog';
 import { calculateUnifiedNetwork, calculateComfortNetwork, calculateProfessionalNetwork } from '../src/lib/calculator/networkEngine';
 import { translations } from '../src/lib/i18n';
@@ -957,6 +965,150 @@ async function runAsyncTests() {
     };
     const negativeResult = calculateUnified(customTags, negativeConfig, 'ru');
     assert(!negativeResult.warnings.some(w => w.includes('exFAT')), 'Storage Boundary: negative size clamps safely and does not flag exFAT');
+
+    // =========================================================================
+    // Test Suite 13: Siemens TIA Portal V14–V20 XLSX Tag Export Specification
+    // =========================================================================
+    console.log('\n--- Test Suite 13: Siemens TIA Portal V14–V20 XLSX Tag Export Specification ---');
+
+    // 13.1 Format cycle conversion helper
+    assert(formatTiaCycle(0.1) === 'T100ms', 'TIA Cycle: 0.1s formats to T100ms');
+    assert(formatTiaCycle(0.25) === 'T250ms', 'TIA Cycle: 0.25s formats to T250ms');
+    assert(formatTiaCycle(0.5) === 'T500ms', 'TIA Cycle: 0.5s formats to T500ms');
+    assert(formatTiaCycle(1) === 'T1s', 'TIA Cycle: 1s formats to T1s');
+    assert(formatTiaCycle(2) === 'T2s', 'TIA Cycle: 2s formats to T2s');
+    assert(formatTiaCycle(5) === 'T5s', 'TIA Cycle: 5s formats to T5s');
+    assert(formatTiaCycle(10) === 'T10s', 'TIA Cycle: 10s formats to T10s');
+    assert(formatTiaCycle(60) === 'T1min', 'TIA Cycle: 60s formats to T1min');
+    assert(formatTiaCycle(3600) === 'T1h', 'TIA Cycle: 3600s formats to T1h');
+
+    // 13.2 Unified Tags XLSX Export Structure & Sheet Names
+    const testUnifiedTags: UnifiedTag[] = [
+      { id: 'u1', description: 'Motor1_Speed', mode: 'cyclic', cycleSec: 0.25, entriesPerSec: 4, count: 1, dataType: 'Real' },
+      { id: 'u2', description: 'Pump_Running', mode: 'onchange', cycleSec: 60, entriesPerSec: 0.0167, count: 1, dataType: 'Bool' },
+      { id: 'u3', description: 'Batch_Code', mode: 'cyclic', cycleSec: 2, entriesPerSec: 0.5, count: 1, dataType: 'String' },
+    ];
+    const unifiedXlsxBuf = generateTiaPortalXlsx('unified', testUnifiedTags, 'ProcessDataLog');
+    const unifiedWb = XLSX.read(unifiedXlsxBuf, { type: 'buffer' });
+
+    assert(unifiedWb.SheetNames.includes('Hmi Tags'), 'XLSX Export: Workbook contains "Hmi Tags" sheet');
+    assert(unifiedWb.SheetNames.includes('Substitute Value Usage'), 'XLSX Export: Workbook contains "Substitute Value Usage" sheet');
+
+    // Verify Hmi Tags sheet rows and exact 30 columns
+    const hmiTagsSheet = unifiedWb.Sheets['Hmi Tags'];
+    const hmiRows: any[][] = XLSX.utils.sheet_to_json(hmiTagsSheet, { header: 1 });
+    assert(hmiRows.length === 4, `XLSX Export: 1 header row + 3 tag rows = 4 rows, got ${hmiRows.length}`);
+
+    const exportedHeaders = hmiRows[0];
+    assert(exportedHeaders.length === 30, `XLSX Export: Exactly 30 TIA Portal columns, got ${exportedHeaders.length}`);
+    assert(exportedHeaders[0] === 'Name', 'XLSX Column 0: Name');
+    assert(exportedHeaders[1] === 'Path', 'XLSX Column 1: Path');
+    assert(exportedHeaders[2] === 'Connection', 'XLSX Column 2: Connection');
+    assert(exportedHeaders[3] === 'PLC tag', 'XLSX Column 3: PLC tag');
+    assert(exportedHeaders[4] === 'DataType', 'XLSX Column 4: DataType');
+    assert(exportedHeaders[5] === 'HMI DataType', 'XLSX Column 5: HMI DataType');
+    assert(exportedHeaders[6] === 'Length', 'XLSX Column 6: Length');
+    assert(exportedHeaders[7] === 'Access Method', 'XLSX Column 7: Access Method');
+    assert(exportedHeaders[8] === 'Address', 'XLSX Column 8: Address');
+    assert(exportedHeaders[9] === 'Start value', 'XLSX Column 9: Start value');
+    assert(exportedHeaders[10] === 'Persistency', 'XLSX Column 10: Persistency');
+    assert(exportedHeaders[11] === 'Substitute value', 'XLSX Column 11: Substitute value');
+    assert(exportedHeaders[12] === 'ID tag', 'XLSX Column 12: ID tag');
+    assert(exportedHeaders[13] === 'Comment [en-US]', 'XLSX Column 13: Comment [en-US]');
+    assert(exportedHeaders[14] === 'Acquisition mode', 'XLSX Column 14: Acquisition mode');
+    assert(exportedHeaders[15] === 'Acquisition cycle', 'XLSX Column 15: Acquisition cycle');
+    assert(exportedHeaders[29] === 'Scope', 'XLSX Column 29: Scope');
+
+    // Verify first tag row (Motor1_Speed, Real, Cyclic in operation, T250ms)
+    const row1 = hmiRows[1];
+    assert(row1[0] === 'Motor1_Speed', `XLSX Row 1: Name is Motor1_Speed, got ${row1[0]}`);
+    assert(row1[4] === 'Real', `XLSX Row 1: DataType is Real, got ${row1[4]}`);
+    assert(row1[5] === 'Real', `XLSX Row 1: HMI DataType is Real, got ${row1[5]}`);
+    assert(row1[6] === 1, `XLSX Row 1: Length is 1, got ${row1[6]}`);
+    assert(row1[7] === 'Symbolic access', 'XLSX Row 1: Access Method is Symbolic access');
+    assert(row1[14] === 'Cyclic in operation', `XLSX Row 1: Acquisition mode is Cyclic in operation, got ${row1[14]}`);
+    assert(row1[15] === 'T250ms', `XLSX Row 1: Acquisition cycle is T250ms, got ${row1[15]}`);
+    assert(row1[29] === 'System-wide', 'XLSX Row 1: Scope is System-wide');
+
+    // Verify second tag row (Pump_Running, Bool, On change, None)
+    const row2 = hmiRows[2];
+    assert(row2[0] === 'Pump_Running', `XLSX Row 2: Name is Pump_Running, got ${row2[0]}`);
+    assert(row2[4] === 'Bool', `XLSX Row 2: DataType is Bool, got ${row2[4]}`);
+    assert(row2[14] === 'On change', `XLSX Row 2: Acquisition mode is On change, got ${row2[14]}`);
+    assert(row2[15] === 'None', `XLSX Row 2: Acquisition cycle is None, got ${row2[15]}`);
+
+    // Verify third tag row (Batch_Code, String, Length 254)
+    const row3 = hmiRows[3];
+    assert(row3[0] === 'Batch_Code', `XLSX Row 3: Name is Batch_Code, got ${row3[0]}`);
+    assert(row3[4] === 'String', `XLSX Row 3: DataType is String, got ${row3[4]}`);
+    assert(row3[6] === 254, `XLSX Row 3: String Length is 254, got ${row3[6]}`);
+
+    // 13.3 Comfort Tags XLSX Export
+    const testComfortTags: ComfortTag[] = [
+      { id: 'c1', description: 'Furnace_Temp', mode: 'cyclic', cycleSec: 1, count: 5 },
+      { id: 'c2', description: 'Door_Sensor', mode: 'onchange', cycleSec: 60, count: 1 },
+    ];
+    const comfortXlsxBuf = generateTiaPortalXlsx('comfort', testComfortTags, 'Comfort_DataLog');
+    const comfortWb = XLSX.read(comfortXlsxBuf, { type: 'buffer' });
+    const comfortRows: any[][] = XLSX.utils.sheet_to_json(comfortWb.Sheets['Hmi Tags'], { header: 1 });
+    assert(comfortRows.length === 3, `Comfort XLSX: 1 header + 2 tags = 3 rows, got ${comfortRows.length}`);
+    assert(comfortRows[1][0] === 'Furnace_Temp', 'Comfort XLSX: Row 1 Name is Furnace_Temp');
+    assert(comfortRows[1][15] === 'T1s', 'Comfort XLSX: Row 1 Cycle is T1s');
+    assert(comfortRows[2][14] === 'On change', 'Comfort XLSX: Row 2 Mode is On change');
+
+    // 13.4 Professional Tags XLSX Export
+    const testProTags: ProfessionalTag[] = [
+      { id: 'p1', description: 'Turbine_Vib', cycleSec: 0.5, count: 10, archiveType: 'fast' },
+      { id: 'p2', description: 'Daily_Yield', cycleSec: 300, count: 1, archiveType: 'slow' },
+    ];
+    const proXlsxBuf = generateTiaPortalXlsx('professional', testProTags, 'Pro_TagLogging');
+    const proWb = XLSX.read(proXlsxBuf, { type: 'buffer' });
+    const proRows: any[][] = XLSX.utils.sheet_to_json(proWb.Sheets['Hmi Tags'], { header: 1 });
+    assert(proRows.length === 3, `Professional XLSX: 1 header + 2 tags = 3 rows, got ${proRows.length}`);
+    assert(proRows[1][0] === 'Turbine_Vib', 'Professional XLSX: Row 1 Name is Turbine_Vib');
+    assert(proRows[1][15] === 'T500ms', 'Professional XLSX: Row 1 Cycle is T500ms');
+    assert(proRows[1][13].includes('TagLoggingFast'), 'Professional XLSX: Row 1 comment references Fast logging');
+    assert(proRows[2][15] === 'T5min', 'Professional XLSX: Row 2 Cycle is T5min');
+    assert(proRows[2][13].includes('TagLoggingSlow'), 'Professional XLSX: Row 2 comment references Slow logging');
+
+    // 13.5 Alarm Tags XLSX Export
+    const testAlarms: UnifiedAlarmTag[] = [
+      { id: 'a1', name: 'Emergency_Stop', alarmClass: 'Alarm', triggerType: 'digital', eventsPerDay: 5, count: 2, alarmLogId: 'alm_crit' },
+    ];
+    const alarmXlsxBuf = generateTiaPortalAlarmXlsx(testAlarms);
+    const alarmWb = XLSX.read(alarmXlsxBuf, { type: 'buffer' });
+    const alarmRows: any[][] = XLSX.utils.sheet_to_json(alarmWb.Sheets['Hmi Tags'], { header: 1 });
+    assert(alarmRows.length === 2, `Alarm XLSX: 1 header + 1 alarm tag = 2 rows, got ${alarmRows.length}`);
+    assert(alarmRows[1][0] === 'Emergency_Stop', 'Alarm XLSX: Row 1 Name is Emergency_Stop');
+    assert(alarmRows[1][4] === 'Bool', 'Alarm XLSX: DataType is Bool');
+    assert(alarmRows[1][15] === 'T250ms', 'Alarm XLSX: Acquisition cycle is T250ms');
+
+    // 13.6 Bidirectional Round-Trip Verification (Export XLSX -> Import via tagImporter)
+    const exportBuf = generateTiaPortalXlsx('unified', testUnifiedTags, 'ProcessDataLog');
+    const abExport = exportBuf.buffer.slice(exportBuf.byteOffset, exportBuf.byteOffset + exportBuf.byteLength) as ArrayBuffer;
+    const rawImport = await readXlsxFile(abExport);
+    const { rows: roundtripRows } = extractXlsxRows(rawImport);
+    const roundtripParsed = parseRowsToTags(roundtripRows);
+
+    assert(roundtripParsed.tags.length === 3, `Round-trip: Successfully re-imported all 3 tags, got ${roundtripParsed.tags.length}`);
+    assert(roundtripParsed.tags[0].name === 'Motor1_Speed', 'Round-trip: Tag 0 name matches');
+    assert(roundtripParsed.tags[0].dataType === 'Real', 'Round-trip: Tag 0 dataType is Real');
+    assert(roundtripParsed.tags[0].cycleSec === 0.25, 'Round-trip: Tag 0 cycleSec is 0.25');
+    assert(roundtripParsed.tags[1].name === 'Pump_Running', 'Round-trip: Tag 1 name matches');
+    assert(roundtripParsed.tags[1].dataType === 'Bool', 'Round-trip: Tag 1 dataType is Bool');
+    assert(roundtripParsed.tags[1].mode === 'onchange', 'Round-trip: Tag 1 mode is onchange');
+
+    // 13.7 Expand Count Option Verification
+    const expandTags: UnifiedTag[] = [
+      { id: 'exp1', description: 'Bearing_Temp', mode: 'cyclic', cycleSec: 1, entriesPerSec: 1, count: 3, dataType: 'Real' }
+    ];
+    const expandedBuf = generateTiaPortalXlsx('unified', expandTags, 'ProcessDataLog', undefined, { expandCount: true });
+    const expandedWb = XLSX.read(expandedBuf, { type: 'buffer' });
+    const expandedRows: any[][] = XLSX.utils.sheet_to_json(expandedWb.Sheets['Hmi Tags'], { header: 1 });
+    assert(expandedRows.length === 4, `ExpandCount: 1 header + 3 instances = 4 rows, got ${expandedRows.length}`);
+    assert(expandedRows[1][0] === 'Bearing_Temp_1', 'ExpandCount: Instance 1 is Bearing_Temp_1');
+    assert(expandedRows[2][0] === 'Bearing_Temp_2', 'ExpandCount: Instance 2 is Bearing_Temp_2');
+    assert(expandedRows[3][0] === 'Bearing_Temp_3', 'ExpandCount: Instance 3 is Bearing_Temp_3');
   }
 
   console.log(`\n========================================`);

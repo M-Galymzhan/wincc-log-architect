@@ -1,6 +1,6 @@
 {
   "name": "wincc-log-architect",
-  "version": "2.9.0",
+  "version": "2.10.0",
   "private": true,
   "scripts": {
     "dev": "next dev",
@@ -13,7 +13,8 @@
     "next": "16.3.4",
     "react": "19.2.8",
     "react-dom": "19.2.8",
-    "read-excel-file": "^9.3.10"
+    "read-excel-file": "^9.3.10",
+    "xlsx": "^0.18.5"
   },
   "devDependencies": {
     "@tailwindcss/postcss": "^4",

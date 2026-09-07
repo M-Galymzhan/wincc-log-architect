@@ -7,9 +7,10 @@ import { ConfirmModal } from '../ConfirmModal';
 import { ImportTagsModal } from '../ImportTagsModal';
 import { Plus, Trash2, Database, AlertTriangle, CheckCircle2, RefreshCw, Zap, Server, Download, Upload } from 'lucide-react';
 import { getSiemensArticle } from '../../lib/calculator/mlfbCatalog';
-import { generateTiaPortalCsv, downloadFile } from '../../lib/tiaExporter';
+import { generateTiaPortalCsv, generateTiaPortalXlsx, downloadFile, downloadXlsxFile } from '../../lib/tiaExporter';
 import { convertToProfessionalTags, ParsedTagItem } from '../../lib/tagImporter';
 import { NetworkBandwidthCard } from '../NetworkBandwidthCard';
+import { ExportTiaDropdown } from '../ExportTiaDropdown';
 
 interface ProfessionalTabProps {
   tags: ProfessionalTag[];
@@ -111,6 +112,12 @@ export const ProfessionalTab: React.FC<ProfessionalTabProps> = ({
     const csv = generateTiaPortalCsv('professional', tags, 'Pro_TagLogging');
     downloadFile(csv, `TIA_WinCC_Professional_Tags_${new Date().toISOString().slice(0, 10)}.csv`);
     if (onShowToast) onShowToast(t.exportTiaSuccess, 'success');
+  };
+
+  const handleExportTiaXlsx = () => {
+    const xlsxData = generateTiaPortalXlsx('professional', tags, 'Pro_TagLogging');
+    downloadXlsxFile(xlsxData, `TIA_WinCC_Professional_Tags_${new Date().toISOString().slice(0, 10)}.xlsx`);
+    if (onShowToast) onShowToast(t.exportTiaXlsxSuccess, 'success');
   };
 
   return (
@@ -315,14 +322,14 @@ export const ProfessionalTab: React.FC<ProfessionalTabProps> = ({
               <Upload className="w-3.5 h-3.5 shrink-0" />
               <span className="hidden sm:inline">{t.btnImportTags}</span>
             </button>
-            <button
-              onClick={handleExportTiaCsv}
-              className="p-1.5 sm:px-3 sm:py-1.5 rounded-lg text-xs font-semibold bg-purple-600 hover:bg-purple-500 text-white flex items-center gap-1.5 transition-all shadow-sm active:scale-95 cursor-pointer shrink-0"
-              title={t.btnExportTiaCsv}
-            >
-              <Download className="w-3.5 h-3.5 shrink-0" />
-              <span className="hidden sm:inline">{t.btnExportTiaCsv}</span>
-            </button>
+            <ExportTiaDropdown
+              onExportXlsx={handleExportTiaXlsx}
+              onExportCsv={handleExportTiaCsv}
+              lang={lang}
+              themeColor="purple"
+              buttonLabel={lang === 'ru' ? 'Экспорт TIA' : 'Export TIA'}
+              tooltipTitle={t.btnExportTia}
+            />
             <button
               onClick={handleAddTag}
               className="px-2.5 sm:px-3 py-1.5 rounded-lg text-xs font-semibold bg-purple-700 text-white hover:bg-purple-800 flex items-center gap-1 sm:gap-1.5 cursor-pointer transition-all shadow-sm active:scale-95 shrink-0"
