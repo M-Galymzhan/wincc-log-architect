@@ -54,8 +54,16 @@ export default function Home() {
       { id: 'default_data_log', name: 'Trend_Logs', enabled: true },
     ],
     alarmLogs: [
-      { id: 'alarms_log', name: 'Alarms_log', entriesPerDay: 150, enabled: true },
-      { id: 'events_log', name: 'Events_log', entriesPerDay: 500, enabled: true },
+      { id: 'alarms_log', name: 'Alarms_log', entriesPerDay: 50, enabled: true },
+      { id: 'events_log', name: 'Events_log', entriesPerDay: 100, enabled: true },
+    ],
+    alarmTags: [
+      { id: 'alm_1', name: 'M101_Trip_Overload', alarmClass: 'Alarm', triggerType: 'digital', eventsPerDay: 2, count: 4, alarmLogId: 'alarms_log' },
+      { id: 'alm_2', name: 'Tank_Level_HighHigh', alarmClass: 'Alarm', triggerType: 'analog', eventsPerDay: 1, count: 2, alarmLogId: 'alarms_log' },
+      { id: 'alm_3', name: 'Emergency_Stop_Pushed', alarmClass: 'Alarm', triggerType: 'digital', eventsPerDay: 0.5, count: 2, alarmLogId: 'alarms_log' },
+      { id: 'alm_4', name: 'Operator_Setpoint_Change', alarmClass: 'Event', triggerType: 'digital', eventsPerDay: 20, count: 5, alarmLogId: 'events_log' },
+      { id: 'alm_5', name: 'Pump_Start_Stop_Event', alarmClass: 'Event', triggerType: 'digital', eventsPerDay: 30, count: 4, alarmLogId: 'events_log' },
+      { id: 'alm_6', name: 'System_Warning_Battery', alarmClass: 'Warning', triggerType: 'digital', eventsPerDay: 1, count: 1, alarmLogId: 'events_log' },
     ],
     includeAlarms: true,
     alarmsPerDay: 650,

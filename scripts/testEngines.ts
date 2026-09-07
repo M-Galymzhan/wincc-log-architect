@@ -6,7 +6,7 @@
 import { calculateUnified, getDataTypeBytes } from '../src/lib/calculator/unifiedEngine';
 import { calculateComfort } from '../src/lib/calculator/comfortEngine';
 import { calculateProfessional } from '../src/lib/calculator/professionalEngine';
-import { UnifiedTag, UnifiedConfig, ComfortTag, ComfortConfig, ProfessionalTag, ProfessionalConfig } from '../src/lib/types';
+import { UnifiedTag, UnifiedAlarmTag, UnifiedConfig, ComfortTag, ComfortConfig, ProfessionalTag, ProfessionalConfig } from '../src/lib/types';
 import { INDUSTRY_PRESETS } from '../src/lib/presets';
 import { generateTiaPortalCsv } from '../src/lib/tiaExporter';
 import { getSiemensArticle, SIEMENS_STORAGE_CATALOG } from '../src/lib/calculator/mlfbCatalog';
@@ -638,6 +638,52 @@ async function runAsyncTests() {
     const disabledResult = calculateUnified(multiTags, disabledConfig);
     const activeItems = disabledResult.logItems.filter(l => l.enabled && l.totalLogMb > 0);
     assert(activeItems.length === 2, `Multi-Log: Only 2 active data logs should be calculated, got ${activeItems.length}`);
+
+    // 10. Alarm Tags & HMI Alarms Logging Architecture
+    console.log('\n--- Test Suite 10: WinCC Unified Alarm Tags & HMI Alarms Architecture ---');
+    const alarmTagsSample: UnifiedAlarmTag[] = [
+      { id: 'at1', name: 'M101_Trip_Overload', alarmClass: 'Alarm', triggerType: 'digital', eventsPerDay: 5, count: 4, alarmLogId: 'log_alm' },
+      { id: 'at2', name: 'Tank_Level_HighHigh', alarmClass: 'Alarm', triggerType: 'analog', eventsPerDay: 2, count: 2, alarmLogId: 'log_alm' },
+      { id: 'at3', name: 'Operator_Setpoint_Change', alarmClass: 'Event', triggerType: 'digital', eventsPerDay: 25, count: 2, alarmLogId: 'log_evt' },
+    ];
+
+    const alarmTagsConfig: UnifiedConfig = {
+      deviceType: 'ucp',
+      retentionDays: 30,
+      segmentHours: 24,
+      perEntryBytes: 38,
+      headroomPct: 30,
+      includeAlarms: true,
+      alarmsPerDay: 0,
+      includeAudit: false,
+      auditEntriesPerDay: 0,
+      storageMedium: 'sd_12g',
+      storageSizeGb: 12,
+      dataLogs: [{ id: 'dl_main', name: 'Trend_Logs', enabled: true }],
+      alarmLogs: [
+        { id: 'log_alm', name: 'Alarms_log', entriesPerDay: 10, enabled: true },
+        { id: 'log_evt', name: 'Events_log', entriesPerDay: 50, enabled: true },
+      ],
+      alarmTags: alarmTagsSample,
+    };
+
+    const alarmTagsResult = calculateUnified(multiTags, alarmTagsConfig);
+    const calculatedAlarmsLog = alarmTagsResult.logItems.find(l => l.id === 'log_alm');
+    const calculatedEventsLog = alarmTagsResult.logItems.find(l => l.id === 'log_evt');
+
+    // log_alm tags: at1 (5*4=20) + at2 (2*2=4) = 24 from tags + 10 base = 34 ev/day
+    assert(calculatedAlarmsLog !== undefined, 'AlarmTags: Alarms_log item generated');
+    assert(calculatedAlarmsLog?.entriesPerDay === 34, `AlarmTags: Alarms_log calculated 34 ev/day, got ${calculatedAlarmsLog?.entriesPerDay}`);
+    assert(calculatedAlarmsLog?.tagCount === 6, `AlarmTags: Alarms_log tagCount is 6 (4+2 signals), got ${calculatedAlarmsLog?.tagCount}`);
+
+    // log_evt tags: at3 (25*2=50) from tags + 50 base = 100 ev/day
+    assert(calculatedEventsLog !== undefined, 'AlarmTags: Events_log item generated');
+    assert(calculatedEventsLog?.entriesPerDay === 100, `AlarmTags: Events_log calculated 100 ev/day, got ${calculatedEventsLog?.entriesPerDay}`);
+    assert(calculatedEventsLog?.tagCount === 2, `AlarmTags: Events_log tagCount is 2 signals, got ${calculatedEventsLog?.tagCount}`);
+
+    // Segments rule 4MB & >= 200 MB
+    assert(calculatedAlarmsLog?.sqliteSegmentMb === 4, `AlarmTags: segment is multiple of 4 MB (4 MB), got ${calculatedAlarmsLog?.sqliteSegmentMb}`);
+    assert(calculatedAlarmsLog?.totalLogMb === 200, `AlarmTags: totalLogMb >= 200 MB, got ${calculatedAlarmsLog?.totalLogMb}`);
   }
 
   console.log(`\n========================================`);

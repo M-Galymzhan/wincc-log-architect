@@ -2,7 +2,7 @@
 import React, { useState } from 'react';
 import { 
   UnifiedTag, UnifiedConfig, UnifiedResult, Language, ToastMessage, 
-  UnifiedDataLogConfig, UnifiedAlarmLogConfig 
+  UnifiedDataLogConfig, UnifiedAlarmLogConfig, UnifiedAlarmTag
 } from '../../lib/types';
 import { translations, formatPlural } from '../../lib/i18n';
 import { TrafficGauge } from '../TrafficGauge';
@@ -12,7 +12,7 @@ import { ImportTagsModal } from '../ImportTagsModal';
 import { 
   Plus, Trash2, Layers, AlertTriangle, CheckCircle2, 
   ShieldCheck, Bell, BellRing, Cpu, Clock, RefreshCw, Download, Settings2, Upload,
-  Database, Copy, Check
+  Database, Copy, Check, Filter
 } from 'lucide-react';
 import { getSiemensArticle } from '../../lib/calculator/mlfbCatalog';
 import { generateTiaPortalCsv, downloadFile } from '../../lib/tiaExporter';
@@ -44,6 +44,11 @@ export const UnifiedTab: React.FC<UnifiedTabProps> = ({
   const [isImportModalOpen, setIsImportModalOpen] = useState(false);
   const [copiedCellKey, setCopiedCellKey] = useState<string | null>(null);
 
+  // Category & Filter states
+  const [activeCategory, setActiveCategory] = useState<'data' | 'alarm'>('data');
+  const [activeDataLogFilter, setActiveDataLogFilter] = useState<string | 'all'>('all');
+  const [activeAlarmLogFilter, setActiveAlarmLogFilter] = useState<string | 'all'>('all');
+
   // Multi-Log Accessors & Handlers
   const dataLogs: UnifiedDataLogConfig[] = config.dataLogs && config.dataLogs.length > 0
     ? config.dataLogs
@@ -52,9 +57,11 @@ export const UnifiedTab: React.FC<UnifiedTabProps> = ({
   const alarmLogs: UnifiedAlarmLogConfig[] = config.alarmLogs !== undefined
     ? config.alarmLogs
     : [
-        { id: 'alarms_log', name: 'Alarms_log', entriesPerDay: 150, enabled: true },
-        { id: 'events_log', name: 'Events_log', entriesPerDay: 500, enabled: true },
+        { id: 'alarms_log', name: 'Alarms_log', entriesPerDay: 50, enabled: true },
+        { id: 'events_log', name: 'Events_log', entriesPerDay: 100, enabled: true },
       ];
+
+  const alarmTags: UnifiedAlarmTag[] = config.alarmTags || [];
 
   const handleAddDataLog = () => {
     const newDl: UnifiedDataLogConfig = {
@@ -78,6 +85,7 @@ export const UnifiedTab: React.FC<UnifiedTabProps> = ({
     }
     const updated = dataLogs.filter(dl => dl.id !== id);
     setConfig(prev => ({ ...prev, dataLogs: updated }));
+    if (activeDataLogFilter === id) setActiveDataLogFilter('all');
     if (onShowToast) onShowToast(lang === 'ru' ? 'Архив данных удален' : 'Data log removed', 'info');
   };
 
@@ -85,7 +93,7 @@ export const UnifiedTab: React.FC<UnifiedTabProps> = ({
     const newAl: UnifiedAlarmLogConfig = {
       id: Math.random().toString(36).substring(2, 9),
       name: `Alarm_Log_${alarmLogs.length + 1}`,
-      entriesPerDay: 200,
+      entriesPerDay: 50,
       enabled: true,
     };
     setConfig(prev => ({ ...prev, alarmLogs: [...alarmLogs, newAl] }));
@@ -100,7 +108,69 @@ export const UnifiedTab: React.FC<UnifiedTabProps> = ({
   const handleRemoveAlarmLog = (id: string) => {
     const updated = alarmLogs.filter(al => al.id !== id);
     setConfig(prev => ({ ...prev, alarmLogs: updated }));
+    if (activeAlarmLogFilter === id) setActiveAlarmLogFilter('all');
     if (onShowToast) onShowToast(lang === 'ru' ? 'Архив аварий удален' : 'Alarm log removed', 'info');
+  };
+
+  // Alarm Tags Handlers
+  const handleAddAlarmTag = () => {
+    const targetLogId = activeAlarmLogFilter !== 'all'
+      ? activeAlarmLogFilter
+      : (alarmLogs[0]?.id || 'alarms_log');
+    const newAlarmTag: UnifiedAlarmTag = {
+      id: Math.random().toString(36).substring(2, 9),
+      name: `Alarm_${alarmTags.length + 1}`,
+      alarmClass: 'Alarm',
+      triggerType: 'digital',
+      eventsPerDay: 5,
+      count: 1,
+      alarmLogId: targetLogId,
+    };
+    setConfig(prev => ({
+      ...prev,
+      alarmTags: [...(prev.alarmTags || []), newAlarmTag],
+    }));
+    if (onShowToast) onShowToast(lang === 'ru' ? 'Аварийный сигнал добавлен' : 'Alarm signal added', 'success');
+  };
+
+  const handleAddAlarmBulk = () => {
+    const targetLogId = activeAlarmLogFilter !== 'all'
+      ? activeAlarmLogFilter
+      : (alarmLogs[0]?.id || 'alarms_log');
+    const newBatch: UnifiedAlarmTag[] = Array.from({ length: 5 }, (_, i) => ({
+      id: Math.random().toString(36).substring(2, 9),
+      name: `Alarm_${alarmTags.length + i + 1}`,
+      alarmClass: 'Alarm',
+      triggerType: 'digital',
+      eventsPerDay: 2,
+      count: 1,
+      alarmLogId: targetLogId,
+    }));
+    setConfig(prev => ({
+      ...prev,
+      alarmTags: [...(prev.alarmTags || []), ...newBatch],
+    }));
+    if (onShowToast) onShowToast(lang === 'ru' ? 'Добавлен пакет из 5 аварийных сигналов' : 'Added batch of 5 alarm signals', 'success');
+  };
+
+  const handleUpdateAlarmTag = (id: string, patch: Partial<UnifiedAlarmTag>) => {
+    setConfig(prev => ({
+      ...prev,
+      alarmTags: (prev.alarmTags || []).map(at => at.id === id ? { ...at, ...patch } : at),
+    }));
+  };
+
+  const handleRemoveAlarmTag = (id: string) => {
+    setConfig(prev => ({
+      ...prev,
+      alarmTags: (prev.alarmTags || []).filter(at => at.id !== id),
+    }));
+    if (onShowToast) onShowToast(lang === 'ru' ? 'Аварийный сигнал удален' : 'Alarm signal removed', 'info');
+  };
+
+  const handleClearAlarmTags = () => {
+    setConfig(prev => ({ ...prev, alarmTags: [] }));
+    if (onShowToast) onShowToast(lang === 'ru' ? 'Все аварийные сигналы удалены' : 'All alarm signals cleared', 'info');
   };
 
   const handleCopyValue = (key: string, val: string | number) => {
@@ -123,6 +193,9 @@ export const UnifiedTab: React.FC<UnifiedTabProps> = ({
   };
 
   const handleAddTag = () => {
+    const targetDataLogId = activeDataLogFilter !== 'all'
+      ? activeDataLogFilter
+      : (dataLogs[0]?.id || 'default_data_log');
     const newTag: UnifiedTag = {
       id: Math.random().toString(36).substring(2, 9),
       description: `Tag_${tags.length + 1}`,
@@ -131,6 +204,7 @@ export const UnifiedTab: React.FC<UnifiedTabProps> = ({
       entriesPerSec: 1,
       count: 1,
       dataType: 'Real',
+      dataLogId: targetDataLogId,
     };
     setTags([...tags, newTag]);
     if (onShowToast) onShowToast(lang === 'ru' ? 'Тег добавлен' : 'Tag added', 'success');
@@ -147,16 +221,21 @@ export const UnifiedTab: React.FC<UnifiedTabProps> = ({
       ? Number((1 / Math.max(0.01, params.cycleSec)).toFixed(4))
       : 0.0167;
 
-    const newTag: UnifiedTag = {
+    const targetDataLogId = activeDataLogFilter !== 'all'
+      ? activeDataLogFilter
+      : (dataLogs[0]?.id || 'default_data_log');
+
+    const newTags: UnifiedTag[] = Array.from({ length: params.count }, (_, i) => ({
       id: Math.random().toString(36).substring(2, 9),
-      description: `${params.prefix}${params.count}x`,
+      description: `${params.prefix}${tags.length + i + 1}`,
       mode: params.mode,
       cycleSec: params.cycleSec,
       entriesPerSec,
-      count: params.count,
+      count: 1,
       dataType: params.dataType || 'Real',
-    };
-    setTags(prev => [...prev, newTag]);
+      dataLogId: targetDataLogId,
+    }));
+    setTags(prev => [...prev, ...newTags]);
     if (onShowToast) onShowToast(t.toastBulkAdded, 'success');
   };
 
@@ -523,46 +602,61 @@ export const UnifiedTab: React.FC<UnifiedTabProps> = ({
                 </div>
               ) : (
                 <div className="space-y-1.5">
-                  {alarmLogs.map((al) => (
-                    <div key={al.id} className="flex items-center justify-between gap-2 p-2 rounded-lg bg-white/80 dark:bg-slate-900/80 border border-slate-200/70 dark:border-slate-800">
-                      <div className="flex items-center gap-2 flex-1 min-w-0">
-                        <input
-                          type="checkbox"
-                          checked={al.enabled}
-                          onChange={(e) => handleUpdateAlarmLog(al.id, { enabled: e.target.checked })}
-                          className="w-4 h-4 accent-[#00646E] cursor-pointer shrink-0"
-                        />
-                        <input
-                          type="text"
-                          value={al.name}
-                          disabled={!al.enabled}
-                          onChange={(e) => handleUpdateAlarmLog(al.id, { name: e.target.value })}
-                          placeholder={t.logNamePlaceholder}
-                          className="p-1 px-2 text-xs font-mono font-bold rounded border border-slate-200 dark:border-slate-700 bg-transparent text-slate-900 dark:text-white focus:border-[#00646E] outline-none flex-1 max-w-[170px] disabled:opacity-40"
-                        />
-                        <div className="flex items-center gap-1 shrink-0">
+                  {alarmLogs.map((al, idx) => {
+                    const matchingAlarmTags = alarmTags.filter((at) => (at.alarmLogId ? at.alarmLogId === al.id : idx === 0));
+                    const tagsEvents = matchingAlarmTags.reduce((sum, at) => sum + (Math.max(0, at.eventsPerDay || 0) * Math.max(1, at.count || 1)), 0);
+                    const tagsCount = matchingAlarmTags.reduce((sum, at) => sum + Math.max(1, at.count || 1), 0);
+
+                    return (
+                      <div key={al.id} className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 p-2 rounded-lg bg-white/80 dark:bg-slate-900/80 border border-slate-200/70 dark:border-slate-800">
+                        <div className="flex items-center gap-2 flex-1 min-w-0">
                           <input
-                            type="number"
-                            min="0"
-                            disabled={!al.enabled}
-                            value={al.entriesPerDay}
-                            onChange={(e) => handleUpdateAlarmLog(al.id, { entriesPerDay: Math.max(0, parseInt(e.target.value, 10) || 0) })}
-                            className="w-18 p-1 text-xs font-mono rounded border border-slate-200 dark:border-slate-700 bg-transparent text-slate-900 dark:text-white outline-none focus:ring-1 focus:ring-[#00646E] disabled:opacity-40"
+                            type="checkbox"
+                            checked={al.enabled}
+                            onChange={(e) => handleUpdateAlarmLog(al.id, { enabled: e.target.checked })}
+                            className="w-4 h-4 accent-[#00646E] cursor-pointer shrink-0"
                           />
-                          <span className="text-[10px] text-slate-400 font-mono">{t.eventsPerDayShort}</span>
+                          <input
+                            type="text"
+                            value={al.name}
+                            disabled={!al.enabled}
+                            onChange={(e) => handleUpdateAlarmLog(al.id, { name: e.target.value })}
+                            placeholder={t.logNamePlaceholder}
+                            className="p-1 px-2 text-xs font-mono font-bold rounded border border-slate-200 dark:border-slate-700 bg-transparent text-slate-900 dark:text-white focus:border-[#00646E] outline-none flex-1 max-w-[170px] disabled:opacity-40"
+                          />
+                          {tagsCount > 0 && (
+                            <span className="text-[10px] px-2 py-0.5 rounded-full bg-amber-500/10 text-amber-700 dark:text-amber-400 font-mono font-semibold shrink-0" title={`${tagsEvents} ${t.eventsPerDayShort} ${t.fromAlarmTags}`}>
+                              {tagsCount} {lang === 'ru' ? 'сигн.' : 'sigs'} ({tagsEvents} {t.eventsPerDayShort})
+                            </span>
+                          )}
+                        </div>
+
+                        <div className="flex items-center gap-2 shrink-0 justify-end">
+                          <div className="flex items-center gap-1 shrink-0" title={t.baseManualEvents}>
+                            <span className="text-[10px] text-slate-400 font-mono">{lang === 'ru' ? '+ фон:' : '+ base:'}</span>
+                            <input
+                              type="number"
+                              min="0"
+                              disabled={!al.enabled}
+                              value={al.entriesPerDay}
+                              onChange={(e) => handleUpdateAlarmLog(al.id, { entriesPerDay: Math.max(0, parseInt(e.target.value, 10) || 0) })}
+                              className="w-16 p-1 text-xs font-mono rounded border border-slate-200 dark:border-slate-700 bg-transparent text-slate-900 dark:text-white outline-none focus:ring-1 focus:ring-[#00646E] disabled:opacity-40"
+                            />
+                            <span className="text-[10px] text-slate-400 font-mono">{t.eventsPerDayShort}</span>
+                          </div>
+
+                          <button
+                            type="button"
+                            onClick={() => handleRemoveAlarmLog(al.id)}
+                            className="p-1 text-slate-400 hover:text-rose-500 rounded transition-colors cursor-pointer shrink-0"
+                            title={lang === 'ru' ? 'Удалить Alarm Log' : 'Remove Alarm Log'}
+                          >
+                            <Trash2 className="w-3.5 h-3.5" />
+                          </button>
                         </div>
                       </div>
-
-                      <button
-                        type="button"
-                        onClick={() => handleRemoveAlarmLog(al.id)}
-                        className="p-1 text-slate-400 hover:text-rose-500 rounded transition-colors cursor-pointer shrink-0"
-                        title={lang === 'ru' ? 'Удалить Alarm Log' : 'Remove Alarm Log'}
-                      >
-                        <Trash2 className="w-3.5 h-3.5" />
-                      </button>
-                    </div>
-                  ))}
+                    );
+                  })}
                 </div>
               )}
             </div>
@@ -599,205 +693,488 @@ export const UnifiedTab: React.FC<UnifiedTabProps> = ({
 
       {/* Tags Table Card */}
       <div className="glass-panel p-5 rounded-2xl">
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-4">
+        {/* Category Switcher Tabs */}
+        <div className="flex items-center gap-2 p-1 bg-slate-100 dark:bg-slate-800/80 rounded-xl mb-4 max-w-fit border border-slate-200/60 dark:border-slate-700/60">
+          <button
+            type="button"
+            onClick={() => setActiveCategory('data')}
+            className={`flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all cursor-pointer ${
+              activeCategory === 'data'
+                ? 'bg-white dark:bg-slate-900 text-[#00646E] dark:text-[#00A3B5] shadow-xs ring-1 ring-black/5 dark:ring-white/10'
+                : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
+            }`}
+          >
+            <Database className="w-3.5 h-3.5" />
+            <span>{t.tabDataLogsTags}</span>
+            <span className="text-[10px] font-mono px-1.5 py-0.2 rounded-full bg-slate-200 dark:bg-slate-800 text-slate-700 dark:text-slate-300 font-bold">
+              {tags.length}
+            </span>
+          </button>
+
+          <button
+            type="button"
+            onClick={() => setActiveCategory('alarm')}
+            className={`flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all cursor-pointer ${
+              activeCategory === 'alarm'
+                ? 'bg-white dark:bg-slate-900 text-amber-600 dark:text-amber-400 shadow-xs ring-1 ring-black/5 dark:ring-white/10'
+                : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
+            }`}
+          >
+            <Bell className="w-3.5 h-3.5" />
+            <span>{t.tabAlarmLogsTags}</span>
+            <span className="text-[10px] font-mono px-1.5 py-0.2 rounded-full bg-amber-500/15 text-amber-700 dark:text-amber-400 font-bold">
+              {alarmTags.length}
+            </span>
+          </button>
+        </div>
+
+        {/* Header & Action Toolbar */}
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-3">
           <div className="flex items-center gap-2">
             <h2 className="font-bold text-base text-slate-900 dark:text-white flex items-center gap-2">
-              <Layers className="w-5 h-5 text-[#00A3B5]" />
-              {t.tagListTitle}
+              {activeCategory === 'data' ? (
+                <>
+                  <Layers className="w-5 h-5 text-[#00A3B5]" />
+                  <span>{t.tagListTitle}</span>
+                </>
+              ) : (
+                <>
+                  <Bell className="w-5 h-5 text-amber-500" />
+                  <span>{t.alarmTagsTitle}</span>
+                </>
+              )}
             </h2>
             <span className="text-xs font-bold px-2 py-0.5 rounded-full bg-slate-200 dark:bg-slate-800 text-slate-700 dark:text-slate-300">
-              {formatPlural(result.totalTags, lang, ['тег', 'тега', 'тегов'], ['tag', 'tags'])}
+              {activeCategory === 'data'
+                ? formatPlural(tags.length, lang, ['тег', 'тега', 'тегов'], ['tag', 'tags'])
+                : formatPlural(alarmTags.length, lang, ['сигнал', 'сигнала', 'сигналов'], ['signal', 'signals'])}
             </span>
           </div>
 
           <div className="flex flex-wrap items-center gap-1.5 sm:gap-2">
-            <button
-              onClick={() => setIsImportModalOpen(true)}
-              className="p-1.5 sm:px-3 sm:py-1.5 rounded-lg text-xs font-semibold bg-[#00A3B5]/15 hover:bg-[#00A3B5]/25 text-[#00646E] dark:text-[#00A3B5] border border-[#00A3B5]/30 flex items-center gap-1.5 transition-all shadow-sm active:scale-95 cursor-pointer shrink-0"
-              title={t.btnImportTagsFull}
-            >
-              <Upload className="w-3.5 h-3.5 shrink-0" />
-              <span className="hidden sm:inline">{t.btnImportTags}</span>
-            </button>
-            <button
-              onClick={handleExportTiaCsv}
-              className="p-1.5 sm:px-3 sm:py-1.5 rounded-lg text-xs font-semibold bg-emerald-600 hover:bg-emerald-500 text-white flex items-center gap-1.5 transition-all shadow-sm active:scale-95 cursor-pointer shrink-0"
-              title={t.btnExportTiaCsv}
-            >
-              <Download className="w-3.5 h-3.5 shrink-0" />
-              <span className="hidden sm:inline">{t.btnExportTiaCsv}</span>
-            </button>
-            <button
-              onClick={handleAddTag}
-              className="px-2.5 sm:px-3 py-1.5 rounded-lg text-xs font-semibold bg-[#00646E] text-white hover:bg-[#004D54] flex items-center gap-1 sm:gap-1.5 transition-all shadow-sm active:scale-95 cursor-pointer shrink-0"
-            >
-              <Plus className="w-3.5 h-3.5 shrink-0" />
-              <span className="sm:hidden">{lang === 'ru' ? 'Тег' : 'Tag'}</span>
-              <span className="hidden sm:inline">{t.btnAddTag}</span>
-            </button>
-            <button
-              onClick={() => setIsBulkModalOpen(true)}
-              className="px-2.5 sm:px-3 py-1.5 rounded-lg text-xs font-semibold bg-slate-200/80 dark:bg-slate-800 text-slate-700 dark:text-slate-200 hover:bg-slate-300 dark:hover:bg-slate-700 flex items-center gap-1 sm:gap-1.5 transition-all shadow-sm active:scale-95 cursor-pointer shrink-0"
-            >
-              <Plus className="w-3.5 h-3.5 shrink-0" />
-              <span className="sm:hidden">{lang === 'ru' ? 'Пакет' : 'Bulk'}</span>
-              <span className="hidden sm:inline">{t.btnAddBulk}</span>
-            </button>
-            <button
-              onClick={() => setIsConfirmModalOpen(true)}
-              className="px-2 sm:px-2.5 py-1.5 rounded-lg text-xs font-medium text-rose-500 hover:bg-rose-50 dark:hover:bg-rose-950/40 transition-all active:scale-95 cursor-pointer shrink-0 ml-auto sm:ml-0"
-            >
-              {t.btnClearAll}
-            </button>
+            {activeCategory === 'data' ? (
+              <>
+                <button
+                  onClick={() => setIsImportModalOpen(true)}
+                  className="p-1.5 sm:px-3 sm:py-1.5 rounded-lg text-xs font-semibold bg-[#00A3B5]/15 hover:bg-[#00A3B5]/25 text-[#00646E] dark:text-[#00A3B5] border border-[#00A3B5]/30 flex items-center gap-1.5 transition-all shadow-sm active:scale-95 cursor-pointer shrink-0"
+                  title={t.btnImportTagsFull}
+                >
+                  <Upload className="w-3.5 h-3.5 shrink-0" />
+                  <span className="hidden sm:inline">{t.btnImportTags}</span>
+                </button>
+                <button
+                  onClick={handleExportTiaCsv}
+                  className="p-1.5 sm:px-3 sm:py-1.5 rounded-lg text-xs font-semibold bg-emerald-600 hover:bg-emerald-500 text-white flex items-center gap-1.5 transition-all shadow-sm active:scale-95 cursor-pointer shrink-0"
+                  title={t.btnExportTiaCsv}
+                >
+                  <Download className="w-3.5 h-3.5 shrink-0" />
+                  <span className="hidden sm:inline">{t.btnExportTiaCsv}</span>
+                </button>
+                <button
+                  onClick={handleAddTag}
+                  className="px-2.5 sm:px-3 py-1.5 rounded-lg text-xs font-semibold bg-[#00646E] text-white hover:bg-[#004D54] flex items-center gap-1 sm:gap-1.5 transition-all shadow-sm active:scale-95 cursor-pointer shrink-0"
+                >
+                  <Plus className="w-3.5 h-3.5 shrink-0" />
+                  <span className="sm:hidden">{lang === 'ru' ? 'Тег' : 'Tag'}</span>
+                  <span className="hidden sm:inline">{t.btnAddTag}</span>
+                </button>
+                <button
+                  onClick={() => setIsBulkModalOpen(true)}
+                  className="px-2.5 sm:px-3 py-1.5 rounded-lg text-xs font-semibold bg-slate-200/80 dark:bg-slate-800 text-slate-700 dark:text-slate-200 hover:bg-slate-300 dark:hover:bg-slate-700 flex items-center gap-1 sm:gap-1.5 transition-all shadow-sm active:scale-95 cursor-pointer shrink-0"
+                >
+                  <Plus className="w-3.5 h-3.5 shrink-0" />
+                  <span className="sm:hidden">{lang === 'ru' ? 'Пакет' : 'Bulk'}</span>
+                  <span className="hidden sm:inline">{t.btnAddBulk}</span>
+                </button>
+                <button
+                  onClick={() => setIsConfirmModalOpen(true)}
+                  className="px-2 sm:px-2.5 py-1.5 rounded-lg text-xs font-medium text-rose-500 hover:bg-rose-50 dark:hover:bg-rose-950/40 transition-all active:scale-95 cursor-pointer shrink-0 ml-auto sm:ml-0"
+                >
+                  {t.btnClearAll}
+                </button>
+              </>
+            ) : (
+              <>
+                <button
+                  onClick={handleAddAlarmTag}
+                  className="px-2.5 sm:px-3 py-1.5 rounded-lg text-xs font-semibold bg-amber-600 text-white hover:bg-amber-700 flex items-center gap-1 sm:gap-1.5 transition-all shadow-sm active:scale-95 cursor-pointer shrink-0"
+                >
+                  <Plus className="w-3.5 h-3.5 shrink-0" />
+                  <span>{t.btnAddAlarmTag}</span>
+                </button>
+                <button
+                  onClick={handleAddAlarmBulk}
+                  className="px-2.5 sm:px-3 py-1.5 rounded-lg text-xs font-semibold bg-amber-500/15 hover:bg-amber-500/25 text-amber-700 dark:text-amber-400 border border-amber-500/30 flex items-center gap-1 sm:gap-1.5 transition-all shadow-sm active:scale-95 cursor-pointer shrink-0"
+                  title={lang === 'ru' ? 'Добавить 5 типовых сигналов' : 'Add 5 sample alarm signals'}
+                >
+                  <Plus className="w-3.5 h-3.5 shrink-0" />
+                  <span>{t.btnAddAlarmBulk}</span>
+                </button>
+                <button
+                  onClick={handleClearAlarmTags}
+                  className="px-2 sm:px-2.5 py-1.5 rounded-lg text-xs font-medium text-rose-500 hover:bg-rose-50 dark:hover:bg-rose-950/40 transition-all active:scale-95 cursor-pointer shrink-0 ml-auto sm:ml-0"
+                >
+                  {t.btnClearAll}
+                </button>
+              </>
+            )}
           </div>
         </div>
 
+        {/* Log Filter Bar */}
+        {activeCategory === 'data' ? (
+          <div className="flex flex-wrap items-center gap-1.5 mb-3 p-2 rounded-xl bg-slate-50/80 dark:bg-slate-900/50 border border-slate-200/60 dark:border-slate-800 text-xs">
+            <span className="text-[11px] font-semibold text-slate-500 dark:text-slate-400 flex items-center gap-1 shrink-0 mr-1">
+              <Filter className="w-3 h-3 text-[#00646E] dark:text-[#00A3B5]" />
+              <span>{t.filterDataLogPrefix}</span>
+            </span>
+            <button
+              type="button"
+              onClick={() => setActiveDataLogFilter('all')}
+              className={`px-2.5 py-1 rounded-lg font-semibold text-xs transition-all cursor-pointer ${
+                activeDataLogFilter === 'all'
+                  ? 'bg-[#00646E] text-white shadow-xs'
+                  : 'bg-white/80 dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700'
+              }`}
+            >
+              {t.filterShowAll} ({tags.length})
+            </button>
+            {dataLogs.map((dl) => {
+              const dlCount = tags.filter(tItem => (tItem.dataLogId ? tItem.dataLogId === dl.id : dataLogs[0]?.id === dl.id)).length;
+              return (
+                <button
+                  key={dl.id}
+                  type="button"
+                  onClick={() => setActiveDataLogFilter(dl.id)}
+                  className={`px-2.5 py-1 rounded-lg font-mono font-bold text-xs transition-all cursor-pointer flex items-center gap-1.5 ${
+                    activeDataLogFilter === dl.id
+                      ? 'bg-[#00646E] text-white shadow-xs'
+                      : 'bg-white/80 dark:bg-slate-800 text-slate-700 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700'
+                  }`}
+                >
+                  <span>{dl.name}</span>
+                  <span className="text-[10px] opacity-80">({dlCount})</span>
+                </button>
+              );
+            })}
+          </div>
+        ) : (
+          <div className="flex flex-wrap items-center gap-1.5 mb-3 p-2 rounded-xl bg-slate-50/80 dark:bg-slate-900/50 border border-slate-200/60 dark:border-slate-800 text-xs">
+            <span className="text-[11px] font-semibold text-slate-500 dark:text-slate-400 flex items-center gap-1 shrink-0 mr-1">
+              <Filter className="w-3 h-3 text-amber-500" />
+              <span>{t.filterAlarmLogPrefix}</span>
+            </span>
+            <button
+              type="button"
+              onClick={() => setActiveAlarmLogFilter('all')}
+              className={`px-2.5 py-1 rounded-lg font-semibold text-xs transition-all cursor-pointer ${
+                activeAlarmLogFilter === 'all'
+                  ? 'bg-amber-600 text-white shadow-xs'
+                  : 'bg-white/80 dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700'
+              }`}
+            >
+              {t.filterShowAll} ({alarmTags.length})
+            </button>
+            {alarmLogs.map((al) => {
+              const alCount = alarmTags.filter(at => (at.alarmLogId ? at.alarmLogId === al.id : alarmLogs[0]?.id === al.id)).length;
+              return (
+                <button
+                  key={al.id}
+                  type="button"
+                  onClick={() => setActiveAlarmLogFilter(al.id)}
+                  className={`px-2.5 py-1 rounded-lg font-mono font-bold text-xs transition-all cursor-pointer flex items-center gap-1.5 ${
+                    activeAlarmLogFilter === al.id
+                      ? 'bg-amber-600 text-white shadow-xs'
+                      : 'bg-white/80 dark:bg-slate-800 text-slate-700 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700'
+                  }`}
+                >
+                  <span>{al.name}</span>
+                  <span className="text-[10px] opacity-80">({alCount})</span>
+                </button>
+              );
+            })}
+          </div>
+        )}
+
         {/* Responsive Table */}
         <div className="overflow-x-auto rounded-xl border border-slate-200 dark:border-slate-800">
-          <table className="w-full text-left text-xs">
-            <thead className="bg-slate-100/80 dark:bg-slate-800/80 text-slate-600 dark:text-slate-300 uppercase font-semibold text-[10px] tracking-wider border-b border-slate-200 dark:border-slate-700">
-              <tr>
-                <th className="p-3">{t.colDesc}</th>
-                {dataLogs.length > 1 && <th className="p-3 font-mono text-[#00646E] dark:text-[#00A3B5]">{t.colDataLog}</th>}
-                <th className="p-3">{t.colType}</th>
-                <th className="p-3">{t.colMode}</th>
-                <th className="p-3">{t.colCycle}</th>
-                <th className="p-3">{t.colRate}</th>
-                <th className="p-3">{t.colCount}</th>
-                <th className="p-3 text-right"></th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-slate-200/60 dark:divide-slate-800/60">
-              {tags.length === 0 ? (
+          {activeCategory === 'data' ? (
+            <table className="w-full text-left text-xs">
+              <thead className="bg-slate-100/80 dark:bg-slate-800/80 text-slate-600 dark:text-slate-300 uppercase font-semibold text-[10px] tracking-wider border-b border-slate-200 dark:border-slate-700">
                 <tr>
-                  <td colSpan={dataLogs.length > 1 ? 8 : 7} className="p-6 text-center text-xs text-slate-500 dark:text-slate-300">
-                    {lang === 'ru' ? `Список тегов пуст. Нажмите «${t.btnAddTag}» или «${t.btnAddBulk}».` : `Tag list is empty. Click "${t.btnAddTag}" or "${t.btnAddBulk}" to configure.`}
-                  </td>
+                  <th className="p-3">{t.colDesc}</th>
+                  {(dataLogs.length > 1 || activeDataLogFilter === 'all') && (
+                    <th className="p-3 font-mono text-[#00646E] dark:text-[#00A3B5]">{t.colDataLog}</th>
+                  )}
+                  <th className="p-3">{t.colType}</th>
+                  <th className="p-3">{t.colMode}</th>
+                  <th className="p-3">{t.colCycle}</th>
+                  <th className="p-3">{t.colRate}</th>
+                  <th className="p-3">{t.colCount}</th>
+                  <th className="p-3 text-right"></th>
                 </tr>
-              ) : (
-                tags.map((tag) => (
-                  <tr key={tag.id} className="hover:bg-white/40 dark:hover:bg-slate-800/40 transition-colors">
-                    <td className="p-2.5">
-                      <input
-                        type="text"
-                        value={tag.description}
-                        onChange={(e) => handleUpdateTag(tag.id, { description: e.target.value })}
-                        className="w-full p-1.5 text-xs rounded border border-slate-200 dark:border-slate-700 bg-white/90 dark:bg-slate-900 text-slate-900 dark:text-slate-100 focus:border-[#00646E] focus:ring-1 focus:ring-[#00646E] outline-none font-medium"
-                      />
-                    </td>
-                    {dataLogs.length > 1 && (
+              </thead>
+              <tbody className="divide-y divide-slate-200/60 dark:divide-slate-800/60">
+                {(() => {
+                  const displayedDataTags = activeDataLogFilter === 'all'
+                    ? tags
+                    : tags.filter(tItem => (tItem.dataLogId ? tItem.dataLogId === activeDataLogFilter : dataLogs[0]?.id === activeDataLogFilter));
+
+                  if (displayedDataTags.length === 0) {
+                    return (
+                      <tr>
+                        <td colSpan={dataLogs.length > 1 || activeDataLogFilter === 'all' ? 8 : 7} className="p-6 text-center text-xs text-slate-500 dark:text-slate-300">
+                          {lang === 'ru' ? `Список тегов пуст. Нажмите «${t.btnAddTag}» или «${t.btnAddBulk}».` : `Tag list is empty. Click "${t.btnAddTag}" or "${t.btnAddBulk}" to configure.`}
+                        </td>
+                      </tr>
+                    );
+                  }
+
+                  return displayedDataTags.map((tag) => (
+                    <tr key={tag.id} className="hover:bg-white/40 dark:hover:bg-slate-800/40 transition-colors">
+                      <td className="p-2.5">
+                        <input
+                          type="text"
+                          value={tag.description}
+                          onChange={(e) => handleUpdateTag(tag.id, { description: e.target.value })}
+                          className="w-full p-1.5 text-xs rounded border border-slate-200 dark:border-slate-700 bg-white/90 dark:bg-slate-900 text-slate-900 dark:text-slate-100 focus:border-[#00646E] focus:ring-1 focus:ring-[#00646E] outline-none font-medium"
+                        />
+                      </td>
+                      {(dataLogs.length > 1 || activeDataLogFilter === 'all') && (
+                        <td className="p-2.5">
+                          <select
+                            value={tag.dataLogId || dataLogs[0]?.id}
+                            onChange={(e) => handleUpdateTag(tag.id, { dataLogId: e.target.value })}
+                            className="p-1.5 text-xs font-mono font-bold rounded border border-slate-200 dark:border-slate-700 bg-white/90 dark:bg-slate-900 text-[#00646E] dark:text-[#00A3B5] outline-none focus:ring-1 focus:ring-[#00646E]"
+                          >
+                            {dataLogs.map((dl) => (
+                              <option key={dl.id} value={dl.id}>{dl.name}</option>
+                            ))}
+                          </select>
+                        </td>
+                      )}
                       <td className="p-2.5">
                         <select
-                          value={tag.dataLogId || dataLogs[0]?.id}
-                          onChange={(e) => handleUpdateTag(tag.id, { dataLogId: e.target.value })}
-                          className="p-1.5 text-xs font-mono font-bold rounded border border-slate-200 dark:border-slate-700 bg-white/90 dark:bg-slate-900 text-[#00646E] dark:text-[#00A3B5] outline-none focus:ring-1 focus:ring-[#00646E]"
+                          value={tag.dataType}
+                          onChange={(e) => handleUpdateTag(tag.id, { dataType: e.target.value as UnifiedTag['dataType'] })}
+                          className="p-1.5 text-xs rounded border border-slate-200 dark:border-slate-700 bg-white/90 dark:bg-slate-900 text-slate-900 dark:text-slate-100 outline-none focus:ring-1 focus:ring-[#00646E]"
                         >
-                          {dataLogs.map((dl) => (
-                            <option key={dl.id} value={dl.id}>{dl.name}</option>
-                          ))}
+                          <option value="Real">Real (4B)</option>
+                          <option value="LReal">LReal (8B)</option>
+                          <option value="DInt">DInt (4B)</option>
+                          <option value="Int">Int (2B)</option>
+                          <option value="Bool">Bool (1B)</option>
+                          <option value="String">String (Variable)</option>
                         </select>
                       </td>
-                    )}
-                    <td className="p-2.5">
-                      <select
-                        value={tag.dataType}
-                        onChange={(e) => handleUpdateTag(tag.id, { dataType: e.target.value as UnifiedTag['dataType'] })}
-                        className="p-1.5 text-xs rounded border border-slate-200 dark:border-slate-700 bg-white/90 dark:bg-slate-900 text-slate-900 dark:text-slate-100 outline-none focus:ring-1 focus:ring-[#00646E]"
-                      >
-                        <option value="Real">Real (4B)</option>
-                        <option value="LReal">LReal (8B)</option>
-                        <option value="DInt">DInt (4B)</option>
-                        <option value="Int">Int (2B)</option>
-                        <option value="Bool">Bool (1B)</option>
-                        <option value="String">String (Variable)</option>
-                      </select>
-                    </td>
-                    <td className="p-2.5">
-                      <select
-                        value={tag.mode}
-                        onChange={(e) => handleUpdateTag(tag.id, { mode: e.target.value as 'cyclic' | 'onchange' })}
-                        className="p-1.5 text-xs rounded border border-slate-200 dark:border-slate-700 bg-white/90 dark:bg-slate-900 text-slate-900 dark:text-slate-100 outline-none font-medium focus:ring-1 focus:ring-[#00646E]"
-                      >
-                        <option value="cyclic">{t.modeCyclic}</option>
-                        <option value="onchange">{t.modeOnChange}</option>
-                      </select>
-                    </td>
-                    <td className="p-2.5">
-                      <div className="flex items-center gap-1">
+                      <td className="p-2.5">
+                        <select
+                          value={tag.mode}
+                          onChange={(e) => handleUpdateTag(tag.id, { mode: e.target.value as 'cyclic' | 'onchange' })}
+                          className="p-1.5 text-xs rounded border border-slate-200 dark:border-slate-700 bg-white/90 dark:bg-slate-900 text-slate-900 dark:text-slate-100 outline-none font-medium focus:ring-1 focus:ring-[#00646E]"
+                        >
+                          <option value="cyclic">{t.modeCyclic}</option>
+                          <option value="onchange">{t.modeOnChange}</option>
+                        </select>
+                      </td>
+                      <td className="p-2.5">
+                        <div className="flex items-center gap-1">
+                          <input
+                            type="number"
+                            step="0.1"
+                            min="0.01"
+                            disabled={tag.mode === 'onchange'}
+                            value={tag.cycleSec || ''}
+                            onChange={(e) => {
+                              const val = e.target.value === '' ? 0 : parseFloat(e.target.value) || 0;
+                              handleUpdateTag(tag.id, { cycleSec: val });
+                            }}
+                            onBlur={() => {
+                              if (!tag.cycleSec || tag.cycleSec <= 0) {
+                                handleUpdateTag(tag.id, { cycleSec: 1 });
+                              }
+                            }}
+                            className="w-16 p-1.5 text-xs font-mono rounded border border-slate-200 dark:border-slate-700 bg-white/90 dark:bg-slate-900 text-slate-900 dark:text-slate-100 focus:border-[#00646E] focus:ring-1 focus:ring-[#00646E] outline-none disabled:opacity-40"
+                          />
+                          <select
+                            disabled={tag.mode === 'onchange'}
+                            value={[0.1, 0.5, 1, 2, 5, 10, 30, 60].includes(tag.cycleSec) ? tag.cycleSec : 'custom'}
+                            onChange={(e) => {
+                              if (e.target.value !== 'custom') {
+                                handleUpdateTag(tag.id, { cycleSec: parseFloat(e.target.value) });
+                              }
+                            }}
+                            className="p-1 text-[10px] rounded border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-slate-700 dark:text-slate-300 outline-none disabled:opacity-40 cursor-pointer"
+                            title={t.cycleQuickPresets}
+                          >
+                            <option value="custom">⚡</option>
+                            <option value="0.1">{t.cycle100ms}</option>
+                            <option value="0.5">{t.cycle500ms}</option>
+                            <option value="1">{t.cycle1s}</option>
+                            <option value="2">{t.cycle2s}</option>
+                            <option value="5">{t.cycle5s}</option>
+                            <option value="10">{t.cycle10s}</option>
+                            <option value="30">{t.cycle30s}</option>
+                            <option value="60">{t.cycle1m}</option>
+                          </select>
+                        </div>
+                      </td>
+                      <td className="p-2.5 font-mono text-slate-700 dark:text-slate-200 font-semibold">
+                        {tag.entriesPerSec.toFixed(3)}
+                      </td>
+                      <td className="p-2.5">
                         <input
                           type="number"
-                          step="0.1"
-                          min="0.01"
-                          disabled={tag.mode === 'onchange'}
-                          value={tag.cycleSec || ''}
+                          min="1"
+                          value={tag.count || ''}
                           onChange={(e) => {
-                            const val = e.target.value === '' ? 0 : parseFloat(e.target.value) || 0;
-                            handleUpdateTag(tag.id, { cycleSec: val });
+                            const val = e.target.value === '' ? 0 : parseInt(e.target.value, 10) || 0;
+                            handleUpdateTag(tag.id, { count: val });
                           }}
                           onBlur={() => {
-                            if (!tag.cycleSec || tag.cycleSec <= 0) {
-                              handleUpdateTag(tag.id, { cycleSec: 1 });
+                            if (!tag.count || tag.count < 1) {
+                              handleUpdateTag(tag.id, { count: 1 });
                             }
                           }}
-                          className="w-16 p-1.5 text-xs font-mono rounded border border-slate-200 dark:border-slate-700 bg-white/90 dark:bg-slate-900 text-slate-900 dark:text-slate-100 focus:border-[#00646E] focus:ring-1 focus:ring-[#00646E] outline-none disabled:opacity-40"
+                          className="w-16 p-1.5 text-xs font-mono rounded border border-slate-200 dark:border-slate-700 bg-white/90 dark:bg-slate-900 text-slate-900 dark:text-slate-100 focus:border-[#00646E] focus:ring-1 focus:ring-[#00646E] outline-none"
                         />
-                        <select
-                          disabled={tag.mode === 'onchange'}
-                          value={[0.1, 0.5, 1, 2, 5, 10, 30, 60].includes(tag.cycleSec) ? tag.cycleSec : 'custom'}
-                          onChange={(e) => {
-                            if (e.target.value !== 'custom') {
-                              handleUpdateTag(tag.id, { cycleSec: parseFloat(e.target.value) });
-                            }
-                          }}
-                          className="p-1 text-[10px] rounded border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-slate-700 dark:text-slate-300 outline-none disabled:opacity-40 cursor-pointer"
-                          title={t.cycleQuickPresets}
+                      </td>
+                      <td className="p-2.5 text-right">
+                        <button
+                          onClick={() => handleRemoveTag(tag.id)}
+                          className="p-1 text-slate-400 hover:text-rose-500 transition-colors cursor-pointer"
+                          aria-label="Remove tag"
                         >
-                          <option value="custom">⚡</option>
-                          <option value="0.1">{t.cycle100ms}</option>
-                          <option value="0.5">{t.cycle500ms}</option>
-                          <option value="1">{t.cycle1s}</option>
-                          <option value="2">{t.cycle2s}</option>
-                          <option value="5">{t.cycle5s}</option>
-                          <option value="10">{t.cycle10s}</option>
-                          <option value="30">{t.cycle30s}</option>
-                          <option value="60">{t.cycle1m}</option>
-                        </select>
-                      </div>
-                    </td>
-                    <td className="p-2.5 font-mono text-slate-700 dark:text-slate-200 font-semibold">
-                      {tag.entriesPerSec.toFixed(3)}
-                    </td>
-                    <td className="p-2.5">
-                      <input
-                        type="number"
-                        min="1"
-                        value={tag.count || ''}
-                        onChange={(e) => {
-                          const val = e.target.value === '' ? 0 : parseInt(e.target.value, 10) || 0;
-                          handleUpdateTag(tag.id, { count: val });
-                        }}
-                        onBlur={() => {
-                          if (!tag.count || tag.count < 1) {
-                            handleUpdateTag(tag.id, { count: 1 });
-                          }
-                        }}
-                        className="w-16 p-1.5 text-xs font-mono rounded border border-slate-200 dark:border-slate-700 bg-white/90 dark:bg-slate-900 text-slate-900 dark:text-slate-100 focus:border-[#00646E] focus:ring-1 focus:ring-[#00646E] outline-none"
-                      />
-                    </td>
-                    <td className="p-2.5 text-right">
-                      <button
-                        onClick={() => handleRemoveTag(tag.id)}
-                        className="p-1 text-slate-400 hover:text-rose-500 transition-colors cursor-pointer"
-                        aria-label="Remove tag"
-                      >
-                        <Trash2 className="w-4 h-4" />
-                      </button>
-                    </td>
-                  </tr>
-                ))
-              )}
-            </tbody>
-          </table>
+                          <Trash2 className="w-4 h-4" />
+                        </button>
+                      </td>
+                    </tr>
+                  ));
+                })()}
+              </tbody>
+            </table>
+          ) : (
+            <table className="w-full text-left text-xs">
+              <thead className="bg-slate-100/80 dark:bg-slate-800/80 text-slate-600 dark:text-slate-300 uppercase font-semibold text-[10px] tracking-wider border-b border-slate-200 dark:border-slate-700">
+                <tr>
+                  <th className="p-3">{t.colAlarmName}</th>
+                  {(alarmLogs.length > 1 || activeAlarmLogFilter === 'all') && (
+                    <th className="p-3 font-mono text-amber-600 dark:text-amber-400">{t.colAlarmLog}</th>
+                  )}
+                  <th className="p-3">{t.colAlarmClass}</th>
+                  <th className="p-3">{t.colAlarmTrigger}</th>
+                  <th className="p-3">{t.colAlarmEventsPerDay}</th>
+                  <th className="p-3">{t.colCount}</th>
+                  <th className="p-3 font-mono text-amber-600 dark:text-amber-400">{t.colAlarmTotalEvents}</th>
+                  <th className="p-3 text-right"></th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-slate-200/60 dark:divide-slate-800/60">
+                {(() => {
+                  const displayedAlarmTags = activeAlarmLogFilter === 'all'
+                    ? alarmTags
+                    : alarmTags.filter(at => (at.alarmLogId ? at.alarmLogId === activeAlarmLogFilter : alarmLogs[0]?.id === activeAlarmLogFilter));
+
+                  if (displayedAlarmTags.length === 0) {
+                    return (
+                      <tr>
+                        <td colSpan={alarmLogs.length > 1 || activeAlarmLogFilter === 'all' ? 8 : 7} className="p-6 text-center text-xs text-slate-500 dark:text-slate-300">
+                          {t.alarmTagsEmpty}
+                        </td>
+                      </tr>
+                    );
+                  }
+
+                  return displayedAlarmTags.map((at) => {
+                    const totalEv = Math.round((at.eventsPerDay || 0) * (at.count || 1));
+                    return (
+                      <tr key={at.id} className="hover:bg-white/40 dark:hover:bg-slate-800/40 transition-colors">
+                        <td className="p-2.5">
+                          <input
+                            type="text"
+                            value={at.name}
+                            onChange={(e) => handleUpdateAlarmTag(at.id, { name: e.target.value })}
+                            className="w-full p-1.5 text-xs rounded border border-slate-200 dark:border-slate-700 bg-white/90 dark:bg-slate-900 text-slate-900 dark:text-slate-100 focus:border-amber-500 focus:ring-1 focus:ring-amber-500 outline-none font-medium"
+                          />
+                        </td>
+                        {(alarmLogs.length > 1 || activeAlarmLogFilter === 'all') && (
+                          <td className="p-2.5">
+                            <select
+                              value={at.alarmLogId || alarmLogs[0]?.id}
+                              onChange={(e) => handleUpdateAlarmTag(at.id, { alarmLogId: e.target.value })}
+                              className="p-1.5 text-xs font-mono font-bold rounded border border-slate-200 dark:border-slate-700 bg-white/90 dark:bg-slate-900 text-amber-600 dark:text-amber-400 outline-none focus:ring-1 focus:ring-amber-500"
+                            >
+                              {alarmLogs.map((al) => (
+                                <option key={al.id} value={al.id}>{al.name}</option>
+                              ))}
+                            </select>
+                          </td>
+                        )}
+                        <td className="p-2.5">
+                          <select
+                            value={at.alarmClass}
+                            onChange={(e) => handleUpdateAlarmTag(at.id, { alarmClass: e.target.value as UnifiedAlarmTag['alarmClass'] })}
+                            className="p-1.5 text-xs rounded border border-slate-200 dark:border-slate-700 bg-white/90 dark:bg-slate-900 text-slate-900 dark:text-slate-100 outline-none focus:ring-1 focus:ring-amber-500"
+                          >
+                            <option value="Alarm">{t.alarmClassAlarm}</option>
+                            <option value="Warning">{t.alarmClassWarning}</option>
+                            <option value="Event">{t.alarmClassEvent}</option>
+                          </select>
+                        </td>
+                        <td className="p-2.5">
+                          <select
+                            value={at.triggerType}
+                            onChange={(e) => handleUpdateAlarmTag(at.id, { triggerType: e.target.value as UnifiedAlarmTag['triggerType'] })}
+                            className="p-1.5 text-xs rounded border border-slate-200 dark:border-slate-700 bg-white/90 dark:bg-slate-900 text-slate-900 dark:text-slate-100 outline-none focus:ring-1 focus:ring-amber-500"
+                          >
+                            <option value="digital">{t.triggerDigital}</option>
+                            <option value="analog">{t.triggerAnalog}</option>
+                          </select>
+                        </td>
+                        <td className="p-2.5">
+                          <input
+                            type="number"
+                            step="0.1"
+                            min="0"
+                            value={at.eventsPerDay !== undefined ? at.eventsPerDay : ''}
+                            onChange={(e) => {
+                              const val = e.target.value === '' ? 0 : Math.max(0, parseFloat(e.target.value) || 0);
+                              handleUpdateAlarmTag(at.id, { eventsPerDay: val });
+                            }}
+                            className="w-18 p-1.5 text-xs font-mono rounded border border-slate-200 dark:border-slate-700 bg-white/90 dark:bg-slate-900 text-slate-900 dark:text-slate-100 focus:border-amber-500 focus:ring-1 focus:ring-amber-500 outline-none"
+                          />
+                        </td>
+                        <td className="p-2.5">
+                          <input
+                            type="number"
+                            min="1"
+                            value={at.count || ''}
+                            onChange={(e) => {
+                              const val = e.target.value === '' ? 1 : Math.max(1, parseInt(e.target.value, 10) || 1);
+                              handleUpdateAlarmTag(at.id, { count: val });
+                            }}
+                            className="w-16 p-1.5 text-xs font-mono rounded border border-slate-200 dark:border-slate-700 bg-white/90 dark:bg-slate-900 text-slate-900 dark:text-slate-100 focus:border-amber-500 focus:ring-1 focus:ring-amber-500 outline-none"
+                          />
+                        </td>
+                        <td className="p-2.5 font-mono font-bold text-amber-600 dark:text-amber-400">
+                          {totalEv} <span className="text-[10px] font-normal text-slate-400">{t.eventsPerDayShort}</span>
+                        </td>
+                        <td className="p-2.5 text-right">
+                          <button
+                            onClick={() => handleRemoveAlarmTag(at.id)}
+                            className="p-1 text-slate-400 hover:text-rose-500 transition-colors cursor-pointer"
+                            aria-label="Remove alarm tag"
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </button>
+                        </td>
+                      </tr>
+                    );
+                  });
+                })()}
+              </tbody>
+            </table>
+          )}
         </div>
       </div>
 

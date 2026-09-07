@@ -24,10 +24,20 @@ export interface UnifiedDataLogConfig {
   enabled: boolean;
 }
 
+export interface UnifiedAlarmTag {
+  id: string;
+  name: string; // e.g. 'M101_Trip_Overload', 'Tank_High_Level'
+  alarmClass: 'Alarm' | 'Warning' | 'Event';
+  triggerType: 'digital' | 'analog';
+  eventsPerDay: number; // e.g. 5 events per day per signal
+  count: number; // e.g. 10 identical signals
+  alarmLogId?: string; // id of target UnifiedAlarmLogConfig
+}
+
 export interface UnifiedAlarmLogConfig {
   id: string;
   name: string; // e.g. 'Alarms_log', 'Events_log'
-  entriesPerDay: number;
+  entriesPerDay: number; // Manual or background events per day
   retentionDays?: number; // optional individual retention override
   segmentHours?: number;  // optional individual segment time override
   enabled: boolean;
@@ -60,6 +70,7 @@ export interface UnifiedConfig {
   headroomPct: number;
   dataLogs?: UnifiedDataLogConfig[];
   alarmLogs?: UnifiedAlarmLogConfig[];
+  alarmTags?: UnifiedAlarmTag[];
   includeAlarms: boolean;
   alarmsPerDay: number;
   includeAudit: boolean;

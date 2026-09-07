@@ -142,7 +142,23 @@ export function calculateUnified(
   // 5. Calculate each Alarm Log
   alarmLogConfigs.forEach((al, index) => {
     const isEnabled = al.enabled !== false;
-    const alEntriesPerDay = isEnabled ? Math.max(0, Math.floor(al.entriesPerDay || 0)) : 0;
+    // Calculate events from assigned alarm tags
+    const matchingAlarmTags = (config.alarmTags || []).filter((at) =>
+      at.alarmLogId ? at.alarmLogId === al.id : index === 0
+    );
+    const alarmTagsEntriesPerDay = matchingAlarmTags.reduce(
+      (sum, at) => sum + (Math.max(0, at.eventsPerDay || 0) * Math.max(1, at.count || 1)),
+      0
+    );
+    const totalAlarmTagCount = matchingAlarmTags.reduce(
+      (sum, at) => sum + Math.max(1, at.count || 1),
+      0
+    );
+
+    const baseManualEntries = Math.max(0, Math.floor(al.entriesPerDay || 0));
+    const totalEventsPerDay = Math.round(alarmTagsEntriesPerDay + baseManualEntries);
+    const alEntriesPerDay = isEnabled ? totalEventsPerDay : 0;
+
     // Average Siemens SQLite alarm entry size ~180 bytes (text, timestamps, state, values)
     const alBytesPerDay = alEntriesPerDay * 180;
     const alRetentionDays = Math.max(1, Math.floor(al.retentionDays || retentionDays));
@@ -170,6 +186,7 @@ export function calculateUnified(
       category: 'alarm',
       categoryNameRu: 'Журнал тревог (Alarm log)',
       categoryNameEn: 'Alarm log',
+      tagCount: totalAlarmTagCount,
       entriesPerDay: alEntriesPerDay,
       retentionDays: alRetentionDays,
       segmentHours: alSegmentHours,
