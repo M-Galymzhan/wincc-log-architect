@@ -264,7 +264,7 @@ export function calculateUnified(
   const activeLogItems = logItems.filter((i) => i.enabled && i.totalLogMb > 0);
   const totalStorageUsedMb = activeLogItems.reduce((acc, item) => acc + item.totalLogMb, 0);
   const totalStorageUsedGb = totalStorageUsedMb / 1024;
-  const storageOccupancyPct = Math.min(100, (totalStorageUsedMb / storageCapMb) * 100);
+  const storageOccupancyPct = (totalStorageUsedMb / storageCapMb) * 100;
 
   const totalEntriesPerDay = Math.round(logItems.reduce((acc, item) => item.enabled ? acc + item.entriesPerDay : acc, 0));
   const totalEntriesPerSec = totalRatePerSec;
@@ -286,11 +286,24 @@ export function calculateUnified(
   const totalLogGb = totalLogMb / 1024;
 
   // Flash Wear & Lifespan estimation (TBW)
-  // Standard SIMATIC SD card write endurance ~ 2,000 P/E cycles
-  // Write amplification with SQLite WAL journaling ~ 1.5x
-  const dailyWrittenGb = (totalBytesPerDayAllLogs * factor * 1.5) / (1024 * 1024 * 1024);
-  const totalCardTbwGb = storageSizeGb * 2000;
-  const estimatedFlashLifeYears = dailyWrittenGb > 0 ? Math.min(30, totalCardTbwGb / (dailyWrittenGb * 365)) : 30;
+  const totalDailyWriteMb = activeLogItems.reduce((acc, item) => {
+    if (!item.enabled || item.entriesPerDay <= 0) return acc;
+    const segsPerDay = 24 / item.segmentHours;
+    return acc + item.sqliteSegmentMb * segsPerDay;
+  }, 0);
+  const dailyWrittenGb = (totalDailyWriteMb * 1.5) / 1024; // WAL amplification
+
+  let peCycles = 2000; // default for SD cards
+  let maxYears = 30;
+  if (config.storageMedium === 'ssd_custom') {
+    peCycles = 600;
+    maxYears = 50;
+  } else if (config.storageMedium === 'usb_128g') {
+    peCycles = 1000;
+  }
+  
+  const totalCardTbwGb = storageSizeGb * peCycles;
+  const estimatedFlashLifeYears = dailyWrittenGb > 0 ? Math.min(maxYears, totalCardTbwGb / (dailyWrittenGb * 365)) : maxYears;
 
   // Traffic status (Siemens limit recommendations)
   let trafficStatus: 'safe' | 'warning' | 'critical' = 'safe';

@@ -1740,7 +1740,7 @@ export const UnifiedTab: React.FC<UnifiedTabProps> = ({
                       <span className="text-sm font-black text-[#00646E] dark:text-[#00A3B5]">
                         {result.totalStorageUsedGb >= 1 ? `${result.totalStorageUsedGb.toFixed(2)} GB` : `${result.totalStorageUsedMb} MB`}
                       </span>
-                      <span className="text-xs px-2 py-0.5 rounded-full bg-slate-200 dark:bg-slate-700 text-slate-800 dark:text-slate-200">
+                      <span className={`text-xs px-2 py-0.5 rounded-full ${result.storageOccupancyPct > 100 ? 'bg-red-500 text-white dark:bg-red-900 dark:text-red-100' : 'bg-slate-200 dark:bg-slate-700 text-slate-800 dark:text-slate-200'}`}>
                         {result.storageOccupancyPct.toFixed(1)}% {lang === 'ru' ? 'емкости' : 'capacity'}
                       </span>
                     </div>
@@ -1896,11 +1896,11 @@ export const UnifiedTab: React.FC<UnifiedTabProps> = ({
           </div>
 
           {/* Storage Medium Occupancy & Flash Wear */}
-          <div className="p-4 rounded-xl border border-slate-200/80 dark:border-slate-800 bg-white/50 dark:bg-slate-900/50">
+          <div className={`p-4 rounded-xl border ${result.storageOccupancyPct > 100 ? 'border-red-500 bg-red-50 dark:bg-red-950/20' : 'border-slate-200/80 dark:border-slate-800 bg-white/50 dark:bg-slate-900/50'}`}>
             <div className="text-xs font-medium text-slate-500 dark:text-slate-400 mb-1">
               {t.storageUsageLabel} ({config.storageSizeGb} GB)
             </div>
-            <div className="text-2xl font-bold font-mono text-slate-900 dark:text-white">
+            <div className={`text-2xl font-bold font-mono ${result.storageOccupancyPct > 100 ? 'text-red-600 dark:text-red-400' : 'text-slate-900 dark:text-white'}`}>
               {result.storageOccupancyPct.toFixed(1)}%
             </div>
             
@@ -1908,16 +1908,24 @@ export const UnifiedTab: React.FC<UnifiedTabProps> = ({
             <div className="h-2 w-full bg-slate-200 dark:bg-slate-800 rounded-full overflow-hidden mt-1.5 mb-2">
               <div 
                 className={`h-full transition-all duration-300 ${
-                  result.storageOccupancyPct > 85 ? 'bg-rose-500' : 'bg-[#00646E] dark:bg-[#00A3B5]'
+                  result.storageOccupancyPct > 100 ? 'bg-red-600' : result.storageOccupancyPct > 85 ? 'bg-rose-500' : 'bg-[#00646E] dark:bg-[#00A3B5]'
                 }`}
-                style={{ width: `${result.storageOccupancyPct}%` }}
+                style={{ width: `${Math.min(100, result.storageOccupancyPct)}%` }}
               />
             </div>
+
+            {result.storageOccupancyPct > 100 && (
+              <div className="mt-2 mb-2 p-2 rounded bg-red-100 dark:bg-red-900/40 text-red-800 dark:text-red-200 text-[10px] font-bold leading-tight">
+                {lang === 'ru' 
+                  ? `⚠️ КРИТИЧНО: Архив (${(result.totalStorageUsedMb / 1024).toFixed(1)} GB) превышает ёмкость носителя (${config.storageSizeGb} GB)! Увеличьте объём хранилища или сократите параметры логирования.`
+                  : `⚠️ CRITICAL: Archive (${(result.totalStorageUsedMb / 1024).toFixed(1)} GB) exceeds storage capacity (${config.storageSizeGb} GB)! Increase storage or reduce logging parameters.`}
+              </div>
+            )}
 
             <div className="text-[11px] text-slate-500 dark:text-slate-400 flex items-center justify-between">
               <span>{t.flashLifeLabel}:</span>
               <span className="font-bold text-slate-800 dark:text-slate-200 font-mono">
-                ~{result.estimatedFlashLifeYears.toFixed(1)} {lang === 'ru' ? 'лет' : 'yrs'}
+                {config.deviceType === 'pc_rt' ? 'N/A' : `~${result.estimatedFlashLifeYears.toFixed(1)} ${lang === 'ru' ? 'лет' : 'yrs'}`}
               </span>
             </div>
           </div>

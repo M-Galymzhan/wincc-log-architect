@@ -51,11 +51,11 @@ export const Header: React.FC<HeaderProps> = ({
                   href="https://github.com/M-Galymzhan/wincc-log-architect/commits/main"
                   target="_blank"
                   rel="noopener noreferrer"
-                  title={lang === 'ru' ? 'Релиз v2.11.0 (кликните для просмотра коммитов на GitHub)' : 'Release v2.11.0 (click to view GitHub commits)'}
+                  title={lang === 'ru' ? 'Релиз v2.11.1 (кликните для просмотра коммитов на GitHub)' : 'Release v2.11.1 (click to view GitHub commits)'}
                   className="text-[10px] font-mono font-bold tracking-tight px-1.5 sm:px-2 py-0.5 rounded-full bg-emerald-500/15 hover:bg-emerald-500/25 text-emerald-700 dark:text-emerald-300 border border-emerald-500/30 flex items-center gap-1 sm:gap-1.5 shadow-sm transition-all cursor-pointer active:scale-95 whitespace-nowrap shrink-0"
                 >
                   <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse shrink-0" />
-                  <span>v2.11.0</span>
+                  <span>v2.11.1</span>
                 </a>
               </div>
               <p className="text-xs text-slate-500 dark:text-slate-400 truncate hidden md:block">

@@ -188,6 +188,7 @@ const unifiedOverflow = calculateUnified([
   storageSizeGb: 12,
 });
 assert(unifiedOverflow.totalLogGb > 12, 'Unified: overflow test log exceeds 12 GB storage');
+assert(unifiedOverflow.storageOccupancyPct > 100, 'Unified: storageOccupancyPct exceeds 100%');
 assert(unifiedOverflow.warnings.some(w => w.includes('превышает полную емкость') || w.includes('exceeds storage capacity')), 'Unified: emits critical storage overflow alert');
 
 console.log('\n=== [2] WINCC COMFORT / ADVANCED ENGINE VERIFICATION ===');
@@ -785,6 +786,7 @@ async function runAsyncTests() {
     const expectedOccupancy = (customResult.totalStorageUsedMb / expectedCapMb) * 100;
     assert(Math.abs(customResult.storageOccupancyPct - expectedOccupancy) < 0.01, `Storage X52: occupancy matches 64 GB capacity, got ${customResult.storageOccupancyPct}%`);
     assert(customResult.estimatedFlashLifeYears > 0, 'Storage X52: flash life estimation is positive');
+    assert(customResult.estimatedFlashLifeYears <= 30, 'Storage X52: flash life estimation max capped at 30 years for SD cards');
 
     // Check Multi-log TIA CSV export with log resolution
     const multiLogCsv = generateTiaPortalCsv('unified', customTags, 'Default_Log', customX52Config.dataLogs);
