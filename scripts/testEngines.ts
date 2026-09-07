@@ -11,6 +11,20 @@ import { INDUSTRY_PRESETS } from '../src/lib/presets';
 import { generateTiaPortalCsv } from '../src/lib/tiaExporter';
 import { getSiemensArticle, SIEMENS_STORAGE_CATALOG } from '../src/lib/calculator/mlfbCatalog';
 import { calculateUnifiedNetwork, calculateComfortNetwork, calculateProfessionalNetwork } from '../src/lib/calculator/networkEngine';
+import fs from 'fs';
+import readXlsxFile from 'read-excel-file/universal';
+import { 
+  parseCycleString, 
+  parseDataTypeString, 
+  parseModeString, 
+  detectColumns, 
+  parseRowsToTags, 
+  parseCsvText, 
+  extractXlsxRows, 
+  convertToUnifiedTags, 
+  convertToComfortTags, 
+  convertToProfessionalTags 
+} from '../src/lib/tagImporter';
 
 let passedTests = 0;
 let totalTests = 0;
@@ -461,6 +475,106 @@ const unifiedRes = calculateUnified(sampleUnifiedTags, {
 assert(unifiedRes.network !== undefined, 'Unified engine returns network metrics');
 assert(unifiedRes.network.bandwidthKbps > 0, 'Unified engine network metrics populated');
 
-console.log(`\n========================================`);
-console.log(`TOTAL TESTS: ${totalTests} | PASSED: ${passedTests} | FAILED: ${totalTests - passedTests}`);
-console.log(`========================================`);
+console.log('\n=== [8] TIA PORTAL TAG IMPORTER VERIFICATION ===');
+
+// 8.1 Cycle parser tests
+assert(parseCycleString('T250ms') === 0.25, 'Importer: T250ms parses to 0.25s');
+assert(parseCycleString('T500ms') === 0.5, 'Importer: T500ms parses to 0.5s');
+assert(parseCycleString('T1s') === 1, 'Importer: T1s parses to 1s');
+assert(parseCycleString('2s') === 2, 'Importer: 2s parses to 2s');
+assert(parseCycleString('T1m') === 60, 'Importer: T1m parses to 60s');
+assert(parseCycleString('T10m') === 600, 'Importer: T10m parses to 600s');
+assert(parseCycleString('10 ms') === 0.01, 'Importer: 10 ms clamped to 0.01s minimum');
+assert(parseCycleString('<No Value>') === 1, 'Importer: <No Value> defaults to 1s fallback');
+assert(parseCycleString('invalid') === 1, 'Importer: invalid string defaults to 1s fallback');
+
+// 8.2 Data type parser tests
+assert(parseDataTypeString('Bool') === 'Bool', 'Importer: Bool mapped to Bool');
+assert(parseDataTypeString('Int') === 'Int', 'Importer: Int mapped to Int');
+assert(parseDataTypeString('Word') === 'Int', 'Importer: Word mapped to Int');
+assert(parseDataTypeString('DInt') === 'DInt', 'Importer: DInt mapped to DInt');
+assert(parseDataTypeString('UDInt') === 'DInt', 'Importer: UDInt mapped to DInt');
+assert(parseDataTypeString('Real') === 'Real', 'Importer: Real mapped to Real');
+assert(parseDataTypeString('LReal') === 'LReal', 'Importer: LReal mapped to LReal');
+assert(parseDataTypeString('String') === 'String', 'Importer: String mapped to String');
+assert(parseDataTypeString('WString') === 'String', 'Importer: WString mapped to String');
+
+// 8.3 Mode parser tests
+assert(parseModeString('Cyclic in operation') === 'cyclic', 'Importer: Cyclic in operation mapped to cyclic');
+assert(parseModeString('Cyclic continuous') === 'cyclic', 'Importer: Cyclic continuous mapped to cyclic');
+assert(parseModeString('On change') === 'onchange', 'Importer: On change mapped to onchange');
+assert(parseModeString('По изменению') === 'onchange', 'Importer: Cyrillic По изменению mapped to onchange');
+
+// 8.4 Column detection tests
+const tiaHmiHeader = ['Name', 'Path', 'Connection', 'PLC tag', 'DataType', 'Acquisition mode', 'Acquisition cycle'];
+const detectedCols = detectColumns(tiaHmiHeader);
+assert(detectedCols.nameIdx === 0, 'Importer: detectColumns identifies Name at index 0');
+assert(detectedCols.typeIdx === 4, 'Importer: detectColumns identifies DataType at index 4');
+assert(detectedCols.modeIdx === 5, 'Importer: detectColumns identifies Acquisition mode at index 5');
+assert(detectedCols.cycleIdx === 6, 'Importer: detectColumns identifies Acquisition cycle at index 6');
+
+// 8.5 CSV text parser tests
+const sampleCsv = `Name;DataType;Acquisition mode;Acquisition cycle\r\nMotor_Speed;Real;Cyclic;T500ms\r\nValve_State;Bool;On change;T1s`;
+const csvRows = parseCsvText(sampleCsv);
+assert(csvRows.length === 3, 'Importer: CSV parsed 3 rows (1 header + 2 data)');
+const csvParsed = parseRowsToTags(csvRows);
+assert(csvParsed.tags.length === 2, 'Importer: CSV produced 2 valid tags');
+assert(csvParsed.tags[0].name === 'Motor_Speed', 'Importer: CSV tag 0 name is Motor_Speed');
+assert(csvParsed.tags[0].cycleSec === 0.5, 'Importer: CSV tag 0 cycle is 0.5s');
+assert(csvParsed.tags[1].mode === 'onchange', 'Importer: CSV tag 1 mode is onchange');
+
+// 8.6 Real TIA Portal V19 Export file verification (test_impTeg.xlsx)
+async function runAsyncTests() {
+  if (fs.existsSync('test_impTeg.xlsx')) {
+    const xlsxBuf = fs.readFileSync('test_impTeg.xlsx');
+    const ab = xlsxBuf.buffer.slice(xlsxBuf.byteOffset, xlsxBuf.byteOffset + xlsxBuf.byteLength);
+    const rawSheets = await readXlsxFile(ab);
+    const { rows: testRows, sheetName } = extractXlsxRows(rawSheets);
+    assert(testRows.length === 183, `Importer: test_impTeg.xlsx has 183 rows (header + 182 tags), found ${testRows.length}`);
+    assert(sheetName === 'Hmi Tags', `Importer: test_impTeg.xlsx correctly selected sheet 'Hmi Tags', got '${sheetName}'`);
+
+    const parsedTia = parseRowsToTags(testRows);
+    assert(parsedTia.tags.length === 182, `Importer: successfully parsed 182 tags from TIA V19, got ${parsedTia.tags.length}`);
+    assert(parsedTia.tags[0].name === 'PLC1_Frequency_scada_HH', 'Importer: first tag name matches TIA export');
+    assert(parsedTia.tags[0].dataType === 'Bool', 'Importer: first tag dataType is Bool');
+    assert(parsedTia.tags[0].cycleSec === 0.25, 'Importer: first tag cycle T250ms is converted to 0.25s');
+    assert(parsedTia.tags[0].entriesPerSec === 4, 'Importer: 0.25s cycle computes 4 entries/sec');
+
+    // Convert to Unified tags and verify calculator sizing
+    const unifiedImported = convertToUnifiedTags(parsedTia.tags);
+    assert(unifiedImported.length === 182, 'Importer: converted exactly 182 Unified tags');
+    const unifiedImportSizing = calculateUnified(unifiedImported, {
+      deviceType: 'ucp',
+      retentionDays: 30,
+      segmentHours: 24,
+      perEntryBytes: 38,
+      headroomPct: 30,
+      includeAlarms: false,
+      alarmsPerDay: 0,
+      includeAudit: false,
+      auditEntriesPerDay: 0,
+      storageMedium: 'sd_12g',
+      storageSizeGb: 12,
+    });
+    assert(unifiedImportSizing.totalEntriesPerSec === 728, `Importer: 182 tags @ 4 rec/s = 728 rec/s total, got ${unifiedImportSizing.totalEntriesPerSec}`);
+    assert(unifiedImportSizing.trafficStatus === 'critical', 'Importer: 728 rec/s correctly flags critical traffic status (> 500 limit)');
+
+    // Convert to Comfort tags
+    const comfortImported = convertToComfortTags(parsedTia.tags);
+    assert(comfortImported.length === 182, 'Importer: converted exactly 182 Comfort tags');
+
+    // Convert to Professional tags (<= 1s goes to Fast Tag Logging)
+    const proImported = convertToProfessionalTags(parsedTia.tags);
+    assert(proImported.length === 182, 'Importer: converted exactly 182 Professional tags');
+    assert(proImported.every(t => t.archiveType === 'fast'), 'Importer: all 0.25s tags routed to Fast Tag Logging');
+  }
+
+  console.log(`\n========================================`);
+  console.log(`TOTAL TESTS: ${totalTests} | PASSED: ${passedTests} | FAILED: ${totalTests - passedTests}`);
+  console.log(`========================================`);
+}
+
+runAsyncTests().catch(err => {
+  console.error('Test runner failure:', err);
+  process.exit(1);
+});

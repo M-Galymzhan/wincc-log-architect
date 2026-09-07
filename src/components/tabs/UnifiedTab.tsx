@@ -5,12 +5,14 @@ import { translations, formatPlural } from '../../lib/i18n';
 import { TrafficGauge } from '../TrafficGauge';
 import { BulkAddModal } from '../BulkAddModal';
 import { ConfirmModal } from '../ConfirmModal';
+import { ImportTagsModal } from '../ImportTagsModal';
 import { 
   Plus, Trash2, Layers, AlertTriangle, CheckCircle2, 
-  ShieldCheck, Bell, Cpu, Clock, RefreshCw, Download, Settings2 
+  ShieldCheck, Bell, Cpu, Clock, RefreshCw, Download, Settings2, Upload 
 } from 'lucide-react';
 import { getSiemensArticle } from '../../lib/calculator/mlfbCatalog';
 import { generateTiaPortalCsv, downloadFile } from '../../lib/tiaExporter';
+import { convertToUnifiedTags, ParsedTagItem } from '../../lib/tagImporter';
 import { NetworkBandwidthCard } from '../NetworkBandwidthCard';
 
 interface UnifiedTabProps {
@@ -35,6 +37,19 @@ export const UnifiedTab: React.FC<UnifiedTabProps> = ({
   const t = translations[lang];
   const [isBulkModalOpen, setIsBulkModalOpen] = useState(false);
   const [isConfirmModalOpen, setIsConfirmModalOpen] = useState(false);
+  const [isImportModalOpen, setIsImportModalOpen] = useState(false);
+
+  const handleImportTags = (parsedTags: ParsedTagItem[], mode: 'append' | 'replace') => {
+    const converted = convertToUnifiedTags(parsedTags);
+    if (mode === 'replace') {
+      setTags(converted);
+    } else {
+      setTags(prev => [...prev, ...converted]);
+    }
+    if (onShowToast) {
+      onShowToast(t.importToastSuccess.replace('{n}', String(converted.length)), 'success');
+    }
+  };
 
   const handleAddTag = () => {
     const newTag: UnifiedTag = {
@@ -419,6 +434,14 @@ export const UnifiedTab: React.FC<UnifiedTabProps> = ({
 
           <div className="flex items-center gap-2">
             <button
+              onClick={() => setIsImportModalOpen(true)}
+              className="px-3 py-1.5 rounded-lg text-xs font-semibold bg-[#00A3B5]/15 hover:bg-[#00A3B5]/25 text-[#00646E] dark:text-[#00A3B5] border border-[#00A3B5]/30 flex items-center gap-1.5 transition-all shadow-sm active:scale-95 cursor-pointer"
+              title={t.btnImportTagsFull}
+            >
+              <Upload className="w-3.5 h-3.5" />
+              <span className="hidden sm:inline">{t.btnImportTags}</span>
+            </button>
+            <button
               onClick={handleExportTiaCsv}
               className="px-3 py-1.5 rounded-lg text-xs font-semibold bg-emerald-600 hover:bg-emerald-500 text-white flex items-center gap-1.5 transition-all shadow-sm active:scale-95 cursor-pointer"
               title={t.btnExportTiaCsv}
@@ -698,6 +721,15 @@ export const UnifiedTab: React.FC<UnifiedTabProps> = ({
           </div>
         )}
       </div>
+
+      {/* Import Tags Modal */}
+      <ImportTagsModal
+        isOpen={isImportModalOpen}
+        onClose={() => setIsImportModalOpen(false)}
+        onImport={handleImportTags}
+        tab="unified"
+        lang={lang}
+      />
 
       {/* Bulk Add Modal */}
       <BulkAddModal

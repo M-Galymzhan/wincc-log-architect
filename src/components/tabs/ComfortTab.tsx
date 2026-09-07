@@ -4,9 +4,11 @@ import { ComfortTag, ComfortConfig, ComfortResult, Language, ToastMessage } from
 import { translations, formatPlural } from '../../lib/i18n';
 import { BulkAddModal } from '../BulkAddModal';
 import { ConfirmModal } from '../ConfirmModal';
-import { Plus, Trash2, HardDrive, AlertTriangle, CheckCircle2, RefreshCw, FileSpreadsheet, Layers, Download } from 'lucide-react';
+import { ImportTagsModal } from '../ImportTagsModal';
+import { Plus, Trash2, HardDrive, AlertTriangle, CheckCircle2, RefreshCw, FileSpreadsheet, Layers, Download, Upload } from 'lucide-react';
 import { getSiemensArticle } from '../../lib/calculator/mlfbCatalog';
 import { generateTiaPortalCsv, downloadFile } from '../../lib/tiaExporter';
+import { convertToComfortTags, ParsedTagItem } from '../../lib/tagImporter';
 import { NetworkBandwidthCard } from '../NetworkBandwidthCard';
 
 interface ComfortTabProps {
@@ -31,6 +33,19 @@ export const ComfortTab: React.FC<ComfortTabProps> = ({
   const t = translations[lang];
   const [isBulkModalOpen, setIsBulkModalOpen] = useState(false);
   const [isConfirmModalOpen, setIsConfirmModalOpen] = useState(false);
+  const [isImportModalOpen, setIsImportModalOpen] = useState(false);
+
+  const handleImportTags = (parsedTags: ParsedTagItem[], mode: 'append' | 'replace') => {
+    const converted = convertToComfortTags(parsedTags);
+    if (mode === 'replace') {
+      setTags(converted);
+    } else {
+      setTags(prev => [...prev, ...converted]);
+    }
+    if (onShowToast) {
+      onShowToast(t.importToastSuccess.replace('{n}', String(converted.length)), 'success');
+    }
+  };
 
   const handleAddTag = () => {
     const newTag: ComfortTag = {
@@ -305,6 +320,14 @@ export const ComfortTab: React.FC<ComfortTabProps> = ({
           </div>
           <div className="flex items-center gap-2">
             <button
+              onClick={() => setIsImportModalOpen(true)}
+              className="px-3 py-1.5 rounded-lg text-xs font-semibold bg-emerald-500/15 hover:bg-emerald-500/25 text-emerald-700 dark:text-emerald-400 border border-emerald-500/30 flex items-center gap-1.5 transition-all shadow-sm active:scale-95 cursor-pointer"
+              title={t.btnImportTagsFull}
+            >
+              <Upload className="w-3.5 h-3.5" />
+              <span className="hidden sm:inline">{t.btnImportTags}</span>
+            </button>
+            <button
               onClick={handleExportTiaCsv}
               className="px-3 py-1.5 rounded-lg text-xs font-semibold bg-emerald-600 hover:bg-emerald-500 text-white flex items-center gap-1.5 transition-all shadow-sm active:scale-95 cursor-pointer"
               title={t.btnExportTiaCsv}
@@ -538,6 +561,15 @@ export const ComfortTab: React.FC<ComfortTabProps> = ({
           </div>
         )}
       </div>
+
+      {/* Import Tags Modal */}
+      <ImportTagsModal
+        isOpen={isImportModalOpen}
+        onClose={() => setIsImportModalOpen(false)}
+        onImport={handleImportTags}
+        tab="comfort"
+        lang={lang}
+      />
 
       {/* Bulk Add Modal */}
       <BulkAddModal

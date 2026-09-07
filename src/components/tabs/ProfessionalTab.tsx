@@ -4,9 +4,11 @@ import { ProfessionalTag, ProfessionalConfig, ProfessionalResult, Language, Toas
 import { translations, formatPlural } from '../../lib/i18n';
 import { BulkAddModal } from '../BulkAddModal';
 import { ConfirmModal } from '../ConfirmModal';
-import { Plus, Trash2, Database, AlertTriangle, CheckCircle2, RefreshCw, Zap, Server, Download } from 'lucide-react';
+import { ImportTagsModal } from '../ImportTagsModal';
+import { Plus, Trash2, Database, AlertTriangle, CheckCircle2, RefreshCw, Zap, Server, Download, Upload } from 'lucide-react';
 import { getSiemensArticle } from '../../lib/calculator/mlfbCatalog';
 import { generateTiaPortalCsv, downloadFile } from '../../lib/tiaExporter';
+import { convertToProfessionalTags, ParsedTagItem } from '../../lib/tagImporter';
 import { NetworkBandwidthCard } from '../NetworkBandwidthCard';
 
 interface ProfessionalTabProps {
@@ -31,6 +33,19 @@ export const ProfessionalTab: React.FC<ProfessionalTabProps> = ({
   const t = translations[lang];
   const [isBulkModalOpen, setIsBulkModalOpen] = useState(false);
   const [isConfirmModalOpen, setIsConfirmModalOpen] = useState(false);
+  const [isImportModalOpen, setIsImportModalOpen] = useState(false);
+
+  const handleImportTags = (parsedTags: ParsedTagItem[], mode: 'append' | 'replace') => {
+    const converted = convertToProfessionalTags(parsedTags);
+    if (mode === 'replace') {
+      setTags(converted);
+    } else {
+      setTags(prev => [...prev, ...converted]);
+    }
+    if (onShowToast) {
+      onShowToast(t.importToastSuccess.replace('{n}', String(converted.length)), 'success');
+    }
+  };
 
   const handleAddTag = () => {
     const newTag: ProfessionalTag = {
@@ -293,6 +308,14 @@ export const ProfessionalTab: React.FC<ProfessionalTabProps> = ({
           </div>
           <div className="flex items-center gap-2">
             <button
+              onClick={() => setIsImportModalOpen(true)}
+              className="px-3 py-1.5 rounded-lg text-xs font-semibold bg-purple-500/15 hover:bg-purple-500/25 text-purple-700 dark:text-purple-400 border border-purple-500/30 flex items-center gap-1.5 transition-all shadow-sm active:scale-95 cursor-pointer"
+              title={t.btnImportTagsFull}
+            >
+              <Upload className="w-3.5 h-3.5" />
+              <span className="hidden sm:inline">{t.btnImportTags}</span>
+            </button>
+            <button
               onClick={handleExportTiaCsv}
               className="px-3 py-1.5 rounded-lg text-xs font-semibold bg-purple-600 hover:bg-purple-500 text-white flex items-center gap-1.5 transition-all shadow-sm active:scale-95 cursor-pointer"
               title={t.btnExportTiaCsv}
@@ -535,6 +558,15 @@ export const ProfessionalTab: React.FC<ProfessionalTabProps> = ({
           </div>
         )}
       </div>
+
+      {/* Import Tags Modal */}
+      <ImportTagsModal
+        isOpen={isImportModalOpen}
+        onClose={() => setIsImportModalOpen(false)}
+        onImport={handleImportTags}
+        tab="professional"
+        lang={lang}
+      />
 
       {/* Bulk Add Modal */}
       <BulkAddModal
