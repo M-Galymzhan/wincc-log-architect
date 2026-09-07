@@ -12,6 +12,7 @@ interface ExportTiaDropdownProps {
   buttonLabel?: string;
   tooltipTitle?: string;
   className?: string;
+  align?: 'left' | 'right';
 }
 
 export const ExportTiaDropdown: React.FC<ExportTiaDropdownProps> = ({
@@ -22,6 +23,7 @@ export const ExportTiaDropdown: React.FC<ExportTiaDropdownProps> = ({
   buttonLabel,
   tooltipTitle,
   className = '',
+  align = 'right',
 }) => {
   const [isOpen, setIsOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
@@ -74,7 +76,7 @@ export const ExportTiaDropdown: React.FC<ExportTiaDropdownProps> = ({
       </button>
 
       {isOpen && (
-        <div className="absolute right-0 sm:right-auto sm:left-0 mt-1.5 w-72 sm:w-80 rounded-xl bg-white dark:bg-slate-900 shadow-xl ring-1 ring-black/10 dark:ring-white/10 border border-slate-200/80 dark:border-slate-800 p-2 z-50 backdrop-blur-md animate-in fade-in zoom-in-95 duration-100">
+        <div className={`absolute ${align === 'left' ? 'left-0' : 'right-0'} mt-1.5 w-72 sm:w-80 rounded-xl bg-white dark:bg-slate-900 shadow-xl ring-1 ring-black/10 dark:ring-white/10 border border-slate-200/80 dark:border-slate-800 p-2 z-50 backdrop-blur-md animate-in fade-in zoom-in-95 duration-100`}>
           <div className="px-2.5 py-1.5 mb-1 border-b border-slate-100 dark:border-slate-800">
             <span className="text-[11px] font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">
               {t.exportTiaDropdownTitle}

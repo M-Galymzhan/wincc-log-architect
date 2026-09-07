@@ -15,6 +15,7 @@ import {
   generateTiaPortalXlsx, 
   generateTiaPortalAlarmXlsx, 
   formatTiaCycle, 
+  sanitizeName,
   TIA_HMI_TAGS_HEADERS 
 } from '../src/lib/tiaExporter';
 import { getSiemensArticle, SIEMENS_STORAGE_CATALOG } from '../src/lib/calculator/mlfbCatalog';
@@ -980,7 +981,22 @@ async function runAsyncTests() {
     assert(formatTiaCycle(5) === 'T5s', 'TIA Cycle: 5s formats to T5s');
     assert(formatTiaCycle(10) === 'T10s', 'TIA Cycle: 10s formats to T10s');
     assert(formatTiaCycle(60) === 'T1min', 'TIA Cycle: 60s formats to T1min');
+    assert(formatTiaCycle(300) === 'T5min', 'TIA Cycle: 300s formats to T5min');
+    assert(formatTiaCycle(600) === 'T10min', 'TIA Cycle: 600s formats to T10min');
     assert(formatTiaCycle(3600) === 'T1h', 'TIA Cycle: 3600s formats to T1h');
+    assert(formatTiaCycle(7200) === 'T2h', 'TIA Cycle: 7200s formats to T2h');
+    assert(formatTiaCycle(86400) === 'T1d', 'TIA Cycle: 86400s formats to T1d');
+
+    // Importer Day Cycle parsing
+    assert(parseCycleString('T1d') === 86400, 'Importer: T1d parses to 86400s');
+    assert(parseCycleString('1 day') === 86400, 'Importer: 1 day parses to 86400s');
+    assert(parseCycleString('2 days') === 172800, 'Importer: 2 days parses to 172800s');
+    assert(parseCycleString('T5min') === 300, 'Importer: T5min parses to 300s');
+
+    // Sanitizer edge cases
+    assert(sanitizeName('101_Motor') === 'Tag_101_Motor', 'Sanitizer: prepends Tag_ if starts with digit');
+    assert(sanitizeName('Bearing & Winding Temps (2s)') === 'Bearing_Winding_Temps_2s', 'Sanitizer: collapses multiple underscores and trims');
+    assert(sanitizeName('---') === 'Tag', 'Sanitizer: fallbacks to Tag for empty/invalid input');
 
     // 13.2 Unified Tags XLSX Export Structure & Sheet Names
     const testUnifiedTags: UnifiedTag[] = [
@@ -1109,6 +1125,27 @@ async function runAsyncTests() {
     assert(expandedRows[1][0] === 'Bearing_Temp_1', 'ExpandCount: Instance 1 is Bearing_Temp_1');
     assert(expandedRows[2][0] === 'Bearing_Temp_2', 'ExpandCount: Instance 2 is Bearing_Temp_2');
     assert(expandedRows[3][0] === 'Bearing_Temp_3', 'ExpandCount: Instance 3 is Bearing_Temp_3');
+
+    // 13.8 WString length, Analog Alarm, and Custom DataType Preservation
+    const wstringWb = XLSX.read(generateTiaPortalXlsx('unified', [{ id: 'w1', description: 'WString_Tag', mode: 'cyclic', cycleSec: 1, entriesPerSec: 1, count: 1, dataType: 'WString' as any }], 'Log'), { type: 'buffer' });
+    const wstringRows: any[][] = XLSX.utils.sheet_to_json(wstringWb.Sheets['Hmi Tags'], { header: 1 });
+    assert(wstringRows[1][6] === 254, 'WString: Length is 254, got ' + wstringRows[1][6]);
+
+    // Analog alarm tag
+    const analogAlarm: UnifiedAlarmTag[] = [
+      { id: 'aa1', name: 'Tank_Pressure_High', alarmClass: 'Alarm', triggerType: 'analog', eventsPerDay: 10, count: 1 }
+    ];
+    const analogAlarmWb = XLSX.read(generateTiaPortalAlarmXlsx(analogAlarm), { type: 'buffer' });
+    const analogAlarmRows: any[][] = XLSX.utils.sheet_to_json(analogAlarmWb.Sheets['Hmi Tags'], { header: 1 });
+    assert(analogAlarmRows[1][4] === 'Real', 'Analog Alarm: DataType defaults to Real, got ' + analogAlarmRows[1][4]);
+
+    // Custom data type on Comfort tag
+    const customComfort: ComfortTag[] = [
+      { id: 'cc1', description: 'Status_Word', mode: 'cyclic', cycleSec: 1, count: 1, dataType: 'Int' } as any
+    ];
+    const customComfortWb = XLSX.read(generateTiaPortalXlsx('comfort', customComfort, 'Log'), { type: 'buffer' });
+    const customComfortRows: any[][] = XLSX.utils.sheet_to_json(customComfortWb.Sheets['Hmi Tags'], { header: 1 });
+    assert(customComfortRows[1][4] === 'Int', 'Comfort Custom DataType: Preserves Int, got ' + customComfortRows[1][4]);
   }
 
   console.log(`\n========================================`);

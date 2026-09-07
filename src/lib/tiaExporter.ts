@@ -37,7 +37,7 @@ export const TIA_HMI_TAGS_HEADERS = [
 export const TIA_SUBSTITUTE_VALUE_HEADERS = ['HMI Tag name', 'Substitute Value Usage'];
 
 /**
- * Formats cycle duration in seconds into standard Siemens TIA Portal cycle representation (e.g. T250ms, T1s, T2s, T5s, T1min, T1h).
+ * Formats cycle duration in seconds into standard Siemens TIA Portal cycle representation (e.g. T250ms, T1s, T2s, T5s, T1min, T5min, T10min, T1h, T1d).
  */
 export function formatTiaCycle(cycleSec: number): string {
   if (cycleSec <= 0.1) return 'T100ms';
@@ -48,11 +48,20 @@ export function formatTiaCycle(cycleSec: number): string {
   if (cycleSec === 5) return 'T5s';
   if (cycleSec === 10) return 'T10s';
   if (cycleSec === 60) return 'T1min';
+  if (cycleSec === 300) return 'T5min';
+  if (cycleSec === 600) return 'T10min';
   if (cycleSec === 3600) return 'T1h';
+  if (cycleSec === 86400) return 'T1d';
 
   if (cycleSec < 1) {
     const ms = Math.round(cycleSec * 1000);
     return `T${ms}ms`;
+  }
+  if (cycleSec >= 86400 && cycleSec % 86400 === 0) {
+    return `T${Math.round(cycleSec / 86400)}d`;
+  }
+  if (cycleSec >= 3600 && cycleSec % 3600 === 0) {
+    return `T${Math.round(cycleSec / 3600)}h`;
   }
   if (cycleSec >= 60 && cycleSec % 60 === 0) {
     return `T${Math.round(cycleSec / 60)}min`;
@@ -61,13 +70,22 @@ export function formatTiaCycle(cycleSec: number): string {
 }
 
 export function sanitizeName(name: string): string {
-  return name.replace(/[^a-zA-Z0-9_\u0400-\u04FF]/g, '_').substring(0, 60);
+  if (!name) return 'Tag';
+  let cleaned = name.replace(/[^a-zA-Z0-9_\u0400-\u04FF]/g, '_');
+  cleaned = cleaned.replace(/_+/g, '_');
+  cleaned = cleaned.replace(/^_+|_+$/g, '');
+  if (/^[0-9]/.test(cleaned)) {
+    cleaned = `Tag_${cleaned}`;
+  }
+  if (!cleaned) return 'Tag';
+  return cleaned.substring(0, 60);
 }
 
 export interface TiaXlsxExportOptions {
   connectionName?: string;
   path?: string;
   expandCount?: boolean;
+  accessMethod?: string;
 }
 
 function createTagRow(
@@ -80,7 +98,8 @@ function createTagRow(
 ): any[] {
   const path = options?.path || '<No Value>';
   const connection = options?.connectionName || '<No Value>';
-  const length = dataType === 'String' ? 254 : 1;
+  const length = (dataType === 'String' || dataType === 'WString') ? 254 : 1;
+  const accessMethod = options?.accessMethod || 'Symbolic access';
 
   return [
     name,                             // 0 Name
@@ -90,7 +109,7 @@ function createTagRow(
     dataType,                         // 4 DataType
     dataType,                         // 5 HMI DataType
     length,                           // 6 Length
-    'Symbolic access',                // 7 Access Method
+    accessMethod,                     // 7 Access Method
     '<No Value>',                     // 8 Address
     '<No Value>',                     // 9 Start value
     'False',                          // 10 Persistency
@@ -154,7 +173,7 @@ export function generateTiaPortalXlsx(
       const baseName = sanitizeName(tag.description || `Comfort_Tag_${idx + 1}`);
       const mode: 'Cyclic in operation' | 'On change' = tag.mode === 'onchange' ? 'On change' : 'Cyclic in operation';
       const cycle = tag.mode === 'onchange' ? 'None' : formatTiaCycle(tag.cycleSec);
-      const dataType = 'Real';
+      const dataType = (tag as any).dataType || 'Real';
 
       if (options?.expandCount && tag.count > 1) {
         for (let i = 1; i <= tag.count; i++) {
@@ -173,7 +192,7 @@ export function generateTiaPortalXlsx(
       const archiveType = (tag.archiveType || (tag.cycleSec < 60 ? 'fast' : 'slow')).toUpperCase();
       const archiveName = archiveType === 'FAST' ? 'TagLoggingFast' : 'TagLoggingSlow';
       const cycle = formatTiaCycle(tag.cycleSec);
-      const dataType = 'Real';
+      const dataType = (tag as any).dataType || 'Real';
 
       if (options?.expandCount && tag.count > 1) {
         for (let i = 1; i <= tag.count; i++) {
@@ -214,7 +233,7 @@ export function generateTiaPortalAlarmXlsx(
     const baseName = sanitizeName(at.name || `Alarm_${idx + 1}`);
     const targetLog = (at.alarmLogId && alarmLogMap.get(at.alarmLogId)) || 'Alarms_log';
     const totalEv = Math.round((at.eventsPerDay || 0) * (at.count || 1));
-    const dataType = 'Bool';
+    const dataType = (at as any).dataType || (at.triggerType === 'analog' ? 'Real' : 'Bool');
     const acqMode: 'Cyclic in operation' = 'Cyclic in operation';
     const acqCycle = 'T250ms';
 

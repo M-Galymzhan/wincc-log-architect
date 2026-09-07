@@ -68,6 +68,13 @@ export function parseCycleString(val: unknown): number {
     if (!isNaN(h) && h > 0) return Math.max(0.01, h * 3600);
   }
 
+  // Days: T1d, 1d, 1 day, 2 days
+  const dMatch = str.match(/(?:T)?(\d+(?:[.,]\d+)?)\s*(?:d|day[s]?)/i);
+  if (dMatch) {
+    const d = parseFloat(dMatch[1].replace(',', '.'));
+    if (!isNaN(d) && d > 0) return Math.max(0.01, d * 86400);
+  }
+
   // Raw numeric value (seconds)
   const num = parseFloat(str.replace(',', '.'));
   if (!isNaN(num) && num > 0) {
