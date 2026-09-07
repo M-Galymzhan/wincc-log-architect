@@ -59,7 +59,7 @@ export const Header: React.FC<HeaderProps> = ({
             onClick={onOpenPresets}
             className="btn px-3 py-1.5 rounded-lg text-xs font-semibold flex items-center gap-1.5 bg-gradient-to-r from-cyan-600 to-teal-600 hover:from-cyan-500 hover:to-teal-500 text-white shadow-md shadow-cyan-600/25 transition-all active:scale-95 cursor-pointer"
           >
-            <Sparkles className="w-3.5 h-3.5" />
+            <Sparkles className="w-3.5 h-3.5 shrink-0" />
             <span>{t.btnIndustryPresets}</span>
           </button>
 
@@ -68,7 +68,7 @@ export const Header: React.FC<HeaderProps> = ({
             onClick={onOpenCheatSheet}
             className="btn px-3 py-1.5 rounded-lg text-xs font-medium flex items-center gap-1.5 bg-[#00646E] hover:bg-[#004D54] text-white shadow-md shadow-[#00646E]/25 transition-all active:scale-95 cursor-pointer"
           >
-            <Copy className="w-3.5 h-3.5" />
+            <Copy className="w-3.5 h-3.5 shrink-0" />
             <span>{t.btnTiaCheatSheet}</span>
           </button>
 
@@ -77,7 +77,7 @@ export const Header: React.FC<HeaderProps> = ({
             onClick={onOpenReport}
             className="btn px-3 py-1.5 rounded-lg text-xs font-medium flex items-center gap-1.5 bg-slate-200/80 dark:bg-slate-800 hover:bg-slate-300 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 border border-slate-300/60 dark:border-slate-700 transition-all active:scale-95 cursor-pointer"
           >
-            <FileText className="w-3.5 h-3.5 text-[#00A3B5]" />
+            <FileText className="w-3.5 h-3.5 text-[#00A3B5] shrink-0" />
             <span>{t.btnReport}</span>
           </button>
 
@@ -87,7 +87,7 @@ export const Header: React.FC<HeaderProps> = ({
             title={t.btnExportJson}
             className="p-1.5 rounded-lg text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-800 border border-slate-300/60 dark:border-slate-700 transition-all cursor-pointer"
           >
-            <Download className="w-4 h-4" />
+            <Download className="w-4 h-4 shrink-0" />
           </button>
 
           {/* Import JSON */}
@@ -96,7 +96,7 @@ export const Header: React.FC<HeaderProps> = ({
             title={t.btnImportJson}
             className="p-1.5 rounded-lg text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-800 border border-slate-300/60 dark:border-slate-700 transition-all cursor-pointer"
           >
-            <Upload className="w-4 h-4" />
+            <Upload className="w-4 h-4 shrink-0" />
           </button>
 
           {/* Language Switch */}
@@ -129,7 +129,7 @@ export const Header: React.FC<HeaderProps> = ({
             className="p-2 rounded-lg bg-slate-200/80 dark:bg-slate-800 border border-slate-300/60 dark:border-slate-700 text-slate-700 dark:text-amber-400 hover:bg-slate-300 dark:hover:bg-slate-700 transition-all cursor-pointer"
             title={theme === 'dark' ? 'Light Mode' : 'Dark Mode'}
           >
-            {theme === 'dark' ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4 text-slate-700" />}
+            {theme === 'dark' ? <Sun className="w-4 h-4 shrink-0" /> : <Moon className="w-4 h-4 text-slate-700 shrink-0" />}
           </button>
         </div>
       </div>

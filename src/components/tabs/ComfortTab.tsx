@@ -293,10 +293,15 @@ export const ComfortTab: React.FC<ComfortTabProps> = ({
       {/* Tags Section */}
       <div className="glass-panel p-5 rounded-2xl">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-4">
-          <h2 className="font-bold text-base text-slate-900 dark:text-white flex items-center gap-2">
-            <Layers className="w-5 h-5 text-emerald-500" />
-            {t.tagListTitle} ({formatPlural(result.totalTags, lang, ['тег', 'тега', 'тегов'], ['tag', 'tags'])})
-          </h2>
+          <div className="flex items-center gap-2">
+            <h2 className="font-bold text-base text-slate-900 dark:text-white flex items-center gap-2">
+              <Layers className="w-5 h-5 text-emerald-500" />
+              {t.tagListTitle}
+            </h2>
+            <span className="text-xs font-bold px-2 py-0.5 rounded-full bg-slate-200 dark:bg-slate-800 text-slate-700 dark:text-slate-300">
+              {formatPlural(result.totalTags, lang, ['тег', 'тега', 'тегов'], ['tag', 'tags'])}
+            </span>
+          </div>
           <div className="flex items-center gap-2">
             <button
               onClick={handleExportTiaCsv}
@@ -308,21 +313,21 @@ export const ComfortTab: React.FC<ComfortTabProps> = ({
             </button>
             <button
               onClick={handleAddTag}
-              className="px-3 py-1.5 rounded-lg text-xs font-semibold bg-emerald-700 text-white hover:bg-emerald-800 flex items-center gap-1 cursor-pointer transition-all active:scale-95"
+              className="px-3 py-1.5 rounded-lg text-xs font-semibold bg-emerald-700 text-white hover:bg-emerald-800 flex items-center gap-1.5 cursor-pointer transition-all shadow-sm active:scale-95"
             >
               <Plus className="w-3.5 h-3.5" />
               {t.btnAddTag}
             </button>
             <button
               onClick={() => setIsBulkModalOpen(true)}
-              className="px-3 py-1.5 rounded-lg text-xs font-semibold bg-slate-200 dark:bg-slate-800 hover:bg-slate-300 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 flex items-center gap-1 cursor-pointer transition-all"
+              className="px-3 py-1.5 rounded-lg text-xs font-semibold bg-slate-200 dark:bg-slate-800 hover:bg-slate-300 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 flex items-center gap-1.5 cursor-pointer transition-all shadow-sm active:scale-95"
             >
               <Plus className="w-3.5 h-3.5" />
               {t.btnAddBulk}
             </button>
             <button
               onClick={() => setIsConfirmModalOpen(true)}
-              className="px-2.5 py-1.5 rounded-lg text-xs font-medium text-rose-500 hover:bg-rose-50 dark:hover:bg-rose-950/40 cursor-pointer transition-all"
+              className="px-2.5 py-1.5 rounded-lg text-xs font-medium text-rose-500 hover:bg-rose-50 dark:hover:bg-rose-950/40 cursor-pointer transition-all active:scale-95"
             >
               {t.btnClearAll}
             </button>
@@ -344,7 +349,7 @@ export const ComfortTab: React.FC<ComfortTabProps> = ({
               {tags.length === 0 ? (
                 <tr>
                   <td colSpan={5} className="p-6 text-center text-xs text-slate-500 dark:text-slate-300">
-                    {lang === 'ru' ? 'Список тегов пуст. Нажмите «+ Добавить тег» или «+ Пакет тегов».' : 'Tag list is empty. Click "+ Add Tag" or "+ Bulk Tags" to configure.'}
+                    {lang === 'ru' ? `Список тегов пуст. Нажмите «${t.btnAddTag}» или «${t.btnAddBulk}».` : `Tag list is empty. Click "${t.btnAddTag}" or "${t.btnAddBulk}" to configure.`}
                   </td>
                 </tr>
               ) : (
@@ -446,10 +451,15 @@ export const ComfortTab: React.FC<ComfortTabProps> = ({
 
       {/* Comfort Results Cards */}
       <div className="glass-panel p-6 rounded-2xl">
-        <h2 className="font-bold text-base text-slate-900 dark:text-white flex items-center gap-2 mb-4">
-          <CheckCircle2 className="w-5 h-5 text-emerald-500" />
-          {t.resultsTitle}
-        </h2>
+        <div className="flex items-center justify-between mb-4">
+          <h2 className="font-bold text-base text-slate-900 dark:text-white flex items-center gap-2">
+            <CheckCircle2 className="w-5 h-5 text-emerald-500" />
+            {t.resultsTitle}
+          </h2>
+          <span className="text-xs font-mono text-slate-600 dark:text-slate-300">
+            {formatPlural(result.recommendedLogFiles, lang, ['файл архива', 'файла архива', 'файлов архива'], ['archive file', 'archive files'])} {lang === 'ru' ? 'за' : 'over'} {formatPlural(config.retentionDays, lang, ['день', 'дня', 'дней'], ['day', 'days'])}
+          </span>
+        </div>
 
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
           {/* Total records */}

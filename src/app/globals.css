@@ -69,6 +69,15 @@ option {
   border-bottom: 1px solid var(--border-color);
 }
 
+/* Hide scrollbar for clean horizontal tab navigation */
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+.no-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
 .ambient-blob {
   position: fixed;
   border-radius: 50%;

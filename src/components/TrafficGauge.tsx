@@ -28,11 +28,11 @@ export const TrafficGauge: React.FC<TrafficGaugeProps> = ({ rate, maxRate = 800,
     <div className="flex flex-col gap-1.5 w-full">
       <div className="flex justify-between items-center text-xs">
         <span className="font-semibold flex items-center gap-1.5" style={{ color: statusColor }}>
-          <span className="w-2 h-2 rounded-full animate-pulse" style={{ backgroundColor: statusColor }} />
+          <span className="w-2 h-2 rounded-full animate-pulse shrink-0" style={{ backgroundColor: statusColor }} />
           {statusText}
         </span>
         <span className="font-mono text-slate-500 dark:text-slate-400 font-medium">
-          {rate.toFixed(1)} / {maxRate} {lang === 'ru' ? 'зап/сек' : 'rec/s'}
+          {(rate || 0).toFixed(1)} / {maxRate} {lang === 'ru' ? 'зап/сек' : 'rec/s'}
         </span>
       </div>
       

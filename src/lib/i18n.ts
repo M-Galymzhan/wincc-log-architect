@@ -43,8 +43,8 @@ export const translations = {
     
     // Tags Table
     tagListTitle: 'Теги процесса (Logging Tags)',
-    btnAddTag: '+ Добавить тег',
-    btnAddBulk: '+ Пакет тегов',
+    btnAddTag: 'Добавить тег',
+    btnAddBulk: 'Пакет тегов',
     btnClearAll: 'Очистить все',
     colDesc: 'Имя / Описание',
     colMode: 'Режим',
@@ -253,8 +253,8 @@ export const translations = {
     storageCustomSsd: 'Custom SSD / Hard Drive',
     
     tagListTitle: 'Process Logging Tags',
-    btnAddTag: '+ Add Tag',
-    btnAddBulk: '+ Bulk Tags',
+    btnAddTag: 'Add Tag',
+    btnAddBulk: 'Bulk Tags',
     btnClearAll: 'Clear All',
     colDesc: 'Name / Description',
     colMode: 'Mode',

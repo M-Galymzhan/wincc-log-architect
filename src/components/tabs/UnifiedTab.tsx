@@ -434,14 +434,14 @@ export const UnifiedTab: React.FC<UnifiedTabProps> = ({
             </button>
             <button
               onClick={() => setIsBulkModalOpen(true)}
-              className="px-3 py-1.5 rounded-lg text-xs font-semibold bg-slate-200/80 dark:bg-slate-800 text-slate-700 dark:text-slate-200 hover:bg-slate-300 dark:hover:bg-slate-700 flex items-center gap-1.5 transition-all cursor-pointer"
+              className="px-3 py-1.5 rounded-lg text-xs font-semibold bg-slate-200/80 dark:bg-slate-800 text-slate-700 dark:text-slate-200 hover:bg-slate-300 dark:hover:bg-slate-700 flex items-center gap-1.5 transition-all shadow-sm active:scale-95 cursor-pointer"
             >
               <Plus className="w-3.5 h-3.5" />
               {t.btnAddBulk}
             </button>
             <button
               onClick={() => setIsConfirmModalOpen(true)}
-              className="px-2.5 py-1.5 rounded-lg text-xs font-medium text-rose-500 hover:bg-rose-50 dark:hover:bg-rose-950/40 transition-all cursor-pointer"
+              className="px-2.5 py-1.5 rounded-lg text-xs font-medium text-rose-500 hover:bg-rose-50 dark:hover:bg-rose-950/40 transition-all active:scale-95 cursor-pointer"
             >
               {t.btnClearAll}
             </button>
@@ -466,7 +466,7 @@ export const UnifiedTab: React.FC<UnifiedTabProps> = ({
               {tags.length === 0 ? (
                 <tr>
                   <td colSpan={7} className="p-6 text-center text-xs text-slate-500 dark:text-slate-300">
-                    {lang === 'ru' ? 'Список тегов пуст. Нажмите «+ Добавить тег» или «+ Пакет тегов».' : 'Tag list is empty. Click "+ Add Tag" or "+ Bulk Tags" to configure.'}
+                    {lang === 'ru' ? `Список тегов пуст. Нажмите «${t.btnAddTag}» или «${t.btnAddBulk}».` : `Tag list is empty. Click "${t.btnAddTag}" or "${t.btnAddBulk}" to configure.`}
                   </td>
                 </tr>
               ) : (
