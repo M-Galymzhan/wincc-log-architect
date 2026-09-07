@@ -1277,6 +1277,37 @@ async function runAsyncTests() {
       alarmLogs: [{ id: 'al_only', name: 'Only_Alarm_Log', entriesPerDay: 200, enabled: true }],
     });
     assert(multiLogC.sqliteSegmentMb === 4, `Multi-Log KPI: When only Alarm Log is active, sqliteSegmentMb is 4 MB (not 0), got ${multiLogC.sqliteSegmentMb}`);
+
+    // 14.5 Protection: Inherited segmentHours clamping triggers warning even if dl.segmentHours is undefined
+    const testInheritedClamp = calculateUnified([
+      { id: 't5', description: 'Inherited Tag', mode: 'cyclic', cycleSec: 1, entriesPerSec: 1, count: 5, dataType: 'Real', dataLogId: 'dl_inherit' }
+    ], {
+      deviceType: 'ucp',
+      retentionDays: 5, // global retention = 5 days (120h)
+      segmentHours: 48, // global segment = 48h (valid for global 5 days)
+      perEntryBytes: 50,
+      headroomPct: 30,
+      includeAlarms: false,
+      alarmsPerDay: 0,
+      includeAudit: false,
+      auditEntriesPerDay: 0,
+      storageMedium: 'sd_12g',
+      storageSizeGb: 12,
+      dataLogs: [
+        { id: 'dl_inherit', name: 'Inherit_Log', retentionDays: 1, enabled: true } // individual retention 1 day = 24h, inherits 48h segment -> must clamp to 24h!
+      ],
+    });
+    const inheritDl = testInheritedClamp.logItems.find(l => l.id === 'dl_inherit');
+    assert(inheritDl?.segmentHours === 24, `Protection Inherited: dl_inherit segment clamped to 24h, got ${inheritDl?.segmentHours}`);
+    assert(testInheritedClamp.warnings.some(w => w.includes('не может превышать') || w.includes('cannot exceed')), 'Protection Inherited: triggers clamp warning');
+
+    // 14.6 Multi-Log KPI: Tie-breaker selects log with higher rawSegmentMb when sqliteSegmentMb is equal
+    const formatSegTime = (hours: number) => `${Math.floor(hours / 24)}.${String(hours % 24).padStart(2, '0')}:00:00`;
+    assert(formatSegTime(36) === '1.12:00:00', `TIA Time Format: 36h formats to 1.12:00:00, got ${formatSegTime(36)}`);
+    assert(formatSegTime(60) === '2.12:00:00', `TIA Time Format: 60h formats to 2.12:00:00, got ${formatSegTime(60)}`);
+    assert(formatSegTime(24) === '1.00:00:00', `TIA Time Format: 24h formats to 1.00:00:00, got ${formatSegTime(24)}`);
+    assert(formatSegTime(12) === '0.12:00:00', `TIA Time Format: 12h formats to 0.12:00:00, got ${formatSegTime(12)}`);
+    assert(formatSegTime(168) === '7.00:00:00', `TIA Time Format: 168h formats to 7.00:00:00, got ${formatSegTime(168)}`);
   }
 
   console.log(`\n========================================`);

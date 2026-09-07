@@ -610,7 +610,7 @@ export const UnifiedTab: React.FC<UnifiedTabProps> = ({
                   const val = e.target.value === '' ? 0 : Math.max(0, parseInt(e.target.value, 10) || 0);
                   const maxSeg = val > 0 ? val * 24 : 24;
                   const curSeg = config.segmentHours || 24;
-                  const clampedSeg = curSeg > maxSeg ? maxSeg : curSeg;
+                  const clampedSeg = val > 0 && curSeg > maxSeg ? maxSeg : curSeg;
                   setConfig({ ...config, retentionDays: val, segmentHours: clampedSeg });
                 }}
                 onBlur={() => {
@@ -744,7 +744,8 @@ export const UnifiedTab: React.FC<UnifiedTabProps> = ({
                   const tagCountForDl = tags.filter(tItem => (tItem.dataLogId ? tItem.dataLogId === dl.id : idx === 0)).reduce((acc, tItem) => acc + (tItem.count || 0), 0);
                   const logCalc = result.logItems.find(i => i.id === dl.id);
                   const curRetention = dl.retentionDays !== undefined ? dl.retentionDays : config.retentionDays;
-                  const curSegment = dl.segmentHours !== undefined ? dl.segmentHours : config.segmentHours;
+                  const rawCurSegment = dl.segmentHours !== undefined ? dl.segmentHours : config.segmentHours;
+                  const curSegment = Math.min(Math.max(1, (curRetention || 1) * 24), rawCurSegment || 24);
 
                   return (
                     <div key={dl.id} className="p-2.5 rounded-xl bg-white/90 dark:bg-slate-900/90 border border-slate-200/80 dark:border-slate-800 space-y-2 shadow-2xs">
@@ -798,13 +799,20 @@ export const UnifiedTab: React.FC<UnifiedTabProps> = ({
                           <input
                             type="number"
                             min="1"
-                            value={curRetention}
+                            value={curRetention || ''}
                             onChange={(e) => {
-                              const val = e.target.value === '' ? 1 : Math.max(1, parseInt(e.target.value, 10) || 1);
-                              const maxSeg = val * 24;
+                              const val = e.target.value === '' ? 0 : Math.max(0, parseInt(e.target.value, 10) || 0);
+                              const maxSeg = val > 0 ? val * 24 : 24;
                               const currentSeg = dl.segmentHours !== undefined ? dl.segmentHours : (config.segmentHours || 24);
-                              const clampedSeg = Math.min(currentSeg, maxSeg);
+                              const clampedSeg = val > 0 && currentSeg > maxSeg ? maxSeg : currentSeg;
                               handleUpdateDataLog(dl.id, { retentionDays: val, segmentHours: clampedSeg });
+                            }}
+                            onBlur={() => {
+                              const ret = (!curRetention || curRetention < 1) ? (config.retentionDays || 30) : curRetention;
+                              const maxSeg = ret * 24;
+                              const currentSeg = (!curSegment || curSegment < 1) ? Math.min(24, maxSeg) : curSegment;
+                              const clampedSeg = Math.min(currentSeg, maxSeg);
+                              handleUpdateDataLog(dl.id, { retentionDays: ret, segmentHours: clampedSeg });
                             }}
                             className="w-14 p-0.5 px-1 text-xs font-mono font-bold rounded border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-900 dark:text-white outline-none focus:ring-1 focus:ring-[#00646E]"
                           />
@@ -832,24 +840,26 @@ export const UnifiedTab: React.FC<UnifiedTabProps> = ({
                           <input
                             type="number"
                             min="1"
-                            max={curRetention * 24}
-                            value={curSegment}
+                            max={Math.max(1, (curRetention || 1) * 24)}
+                            value={curSegment || ''}
                             onChange={(e) => {
-                              const val = e.target.value === '' ? 1 : Math.max(1, parseInt(e.target.value, 10) || 1);
-                              const maxSeg = curRetention * 24;
-                              const clamped = Math.min(val, maxSeg);
+                              const val = e.target.value === '' ? 0 : Math.max(0, parseInt(e.target.value, 10) || 0);
+                              const maxSeg = Math.max(1, (curRetention || 1) * 24);
+                              const clamped = val > maxSeg ? maxSeg : val;
                               handleUpdateDataLog(dl.id, { segmentHours: clamped });
                             }}
                             onBlur={() => {
-                              const maxSeg = curRetention * 24;
-                              if (curSegment > maxSeg) {
+                              const maxSeg = Math.max(1, (curRetention || 1) * 24);
+                              if (!curSegment || curSegment < 1) {
+                                handleUpdateDataLog(dl.id, { segmentHours: Math.min(24, maxSeg) });
+                              } else if (curSegment > maxSeg) {
                                 handleUpdateDataLog(dl.id, { segmentHours: maxSeg });
                               }
                             }}
                             className="w-14 p-0.5 px-1 text-xs font-mono font-bold rounded border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-900 dark:text-white outline-none focus:ring-1 focus:ring-[#00646E]"
                           />
                           <span className="text-[10px] text-slate-400 font-mono">{t.unitHours}</span>
-                          {curRetention * 24 / curSegment < 3 && (
+                          {curSegment > 0 && curRetention > 0 && ((curRetention * 24) / curSegment < 3) && (
                             <span className="text-[9px] text-amber-500 font-semibold" title={lang === 'ru' ? 'Менее 3 сегментов в периоде' : 'Less than 3 segments'}>
                               &lt;3
                             </span>
@@ -859,19 +869,19 @@ export const UnifiedTab: React.FC<UnifiedTabProps> = ({
                             onChange={(e) => {
                               if (e.target.value !== 'custom') {
                                 const selectedH = parseInt(e.target.value, 10);
-                                const maxSeg = curRetention * 24;
+                                const maxSeg = Math.max(1, (curRetention || 1) * 24);
                                 handleUpdateDataLog(dl.id, { segmentHours: Math.min(selectedH, maxSeg) });
                               }
                             }}
                             className="p-0.5 text-[10px] rounded border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-600 dark:text-slate-300 outline-none ml-auto cursor-pointer"
-                            title="Быстрый выбор сегмента"
+                            title={lang === 'ru' ? 'Быстрый выбор сегмента' : 'Quick segment preset'}
                           >
                             <option value="custom">⚡</option>
-                            <option value="1" disabled={1 > curRetention * 24}>1ч</option>
-                            <option value="8" disabled={8 > curRetention * 24}>8ч</option>
-                            <option value="12" disabled={12 > curRetention * 24}>12ч</option>
-                            <option value="24" disabled={24 > curRetention * 24}>24ч</option>
-                            <option value="168" disabled={168 > curRetention * 24}>7д</option>
+                            <option value="1" disabled={1 > (curRetention || 1) * 24}>1{t.unitHours}</option>
+                            <option value="8" disabled={8 > (curRetention || 1) * 24}>8{t.unitHours}</option>
+                            <option value="12" disabled={12 > (curRetention || 1) * 24}>12{t.unitHours}</option>
+                            <option value="24" disabled={24 > (curRetention || 1) * 24}>24{t.unitHours}</option>
+                            <option value="168" disabled={168 > (curRetention || 1) * 24}>7{lang === 'ru' ? 'д' : 'd'}</option>
                           </select>
                         </div>
                       </div>
@@ -915,7 +925,8 @@ export const UnifiedTab: React.FC<UnifiedTabProps> = ({
                     const tagsCount = matchingAlarmTags.reduce((sum, at) => sum + Math.max(1, at.count || 1), 0);
                     const logCalc = result.logItems.find(i => i.id === al.id);
                     const curRetention = al.retentionDays !== undefined ? al.retentionDays : config.retentionDays;
-                    const curSegment = al.segmentHours !== undefined ? al.segmentHours : config.segmentHours;
+                    const rawCurSegment = al.segmentHours !== undefined ? al.segmentHours : config.segmentHours;
+                    const curSegment = Math.min(Math.max(1, (curRetention || 1) * 24), rawCurSegment || 24);
 
                     return (
                       <div key={al.id} className="p-2.5 rounded-xl bg-white/90 dark:bg-slate-900/90 border border-slate-200/80 dark:border-slate-800 space-y-2 shadow-2xs">
@@ -978,13 +989,20 @@ export const UnifiedTab: React.FC<UnifiedTabProps> = ({
                               type="number"
                               min="1"
                               disabled={!al.enabled}
-                              value={curRetention}
+                              value={curRetention || ''}
                               onChange={(e) => {
-                                const val = e.target.value === '' ? 1 : Math.max(1, parseInt(e.target.value, 10) || 1);
-                                const maxSeg = val * 24;
+                                const val = e.target.value === '' ? 0 : Math.max(0, parseInt(e.target.value, 10) || 0);
+                                const maxSeg = val > 0 ? val * 24 : 24;
                                 const currentSeg = al.segmentHours !== undefined ? al.segmentHours : (config.segmentHours || 24);
-                                const clampedSeg = Math.min(currentSeg, maxSeg);
+                                const clampedSeg = val > 0 && currentSeg > maxSeg ? maxSeg : currentSeg;
                                 handleUpdateAlarmLog(al.id, { retentionDays: val, segmentHours: clampedSeg });
+                              }}
+                              onBlur={() => {
+                                const ret = (!curRetention || curRetention < 1) ? (config.retentionDays || 30) : curRetention;
+                                const maxSeg = ret * 24;
+                                const currentSeg = (!curSegment || curSegment < 1) ? Math.min(24, maxSeg) : curSegment;
+                                const clampedSeg = Math.min(currentSeg, maxSeg);
+                                handleUpdateAlarmLog(al.id, { retentionDays: ret, segmentHours: clampedSeg });
                               }}
                               className="w-14 p-0.5 px-1 text-xs font-mono font-bold rounded border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-900 dark:text-white outline-none focus:ring-1 focus:ring-amber-500 disabled:opacity-40"
                             />
@@ -1012,25 +1030,27 @@ export const UnifiedTab: React.FC<UnifiedTabProps> = ({
                             <input
                               type="number"
                               min="1"
-                              max={curRetention * 24}
+                              max={Math.max(1, (curRetention || 1) * 24)}
                               disabled={!al.enabled}
-                              value={curSegment}
+                              value={curSegment || ''}
                               onChange={(e) => {
-                                const val = e.target.value === '' ? 1 : Math.max(1, parseInt(e.target.value, 10) || 1);
-                                const maxSeg = curRetention * 24;
-                                const clamped = Math.min(val, maxSeg);
+                                const val = e.target.value === '' ? 0 : Math.max(0, parseInt(e.target.value, 10) || 0);
+                                const maxSeg = Math.max(1, (curRetention || 1) * 24);
+                                const clamped = val > maxSeg ? maxSeg : val;
                                 handleUpdateAlarmLog(al.id, { segmentHours: clamped });
                               }}
                               onBlur={() => {
-                                const maxSeg = curRetention * 24;
-                                if (curSegment > maxSeg) {
+                                const maxSeg = Math.max(1, (curRetention || 1) * 24);
+                                if (!curSegment || curSegment < 1) {
+                                  handleUpdateAlarmLog(al.id, { segmentHours: Math.min(24, maxSeg) });
+                                } else if (curSegment > maxSeg) {
                                   handleUpdateAlarmLog(al.id, { segmentHours: maxSeg });
                                 }
                               }}
                               className="w-14 p-0.5 px-1 text-xs font-mono font-bold rounded border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-900 dark:text-white outline-none focus:ring-1 focus:ring-amber-500 disabled:opacity-40"
                             />
                             <span className="text-[10px] text-slate-400 font-mono">{t.unitHours}</span>
-                            {curRetention * 24 / curSegment < 3 && (
+                            {curSegment > 0 && curRetention > 0 && ((curRetention * 24) / curSegment < 3) && (
                               <span className="text-[9px] text-amber-500 font-semibold" title={lang === 'ru' ? 'Менее 3 сегментов в периоде' : 'Less than 3 segments'}>
                                 &lt;3
                               </span>
@@ -1041,19 +1061,19 @@ export const UnifiedTab: React.FC<UnifiedTabProps> = ({
                               onChange={(e) => {
                                 if (e.target.value !== 'custom') {
                                   const selectedH = parseInt(e.target.value, 10);
-                                  const maxSeg = curRetention * 24;
+                                  const maxSeg = Math.max(1, (curRetention || 1) * 24);
                                   handleUpdateAlarmLog(al.id, { segmentHours: Math.min(selectedH, maxSeg) });
                                 }
                               }}
                               className="p-0.5 text-[10px] rounded border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-600 dark:text-slate-300 outline-none ml-auto cursor-pointer disabled:opacity-40"
-                              title="Быстрый выбор сегмента"
+                              title={lang === 'ru' ? 'Быстрый выбор сегмента' : 'Quick segment preset'}
                             >
                               <option value="custom">⚡</option>
-                              <option value="1" disabled={1 > curRetention * 24}>1ч</option>
-                              <option value="8" disabled={8 > curRetention * 24}>8ч</option>
-                              <option value="12" disabled={12 > curRetention * 24}>12ч</option>
-                              <option value="24" disabled={24 > curRetention * 24}>24ч</option>
-                              <option value="168" disabled={168 > curRetention * 24}>7д</option>
+                              <option value="1" disabled={1 > (curRetention || 1) * 24}>1{t.unitHours}</option>
+                              <option value="8" disabled={8 > (curRetention || 1) * 24}>8{t.unitHours}</option>
+                              <option value="12" disabled={12 > (curRetention || 1) * 24}>12{t.unitHours}</option>
+                              <option value="24" disabled={24 > (curRetention || 1) * 24}>24{t.unitHours}</option>
+                              <option value="168" disabled={168 > (curRetention || 1) * 24}>7{lang === 'ru' ? 'д' : 'd'}</option>
                             </select>
                           </div>
                         </div>
@@ -1668,7 +1688,7 @@ export const UnifiedTab: React.FC<UnifiedTabProps> = ({
                       {item.retentionDays}.00:00:00 <span className="text-slate-400 text-[10px]">({item.retentionDays} {lang === 'ru' ? 'дней' : 'd'})</span>
                     </td>
                     <td className="p-3 font-mono text-slate-700 dark:text-slate-300">
-                      {item.segmentHours >= 24 ? `${Math.floor(item.segmentHours / 24)}.00:00:00` : `0.${String(item.segmentHours).padStart(2, '0')}:00:00`} <span className="text-slate-400 text-[10px]">({item.segmentHours} {lang === 'ru' ? 'ч' : 'h'})</span>
+                      {`${Math.floor(item.segmentHours / 24)}.${String(item.segmentHours % 24).padStart(2, '0')}:00:00`} <span className="text-slate-400 text-[10px]">({item.segmentHours} {lang === 'ru' ? 'ч' : 'h'})</span>
                     </td>
                     <td className="p-3">
                       <div className="flex items-center gap-1.5">
@@ -1750,7 +1770,12 @@ export const UnifiedTab: React.FC<UnifiedTabProps> = ({
           {(() => {
             const activeKpiLogs = result.logItems.filter((i) => i.enabled && (i.totalLogMb > 0 || i.entriesPerDay > 0));
             const fallbackKpiLogs = activeKpiLogs.length > 0 ? activeKpiLogs : result.logItems;
-            const maxKpiLog = fallbackKpiLogs.reduce((max, cur) => cur.sqliteSegmentMb > max.sqliteSegmentMb ? cur : max, fallbackKpiLogs[0]);
+            const maxKpiLog = fallbackKpiLogs.reduce((max, cur) => (
+              cur.sqliteSegmentMb > max.sqliteSegmentMb ||
+              (cur.sqliteSegmentMb === max.sqliteSegmentMb && cur.rawSegmentMb > max.rawSegmentMb)
+                ? cur
+                : max
+            ), fallbackKpiLogs[0]);
             const currentKpiLog = selectedKpiLogId === 'max'
               ? maxKpiLog
               : (fallbackKpiLogs.find(l => l.id === selectedKpiLogId) || maxKpiLog);
@@ -1826,7 +1851,7 @@ export const UnifiedTab: React.FC<UnifiedTabProps> = ({
                                 ? 'bg-[#00646E] text-white dark:bg-[#00A3B5] dark:text-slate-900 font-bold shadow-xs ring-1 ring-[#00646E]'
                                 : 'bg-white/80 dark:bg-slate-800/80 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-700 hover:border-[#00646E]/50'
                             }`}
-                            title={`${l.name} (${l.categoryNameRu || l.category}): ${l.sqliteSegmentMb} MB (сырой: ${l.rawSegmentMb.toFixed(2)} MB)`}
+                            title={`${l.name} (${lang === 'ru' ? (l.categoryNameRu || l.category) : (l.categoryNameEn || l.category)}): ${l.sqliteSegmentMb} MB (${lang === 'ru' ? 'сырой' : 'raw'}: ${l.rawSegmentMb.toFixed(2)} MB)`}
                           >
                             {l.category === 'data' ? (
                               <Database className="w-2.5 h-2.5 shrink-0" />

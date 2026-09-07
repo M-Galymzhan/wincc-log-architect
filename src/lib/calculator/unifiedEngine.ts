@@ -30,6 +30,7 @@ export function calculateUnified(
   const maxConfigSegmentHours = retentionDays * 24;
   const rawSegmentHours = Math.max(1, Math.floor(config.segmentHours || 24));
   const segmentHours = Math.min(maxConfigSegmentHours, rawSegmentHours);
+  let segmentClamped = rawSegmentHours > maxConfigSegmentHours;
   const perEntryBytes = Math.max(10, Math.floor(config.perEntryBytes || 50));
   const headroomPct = Math.max(0, config.headroomPct ?? 30);
   const factor = 1 + headroomPct / 100;
@@ -100,6 +101,9 @@ export function calculateUnified(
     const dlMaxSegmentHours = dlRetentionDays * 24;
     const dlRawSegmentHours = Math.max(1, Math.floor(dl.segmentHours || segmentHours));
     const dlSegmentHours = Math.min(dlMaxSegmentHours, dlRawSegmentHours);
+    if (dlRawSegmentHours > dlMaxSegmentHours) {
+      segmentClamped = true;
+    }
     const dlSegmentsPerDay = 24 / dlSegmentHours;
     const dlBytesPerSegment = dlSegmentsPerDay > 0 ? (dlBytesPerDay / dlSegmentsPerDay) * factor : 0;
     const dlRawSegmentMb = dlBytesPerSegment / (1024 * 1024);
@@ -169,6 +173,9 @@ export function calculateUnified(
     const alMaxSegmentHours = alRetentionDays * 24;
     const alRawSegmentHours = Math.max(1, Math.floor(al.segmentHours || segmentHours));
     const alSegmentHours = Math.min(alMaxSegmentHours, alRawSegmentHours);
+    if (alRawSegmentHours > alMaxSegmentHours) {
+      segmentClamped = true;
+    }
     const alSegmentsPerDay = 24 / alSegmentHours;
     const alBytesPerSegment = alSegmentsPerDay > 0 ? (alBytesPerDay / alSegmentsPerDay) * factor : 0;
     const alRawSegmentMb = alBytesPerSegment / (1024 * 1024);
@@ -264,7 +271,12 @@ export function calculateUnified(
 
   // Max segment size across all active logs (Data Logs, Alarm Logs, Audit Trail)
   const maxSegmentLog = activeLogItems.length > 0
-    ? activeLogItems.reduce((max, cur) => (cur.sqliteSegmentMb > max.sqliteSegmentMb ? cur : max), activeLogItems[0])
+    ? activeLogItems.reduce((max, cur) => (
+        cur.sqliteSegmentMb > max.sqliteSegmentMb ||
+        (cur.sqliteSegmentMb === max.sqliteSegmentMb && cur.rawSegmentMb > max.rawSegmentMb)
+          ? cur
+          : max
+      ), activeLogItems[0])
     : (logItems.find((i) => i.category === 'data') || logItems[0]);
 
   const rawSegmentMb = maxSegmentLog ? maxSegmentLog.rawSegmentMb : 0;
@@ -290,20 +302,6 @@ export function calculateUnified(
 
   // Rule of 3 segments (checked on data logs and alarm logs)
   const rule3SegmentsValid = totalEntriesPerDay === 0 || logItems.filter((i) => i.enabled && i.entriesPerDay > 0).every((i) => i.totalSegments >= 3);
-
-  let segmentClamped = (config.segmentHours !== undefined && config.segmentHours > maxConfigSegmentHours);
-  dataLogConfigs.forEach((dl) => {
-    const dlRet = Math.max(1, Math.floor(dl.retentionDays || retentionDays));
-    if (dl.segmentHours !== undefined && dl.segmentHours > dlRet * 24) {
-      segmentClamped = true;
-    }
-  });
-  alarmLogConfigs.forEach((al) => {
-    const alRet = Math.max(1, Math.floor(al.retentionDays || retentionDays));
-    if (al.segmentHours !== undefined && al.segmentHours > alRet * 24) {
-      segmentClamped = true;
-    }
-  });
 
   const warnings: string[] = [];
 

@@ -111,9 +111,7 @@ export const TiaCheatSheetModal: React.FC<TiaCheatSheetModalProps> = ({
     items = [];
 
     logItems.forEach((log) => {
-      const segTimeStr = log.segmentHours >= 24 
-        ? `${Math.floor(log.segmentHours / 24)}.00:00:00` 
-        : `0.${String(log.segmentHours).padStart(2, '0')}:00:00`;
+      const segTimeStr = `${Math.floor(log.segmentHours / 24)}.${String(log.segmentHours % 24).padStart(2, '0')}:00:00`;
 
       items.push({
         label: `[${log.name}] Maximum segment size (MB)`,
