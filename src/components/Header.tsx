@@ -38,13 +38,23 @@ export const Header: React.FC<HeaderProps> = ({
             <Cpu className="w-6 h-6" />
           </div>
           <div>
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-2 flex-wrap">
               <h1 className="font-bold text-lg lg:text-xl tracking-tight text-slate-900 dark:text-white">
                 {t.appTitle}
               </h1>
               <span className="text-[10px] uppercase font-bold tracking-wider px-2 py-0.5 rounded-full bg-[#00646E]/15 text-[#00646E] dark:bg-[#00A3B5]/20 dark:text-[#00A3B5] border border-[#00646E]/20 dark:border-[#00A3B5]/30">
                 TIA V16-V20
               </span>
+              <a
+                href="https://github.com/M-Galymzhan/wincc-log-architect/commits/main"
+                target="_blank"
+                rel="noopener noreferrer"
+                title={lang === 'ru' ? 'Релиз v2.4.0 (кликните для просмотра коммитов на GitHub)' : 'Release v2.4.0 (click to view GitHub commits)'}
+                className="text-[10px] font-mono font-bold tracking-tight px-2 py-0.5 rounded-full bg-emerald-500/15 hover:bg-emerald-500/25 text-emerald-700 dark:text-emerald-300 border border-emerald-500/30 flex items-center gap-1.5 shadow-sm transition-all cursor-pointer active:scale-95"
+              >
+                <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse shrink-0" />
+                <span>v2.4.0</span>
+              </a>
             </div>
             <p className="text-xs text-slate-500 dark:text-slate-400">
               {t.appSubtitle}
