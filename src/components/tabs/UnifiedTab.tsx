@@ -1,6 +1,9 @@
 'use client';
 import React, { useState } from 'react';
-import { UnifiedTag, UnifiedConfig, UnifiedResult, Language, ToastMessage } from '../../lib/types';
+import { 
+  UnifiedTag, UnifiedConfig, UnifiedResult, Language, ToastMessage, 
+  UnifiedDataLogConfig, UnifiedAlarmLogConfig 
+} from '../../lib/types';
 import { translations, formatPlural } from '../../lib/i18n';
 import { TrafficGauge } from '../TrafficGauge';
 import { BulkAddModal } from '../BulkAddModal';
@@ -8,7 +11,8 @@ import { ConfirmModal } from '../ConfirmModal';
 import { ImportTagsModal } from '../ImportTagsModal';
 import { 
   Plus, Trash2, Layers, AlertTriangle, CheckCircle2, 
-  ShieldCheck, Bell, Cpu, Clock, RefreshCw, Download, Settings2, Upload 
+  ShieldCheck, Bell, BellRing, Cpu, Clock, RefreshCw, Download, Settings2, Upload,
+  Database, Copy, Check
 } from 'lucide-react';
 import { getSiemensArticle } from '../../lib/calculator/mlfbCatalog';
 import { generateTiaPortalCsv, downloadFile } from '../../lib/tiaExporter';
@@ -38,6 +42,73 @@ export const UnifiedTab: React.FC<UnifiedTabProps> = ({
   const [isBulkModalOpen, setIsBulkModalOpen] = useState(false);
   const [isConfirmModalOpen, setIsConfirmModalOpen] = useState(false);
   const [isImportModalOpen, setIsImportModalOpen] = useState(false);
+  const [copiedCellKey, setCopiedCellKey] = useState<string | null>(null);
+
+  // Multi-Log Accessors & Handlers
+  const dataLogs: UnifiedDataLogConfig[] = config.dataLogs && config.dataLogs.length > 0
+    ? config.dataLogs
+    : [{ id: 'default_data_log', name: 'Trend_Logs', enabled: true }];
+
+  const alarmLogs: UnifiedAlarmLogConfig[] = config.alarmLogs !== undefined
+    ? config.alarmLogs
+    : [
+        { id: 'alarms_log', name: 'Alarms_log', entriesPerDay: 150, enabled: true },
+        { id: 'events_log', name: 'Events_log', entriesPerDay: 500, enabled: true },
+      ];
+
+  const handleAddDataLog = () => {
+    const newDl: UnifiedDataLogConfig = {
+      id: Math.random().toString(36).substring(2, 9),
+      name: `Data_Log_${dataLogs.length + 1}`,
+      enabled: true,
+    };
+    setConfig(prev => ({ ...prev, dataLogs: [...dataLogs, newDl] }));
+    if (onShowToast) onShowToast(lang === 'ru' ? 'Архив данных добавлен' : 'Data log added', 'success');
+  };
+
+  const handleUpdateDataLog = (id: string, patch: Partial<UnifiedDataLogConfig>) => {
+    const updated = dataLogs.map(dl => dl.id === id ? { ...dl, ...patch } : dl);
+    setConfig(prev => ({ ...prev, dataLogs: updated }));
+  };
+
+  const handleRemoveDataLog = (id: string) => {
+    if (dataLogs.length <= 1) {
+      if (onShowToast) onShowToast(lang === 'ru' ? 'Должен остаться хотя бы один архив данных' : 'At least one Data Log must remain', 'warning');
+      return;
+    }
+    const updated = dataLogs.filter(dl => dl.id !== id);
+    setConfig(prev => ({ ...prev, dataLogs: updated }));
+    if (onShowToast) onShowToast(lang === 'ru' ? 'Архив данных удален' : 'Data log removed', 'info');
+  };
+
+  const handleAddAlarmLog = () => {
+    const newAl: UnifiedAlarmLogConfig = {
+      id: Math.random().toString(36).substring(2, 9),
+      name: `Alarm_Log_${alarmLogs.length + 1}`,
+      entriesPerDay: 200,
+      enabled: true,
+    };
+    setConfig(prev => ({ ...prev, alarmLogs: [...alarmLogs, newAl] }));
+    if (onShowToast) onShowToast(lang === 'ru' ? 'Архив аварий добавлен' : 'Alarm log added', 'success');
+  };
+
+  const handleUpdateAlarmLog = (id: string, patch: Partial<UnifiedAlarmLogConfig>) => {
+    const updated = alarmLogs.map(al => al.id === id ? { ...al, ...patch } : al);
+    setConfig(prev => ({ ...prev, alarmLogs: updated }));
+  };
+
+  const handleRemoveAlarmLog = (id: string) => {
+    const updated = alarmLogs.filter(al => al.id !== id);
+    setConfig(prev => ({ ...prev, alarmLogs: updated }));
+    if (onShowToast) onShowToast(lang === 'ru' ? 'Архив аварий удален' : 'Alarm log removed', 'info');
+  };
+
+  const handleCopyValue = (key: string, val: string | number) => {
+    navigator.clipboard.writeText(String(val));
+    setCopiedCellKey(key);
+    if (onShowToast) onShowToast(t.toastCopied, 'success');
+    setTimeout(() => setCopiedCellKey(null), 2000);
+  };
 
   const handleImportTags = (parsedTags: ParsedTagItem[], mode: 'append' | 'replace') => {
     const converted = convertToUnifiedTags(parsedTags);
@@ -364,48 +435,155 @@ export const UnifiedTab: React.FC<UnifiedTabProps> = ({
             </div>
           </details>
 
-          {/* Alarm & Audit Trail Addons */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-3 border-t border-slate-200/60 dark:border-slate-800">
-            {/* Alarms */}
-            <div className="flex items-center justify-between p-2.5 rounded-xl border border-slate-200 dark:border-slate-800 bg-white/40 dark:bg-slate-900/40">
-              <div className="flex items-center gap-2">
-                <Bell className="w-4 h-4 text-amber-500" />
-                <div>
-                  <div className="text-xs font-semibold text-slate-900 dark:text-white">{t.alarmsToggle}</div>
-                  <input
-                    type="number"
-                    min="0"
-                    disabled={!config.includeAlarms}
-                    value={config.alarmsPerDay}
-                    onChange={(e) => setConfig({ ...config, alarmsPerDay: Math.max(0, parseInt(e.target.value, 10) || 0) })}
-                    className="w-20 p-0.5 text-xs font-mono rounded border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 mt-1 disabled:opacity-50 focus:ring-1 focus:ring-[#00646E] outline-none"
-                  />
-                  <span className="text-[10px] text-slate-500 dark:text-slate-400 ml-1.5">{t.alarmsPerDay}</span>
+          {/* Multi-Log Manager: Data Logs & Alarm Logs */}
+          <div className="pt-3 border-t border-slate-200/60 dark:border-slate-800 space-y-3">
+            {/* Section 1: Data Logs List */}
+            <div className="p-3 rounded-xl border border-slate-200/80 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-900/40">
+              <div className="flex items-center justify-between mb-2">
+                <div className="flex items-center gap-2">
+                  <Database className="w-4 h-4 text-[#00646E] dark:text-[#00A3B5]" />
+                  <span className="text-xs font-bold text-slate-900 dark:text-white">
+                    {t.dataLogsSectionTitle}
+                  </span>
+                  <span className="text-[10px] font-mono px-1.5 py-0.5 rounded-full bg-slate-200 dark:bg-slate-800 text-slate-700 dark:text-slate-300 font-semibold">
+                    {dataLogs.length}
+                  </span>
                 </div>
+                <button
+                  type="button"
+                  onClick={handleAddDataLog}
+                  className="px-2 py-1 rounded-lg text-[11px] font-semibold bg-[#00646E]/10 hover:bg-[#00646E]/20 text-[#00646E] dark:text-[#00A3B5] border border-[#00646E]/20 flex items-center gap-1 transition-all cursor-pointer"
+                >
+                  <Plus className="w-3 h-3" />
+                  <span>{t.btnAddDataLog}</span>
+                </button>
               </div>
-              <input
-                type="checkbox"
-                checked={config.includeAlarms}
-                onChange={(e) => setConfig({ ...config, includeAlarms: e.target.checked })}
-                className="w-4 h-4 accent-[#00646E] cursor-pointer"
-              />
+
+              <div className="space-y-1.5">
+                {dataLogs.map((dl, idx) => {
+                  const tagCountForDl = tags.filter(tItem => (tItem.dataLogId ? tItem.dataLogId === dl.id : idx === 0)).reduce((acc, tItem) => acc + (tItem.count || 0), 0);
+                  return (
+                    <div key={dl.id} className="flex items-center justify-between gap-2 p-2 rounded-lg bg-white/80 dark:bg-slate-900/80 border border-slate-200/70 dark:border-slate-800">
+                      <div className="flex items-center gap-2 flex-1 min-w-0">
+                        <input
+                          type="text"
+                          value={dl.name}
+                          onChange={(e) => handleUpdateDataLog(dl.id, { name: e.target.value })}
+                          placeholder={t.logNamePlaceholder}
+                          className="p-1 px-2 text-xs font-mono font-bold rounded border border-slate-200 dark:border-slate-700 bg-transparent text-slate-900 dark:text-white focus:border-[#00646E] outline-none flex-1 max-w-[180px]"
+                        />
+                        <span className="text-[10px] px-2 py-0.5 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 font-mono shrink-0">
+                          {tagCountForDl} {lang === 'ru' ? 'тегов' : 'tags'}
+                        </span>
+                      </div>
+
+                      <div className="flex items-center gap-2 shrink-0">
+                        {dataLogs.length > 1 && (
+                          <button
+                            type="button"
+                            onClick={() => handleRemoveDataLog(dl.id)}
+                            className="p-1 text-slate-400 hover:text-rose-500 rounded transition-colors cursor-pointer"
+                            title={lang === 'ru' ? 'Удалить Data Log' : 'Remove Data Log'}
+                          >
+                            <Trash2 className="w-3.5 h-3.5" />
+                          </button>
+                        )}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
             </div>
 
-            {/* Audit Trail */}
-            <div className="flex items-center justify-between p-2.5 rounded-xl border border-slate-200 dark:border-slate-800 bg-white/40 dark:bg-slate-900/40">
+            {/* Section 2: Alarm Logs List */}
+            <div className="p-3 rounded-xl border border-slate-200/80 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-900/40">
+              <div className="flex items-center justify-between mb-2">
+                <div className="flex items-center gap-2">
+                  <Bell className="w-4 h-4 text-amber-500" />
+                  <span className="text-xs font-bold text-slate-900 dark:text-white">
+                    {t.alarmLogsSectionTitle}
+                  </span>
+                  <span className="text-[10px] font-mono px-1.5 py-0.5 rounded-full bg-slate-200 dark:bg-slate-800 text-slate-700 dark:text-slate-300 font-semibold">
+                    {alarmLogs.filter(a => a.enabled).length}
+                  </span>
+                </div>
+                <button
+                  type="button"
+                  onClick={handleAddAlarmLog}
+                  className="px-2 py-1 rounded-lg text-[11px] font-semibold bg-amber-500/10 hover:bg-amber-500/20 text-amber-600 dark:text-amber-400 border border-amber-500/20 flex items-center gap-1 transition-all cursor-pointer"
+                >
+                  <Plus className="w-3 h-3" />
+                  <span>{t.btnAddAlarmLog}</span>
+                </button>
+              </div>
+
+              {alarmLogs.length === 0 ? (
+                <div className="text-center py-2 text-[11px] text-slate-400">
+                  {lang === 'ru' ? 'Нет настроенных журналов алармов (нажмите «+ Alarm Log» для добавления)' : 'No alarm logs configured (click "+ Alarm Log" to add)'}
+                </div>
+              ) : (
+                <div className="space-y-1.5">
+                  {alarmLogs.map((al) => (
+                    <div key={al.id} className="flex items-center justify-between gap-2 p-2 rounded-lg bg-white/80 dark:bg-slate-900/80 border border-slate-200/70 dark:border-slate-800">
+                      <div className="flex items-center gap-2 flex-1 min-w-0">
+                        <input
+                          type="checkbox"
+                          checked={al.enabled}
+                          onChange={(e) => handleUpdateAlarmLog(al.id, { enabled: e.target.checked })}
+                          className="w-4 h-4 accent-[#00646E] cursor-pointer shrink-0"
+                        />
+                        <input
+                          type="text"
+                          value={al.name}
+                          disabled={!al.enabled}
+                          onChange={(e) => handleUpdateAlarmLog(al.id, { name: e.target.value })}
+                          placeholder={t.logNamePlaceholder}
+                          className="p-1 px-2 text-xs font-mono font-bold rounded border border-slate-200 dark:border-slate-700 bg-transparent text-slate-900 dark:text-white focus:border-[#00646E] outline-none flex-1 max-w-[170px] disabled:opacity-40"
+                        />
+                        <div className="flex items-center gap-1 shrink-0">
+                          <input
+                            type="number"
+                            min="0"
+                            disabled={!al.enabled}
+                            value={al.entriesPerDay}
+                            onChange={(e) => handleUpdateAlarmLog(al.id, { entriesPerDay: Math.max(0, parseInt(e.target.value, 10) || 0) })}
+                            className="w-18 p-1 text-xs font-mono rounded border border-slate-200 dark:border-slate-700 bg-transparent text-slate-900 dark:text-white outline-none focus:ring-1 focus:ring-[#00646E] disabled:opacity-40"
+                          />
+                          <span className="text-[10px] text-slate-400 font-mono">{t.eventsPerDayShort}</span>
+                        </div>
+                      </div>
+
+                      <button
+                        type="button"
+                        onClick={() => handleRemoveAlarmLog(al.id)}
+                        className="p-1 text-slate-400 hover:text-rose-500 rounded transition-colors cursor-pointer shrink-0"
+                        title={lang === 'ru' ? 'Удалить Alarm Log' : 'Remove Alarm Log'}
+                      >
+                        <Trash2 className="w-3.5 h-3.5" />
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            {/* Section 3: Audit Trail Toggle */}
+            <div className="flex items-center justify-between p-2.5 rounded-xl border border-slate-200/80 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-900/40">
               <div className="flex items-center gap-2">
                 <ShieldCheck className="w-4 h-4 text-emerald-500" />
                 <div>
                   <div className="text-xs font-semibold text-slate-900 dark:text-white">{t.auditToggle}</div>
-                  <input
-                    type="number"
-                    min="0"
-                    disabled={!config.includeAudit}
-                    value={config.auditEntriesPerDay}
-                    onChange={(e) => setConfig({ ...config, auditEntriesPerDay: Math.max(0, parseInt(e.target.value, 10) || 0) })}
-                    className="w-20 p-0.5 text-xs font-mono rounded border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 mt-1 disabled:opacity-50 focus:ring-1 focus:ring-[#00646E] outline-none"
-                  />
-                  <span className="text-[10px] text-slate-500 dark:text-slate-400 ml-1.5">{t.auditPerDay}</span>
+                  <div className="flex items-center gap-1.5 mt-0.5">
+                    <input
+                      type="number"
+                      min="0"
+                      disabled={!config.includeAudit}
+                      value={config.auditEntriesPerDay}
+                      onChange={(e) => setConfig({ ...config, auditEntriesPerDay: Math.max(0, parseInt(e.target.value, 10) || 0) })}
+                      className="w-20 p-0.5 text-xs font-mono rounded border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 disabled:opacity-50 focus:ring-1 focus:ring-[#00646E] outline-none"
+                    />
+                    <span className="text-[10px] text-slate-500 dark:text-slate-400">{t.auditPerDay}</span>
+                  </div>
                 </div>
               </div>
               <input
@@ -480,6 +658,7 @@ export const UnifiedTab: React.FC<UnifiedTabProps> = ({
             <thead className="bg-slate-100/80 dark:bg-slate-800/80 text-slate-600 dark:text-slate-300 uppercase font-semibold text-[10px] tracking-wider border-b border-slate-200 dark:border-slate-700">
               <tr>
                 <th className="p-3">{t.colDesc}</th>
+                {dataLogs.length > 1 && <th className="p-3 font-mono text-[#00646E] dark:text-[#00A3B5]">{t.colDataLog}</th>}
                 <th className="p-3">{t.colType}</th>
                 <th className="p-3">{t.colMode}</th>
                 <th className="p-3">{t.colCycle}</th>
@@ -491,7 +670,7 @@ export const UnifiedTab: React.FC<UnifiedTabProps> = ({
             <tbody className="divide-y divide-slate-200/60 dark:divide-slate-800/60">
               {tags.length === 0 ? (
                 <tr>
-                  <td colSpan={7} className="p-6 text-center text-xs text-slate-500 dark:text-slate-300">
+                  <td colSpan={dataLogs.length > 1 ? 8 : 7} className="p-6 text-center text-xs text-slate-500 dark:text-slate-300">
                     {lang === 'ru' ? `Список тегов пуст. Нажмите «${t.btnAddTag}» или «${t.btnAddBulk}».` : `Tag list is empty. Click "${t.btnAddTag}" or "${t.btnAddBulk}" to configure.`}
                   </td>
                 </tr>
@@ -506,6 +685,19 @@ export const UnifiedTab: React.FC<UnifiedTabProps> = ({
                         className="w-full p-1.5 text-xs rounded border border-slate-200 dark:border-slate-700 bg-white/90 dark:bg-slate-900 text-slate-900 dark:text-slate-100 focus:border-[#00646E] focus:ring-1 focus:ring-[#00646E] outline-none font-medium"
                       />
                     </td>
+                    {dataLogs.length > 1 && (
+                      <td className="p-2.5">
+                        <select
+                          value={tag.dataLogId || dataLogs[0]?.id}
+                          onChange={(e) => handleUpdateTag(tag.id, { dataLogId: e.target.value })}
+                          className="p-1.5 text-xs font-mono font-bold rounded border border-slate-200 dark:border-slate-700 bg-white/90 dark:bg-slate-900 text-[#00646E] dark:text-[#00A3B5] outline-none focus:ring-1 focus:ring-[#00646E]"
+                        >
+                          {dataLogs.map((dl) => (
+                            <option key={dl.id} value={dl.id}>{dl.name}</option>
+                          ))}
+                        </select>
+                      </td>
+                    )}
                     <td className="p-2.5">
                       <select
                         value={tag.dataType}
@@ -621,6 +813,134 @@ export const UnifiedTab: React.FC<UnifiedTabProps> = ({
           </span>
         </div>
 
+        {/* TIA Portal Multi-Log Specification Table */}
+        <div className="mb-6 overflow-hidden rounded-2xl border border-slate-200/80 dark:border-slate-800 bg-white/60 dark:bg-slate-900/60 shadow-xs">
+          <div className="p-4 border-b border-slate-200 dark:border-slate-800 bg-slate-50/80 dark:bg-slate-800/60 flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+            <div>
+              <h3 className="font-bold text-sm text-slate-900 dark:text-white flex items-center gap-2">
+                <Database className="w-4 h-4 text-[#00A3B5]" />
+                <span>{t.multiLogSpecTitle}</span>
+              </h3>
+              <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5">
+                {t.multiLogSpecSub}
+              </p>
+            </div>
+            <span className="text-[11px] font-mono px-2 py-0.5 rounded bg-[#00646E]/10 dark:bg-[#00A3B5]/10 text-[#00646E] dark:text-[#00A3B5] font-bold border border-[#00646E]/20">
+              TIA Portal V16–V20
+            </span>
+          </div>
+
+          <div className="overflow-x-auto">
+            <table className="w-full text-left text-xs">
+              <thead className="bg-slate-100/90 dark:bg-slate-800/90 text-slate-600 dark:text-slate-300 uppercase font-semibold text-[10px] tracking-wider border-b border-slate-200 dark:border-slate-700">
+                <tr>
+                  <th className="p-3">{t.colLogName}</th>
+                  <th className="p-3">{t.colLogCategory}</th>
+                  <th className="p-3">{t.colLogEntries}</th>
+                  <th className="p-3">{t.colLogTimePeriod}</th>
+                  <th className="p-3">{t.colLogSegmentPeriod}</th>
+                  <th className="p-3 font-mono text-[#00646E] dark:text-[#00A3B5]">{t.colLogSegmentSize}</th>
+                  <th className="p-3 font-mono">{t.colLogMaxSize}</th>
+                  <th className="p-3 text-right">{lang === 'ru' ? 'Вес' : 'Size'}</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-slate-200/60 dark:divide-slate-800/60">
+                {result.logItems.map((item) => (
+                  <tr key={item.id} className="hover:bg-white/40 dark:hover:bg-slate-800/40 transition-colors">
+                    <td className="p-3 font-semibold font-mono text-slate-900 dark:text-white flex items-center gap-1.5">
+                      {item.category === 'data' ? (
+                        <Database className="w-3.5 h-3.5 text-[#00A3B5]" />
+                      ) : item.category === 'alarm' ? (
+                        <Bell className="w-3.5 h-3.5 text-amber-500" />
+                      ) : (
+                        <ShieldCheck className="w-3.5 h-3.5 text-emerald-500" />
+                      )}
+                      <span>{item.name}</span>
+                    </td>
+                    <td className="p-3">
+                      <span className={`px-2 py-0.5 rounded-full text-[10px] font-semibold ${
+                        item.category === 'data'
+                          ? 'bg-[#00646E]/10 text-[#00646E] dark:text-[#00A3B5]'
+                          : item.category === 'alarm'
+                          ? 'bg-amber-500/10 text-amber-600 dark:text-amber-400'
+                          : 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400'
+                      }`}>
+                        {lang === 'ru' ? item.categoryNameRu : item.categoryNameEn}
+                      </span>
+                    </td>
+                    <td className="p-3 text-slate-600 dark:text-slate-300 font-mono">
+                      {item.category === 'data'
+                        ? `${item.tagCount || 0} ${lang === 'ru' ? 'тегов' : 'tags'} (~${item.entriesPerDay.toLocaleString()} зап/день)`
+                        : `~${item.entriesPerDay.toLocaleString()} ${lang === 'ru' ? 'соб/день' : 'ev/day'}`
+                      }
+                    </td>
+                    <td className="p-3 font-mono text-slate-700 dark:text-slate-300">
+                      {item.retentionDays}.00:00:00 <span className="text-slate-400 text-[10px]">({item.retentionDays} {lang === 'ru' ? 'дней' : 'd'})</span>
+                    </td>
+                    <td className="p-3 font-mono text-slate-700 dark:text-slate-300">
+                      {item.segmentHours >= 24 ? `${Math.floor(item.segmentHours / 24)}.00:00:00` : `0.${String(item.segmentHours).padStart(2, '0')}:00:00`} <span className="text-slate-400 text-[10px]">({item.segmentHours} {lang === 'ru' ? 'ч' : 'h'})</span>
+                    </td>
+                    <td className="p-3">
+                      <div className="flex items-center gap-1.5">
+                        <span className="font-mono font-black text-sm text-[#00646E] dark:text-[#00A3B5]">
+                          {item.sqliteSegmentMb} MB
+                        </span>
+                        <button
+                          type="button"
+                          onClick={() => handleCopyValue(`seg_${item.id}`, item.sqliteSegmentMb)}
+                          title={lang === 'ru' ? 'Копировать размер сегмента' : 'Copy segment size'}
+                          className="p-1 rounded hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 cursor-pointer"
+                        >
+                          {copiedCellKey === `seg_${item.id}` ? <Check className="w-3 h-3 text-emerald-600" /> : <Copy className="w-3 h-3" />}
+                        </button>
+                      </div>
+                    </td>
+                    <td className="p-3">
+                      <div className="flex items-center gap-1.5">
+                        <span className="font-mono font-bold text-sm text-slate-900 dark:text-white">
+                          {item.totalLogMb} MB
+                        </span>
+                        <button
+                          type="button"
+                          onClick={() => handleCopyValue(`log_${item.id}`, item.totalLogMb)}
+                          title={lang === 'ru' ? 'Копировать лимит архива' : 'Copy log size'}
+                          className="p-1 rounded hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 cursor-pointer"
+                        >
+                          {copiedCellKey === `log_${item.id}` ? <Check className="w-3 h-3 text-emerald-600" /> : <Copy className="w-3 h-3" />}
+                        </button>
+                      </div>
+                    </td>
+                    <td className="p-3 text-right font-mono font-semibold text-slate-700 dark:text-slate-300">
+                      {item.totalLogGb >= 1 ? `${item.totalLogGb.toFixed(2)} GB` : `${item.totalLogMb} MB`}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+              <tfoot className="bg-slate-100/90 dark:bg-slate-800/90 font-semibold border-t-2 border-slate-300 dark:border-slate-700">
+                <tr>
+                  <td colSpan={5} className="p-3 text-slate-800 dark:text-slate-200">
+                    <div className="flex items-center gap-2">
+                      <span className="font-bold uppercase tracking-wider text-[11px] text-[#00646E] dark:text-[#00A3B5]">
+                        {t.totalStorageUsedBanner} ({config.storageMedium === 'usb_128g' ? 'USB-X61' : config.storageMedium.startsWith('sd') ? 'SD-X51' : 'SSD'} {config.storageSizeGb} GB):
+                      </span>
+                    </div>
+                  </td>
+                  <td colSpan={3} className="p-3 text-right font-mono">
+                    <div className="flex items-center justify-end gap-3">
+                      <span className="text-sm font-black text-[#00646E] dark:text-[#00A3B5]">
+                        {result.totalStorageUsedGb >= 1 ? `${result.totalStorageUsedGb.toFixed(2)} GB` : `${result.totalStorageUsedMb} MB`}
+                      </span>
+                      <span className="text-xs px-2 py-0.5 rounded-full bg-slate-200 dark:bg-slate-700 text-slate-800 dark:text-slate-200">
+                        {result.storageOccupancyPct.toFixed(1)}% {lang === 'ru' ? 'емкости' : 'capacity'}
+                      </span>
+                    </div>
+                  </td>
+                </tr>
+              </tfoot>
+            </table>
+          </div>
+        </div>
+
         {/* 4 Primary Metric Cards */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
           {/* Entries per Day */}
@@ -658,7 +978,7 @@ export const UnifiedTab: React.FC<UnifiedTabProps> = ({
               {t.totalLogLabel}
             </div>
             <div className="text-2xl font-bold font-mono text-slate-900 dark:text-white">
-              {result.totalLogGb >= 1 ? `${result.totalLogGb.toFixed(2)} GB` : `${result.totalLogMb} MB`}
+              {result.totalStorageUsedGb >= 1 ? `${result.totalStorageUsedGb.toFixed(2)} GB` : `${result.totalStorageUsedMb} MB`}
             </div>
             <div className="mt-2 text-xs flex items-center gap-1.5">
               {result.rule3SegmentsValid ? (

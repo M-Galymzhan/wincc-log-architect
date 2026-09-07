@@ -51,8 +51,8 @@ export const TiaCheatSheetModal: React.FC<TiaCheatSheetModalProps> = ({
 
   if (activeTab === 'unified') {
     title = lang === 'ru'
-      ? 'WinCC Unified — Свойства Data Log (TIA Portal)'
-      : 'WinCC Unified — Data Log Properties (TIA Portal)';
+      ? 'WinCC Unified — Свойства Data Logs и Alarm Logs (TIA Portal)'
+      : 'WinCC Unified — Data Logs & Alarm Logs Properties (TIA Portal)';
     const isUsb = unifiedData.config.storageMedium === 'usb_128g';
     const path = unifiedData.config.deviceType === 'ucp'
       ? (isUsb ? '/media/simatic/X61' : '/media/simatic/X51')
@@ -62,13 +62,45 @@ export const TiaCheatSheetModal: React.FC<TiaCheatSheetModalProps> = ({
           ? (lang === 'ru' ? 'USB-накопитель в разъеме X61 панели Unified Comfort' : 'USB flash drive in port X61 of Unified Comfort')
           : t.cheatTipStoragePathUcp)
       : t.cheatTipStoragePathPc;
-    items = [
-      { label: 'Max segment size', value: `${unifiedData.result.sqliteSegmentMb} MB`, tip: t.cheatTipMultiple4Mb },
-      { label: 'Max log size', value: `${unifiedData.result.totalLogMb} MB`, tip: t.cheatTipTotalLog },
-      { label: 'Segment time period', value: `${unifiedData.config.segmentHours} Hours`, tip: t.cheatTipSegmentPeriod },
-      { label: 'Log time period (Retention)', value: `${unifiedData.config.retentionDays} Days`, tip: t.cheatTipRetention },
-      { label: 'Storage path / location', value: path, tip: storageTip },
-    ];
+
+    const logItems = unifiedData.result.logItems && unifiedData.result.logItems.length > 0
+      ? unifiedData.result.logItems
+      : [];
+
+    items = [];
+
+    logItems.forEach((log) => {
+      const segTimeStr = log.segmentHours >= 24 
+        ? `${Math.floor(log.segmentHours / 24)}.00:00:00` 
+        : `0.${String(log.segmentHours).padStart(2, '0')}:00:00`;
+
+      items.push({
+        label: `[${log.name}] Maximum segment size (MB)`,
+        value: `${log.sqliteSegmentMb} MB`,
+        tip: `${lang === 'ru' ? log.categoryNameRu : log.categoryNameEn} • ${t.cheatTipMultiple4Mb}`,
+      });
+      items.push({
+        label: `[${log.name}] Maximum log size (MB)`,
+        value: `${log.totalLogMb} MB`,
+        tip: `${lang === 'ru' ? log.categoryNameRu : log.categoryNameEn} • ${t.cheatTipTotalLog}`,
+      });
+      items.push({
+        label: `[${log.name}] Segment time period`,
+        value: `${segTimeStr} (${log.segmentHours} h)`,
+        tip: t.cheatTipSegmentPeriod,
+      });
+      items.push({
+        label: `[${log.name}] Log time period`,
+        value: `${log.retentionDays}.00:00:00 (${log.retentionDays} d)`,
+        tip: t.cheatTipRetention,
+      });
+    });
+
+    items.push({
+      label: 'Storage location (Path)',
+      value: path,
+      tip: storageTip,
+    });
   } else if (activeTab === 'comfort') {
     title = lang === 'ru'
       ? 'WinCC Comfort / Advanced — Настройки архивации (TIA Portal)'

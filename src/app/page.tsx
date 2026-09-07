@@ -50,8 +50,15 @@ export default function Home() {
     segmentHours: 24,
     perEntryBytes: 50,
     headroomPct: 30,
+    dataLogs: [
+      { id: 'default_data_log', name: 'Trend_Logs', enabled: true },
+    ],
+    alarmLogs: [
+      { id: 'alarms_log', name: 'Alarms_log', entriesPerDay: 150, enabled: true },
+      { id: 'events_log', name: 'Events_log', entriesPerDay: 500, enabled: true },
+    ],
     includeAlarms: true,
-    alarmsPerDay: 500,
+    alarmsPerDay: 650,
     includeAudit: false,
     auditEntriesPerDay: 200,
     storageMedium: 'sd_12g',

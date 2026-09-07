@@ -221,6 +221,43 @@ export const ReportModal: React.FC<ReportModalProps> = ({
                   </tr>
                 </tbody>
               </table>
+
+              {/* Multi-Log Specification Breakdown */}
+              {unifiedData.result.logItems && unifiedData.result.logItems.length > 0 && (
+                <div className="mt-4 pt-3 border-t border-slate-200 dark:border-slate-800">
+                  <div className="text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 mb-2">
+                    {lang === 'ru' ? 'Спецификация баз данных журналов (Data logs & Alarm logs)' : 'Databases Specification (Data logs & Alarm logs)'}
+                  </div>
+                  <table className="w-full text-xs text-left border border-slate-200 dark:border-slate-800 rounded-lg overflow-hidden">
+                    <thead className="bg-slate-100 dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800 font-semibold text-[10px] uppercase">
+                      <tr>
+                        <th className="p-2">{lang === 'ru' ? 'Имя в TIA' : 'Name in TIA'}</th>
+                        <th className="p-2">{lang === 'ru' ? 'Тип' : 'Category'}</th>
+                        <th className="p-2">{lang === 'ru' ? 'Событий/сутки' : 'Load (ev/day)'}</th>
+                        <th className="p-2">{lang === 'ru' ? 'Срок' : 'Retention'}</th>
+                        <th className="p-2">{lang === 'ru' ? 'Сегмент' : 'Segment'}</th>
+                        <th className="p-2 font-mono text-[#00646E] dark:text-[#00A3B5]">Max Segment</th>
+                        <th className="p-2 font-mono">Max Log</th>
+                        <th className="p-2 text-right">{lang === 'ru' ? 'Объем' : 'Footprint'}</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-slate-200 dark:divide-slate-800 font-mono text-[11px]">
+                      {unifiedData.result.logItems.map(item => (
+                        <tr key={item.id}>
+                          <td className="p-2 font-bold font-mono">{item.name}</td>
+                          <td className="p-2">{lang === 'ru' ? item.categoryNameRu : item.categoryNameEn}</td>
+                          <td className="p-2">~{item.entriesPerDay.toLocaleString()}</td>
+                          <td className="p-2">{item.retentionDays} d</td>
+                          <td className="p-2">{item.segmentHours} h</td>
+                          <td className="p-2 font-bold text-[#00646E] dark:text-[#00A3B5]">{item.sqliteSegmentMb} MB</td>
+                          <td className="p-2 font-bold">{item.totalLogMb} MB</td>
+                          <td className="p-2 text-right font-bold">{item.totalLogGb >= 1 ? `${item.totalLogGb.toFixed(2)} GB` : `${item.totalLogMb} MB`}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              )}
             </div>
           )}
 

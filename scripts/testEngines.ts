@@ -567,6 +567,77 @@ async function runAsyncTests() {
     const proImported = convertToProfessionalTags(parsedTia.tags);
     assert(proImported.length === 182, 'Importer: converted exactly 182 Professional tags');
     assert(proImported.every(t => t.archiveType === 'fast'), 'Importer: all 0.25s tags routed to Fast Tag Logging');
+
+    // 9. Multi-Log Architecture: N Data Logs + M Alarm Logs
+    console.log('\n--- Test Suite 9: WinCC Unified Multi-Log Architecture (N Data Logs + M Alarm Logs) ---');
+    const multiTags: UnifiedTag[] = [
+      { id: 'tag1', description: 'Log1 Tag', mode: 'cyclic', cycleSec: 1, entriesPerSec: 1, count: 10, dataType: 'Real', dataLogId: 'log_1' },
+      { id: 'tag2', description: 'Log2 Tag', mode: 'cyclic', cycleSec: 2, entriesPerSec: 0.5, count: 20, dataType: 'Int', dataLogId: 'log_2' },
+      { id: 'tag3', description: 'Log3 Tag', mode: 'cyclic', cycleSec: 5, entriesPerSec: 0.2, count: 5, dataType: 'Bool', dataLogId: 'log_3' },
+    ];
+
+    const multiLogConfig: UnifiedConfig = {
+      deviceType: 'ucp',
+      retentionDays: 30,
+      segmentHours: 24,
+      perEntryBytes: 38,
+      headroomPct: 30,
+      includeAlarms: true,
+      alarmsPerDay: 500,
+      includeAudit: false,
+      auditEntriesPerDay: 0,
+      storageMedium: 'sd_12g',
+      storageSizeGb: 12,
+      dataLogs: [
+        { id: 'log_1', name: 'Trend_Fast', enabled: true },
+        { id: 'log_2', name: 'Trend_Slow', enabled: true },
+        { id: 'log_3', name: 'Trend_Digital', enabled: true, retentionDays: 90 },
+      ],
+      alarmLogs: [
+        { id: 'alm_1', name: 'Alarms_High', entriesPerDay: 300, enabled: true },
+        { id: 'alm_2', name: 'Alarms_Warning', entriesPerDay: 600, enabled: true },
+        { id: 'alm_3', name: 'Events_System', entriesPerDay: 1000, enabled: true },
+        { id: 'alm_4', name: 'Events_AuditLog', entriesPerDay: 150, enabled: true },
+        { id: 'alm_5', name: 'Alarms_Diagnostics', entriesPerDay: 50, enabled: true },
+      ],
+    };
+
+    const multiResult = calculateUnified(multiTags, multiLogConfig);
+    assert(multiResult.logItems.length === 8, `Multi-Log: Expected 8 log items (3 data + 5 alarm), got ${multiResult.logItems.length}`);
+    const dataItems = multiResult.logItems.filter(l => l.category === 'data');
+    const alarmItems = multiResult.logItems.filter(l => l.category === 'alarm');
+    assert(dataItems.length === 3, `Multi-Log: 3 data log items, got ${dataItems.length}`);
+    assert(alarmItems.length === 5, `Multi-Log: 5 alarm log items, got ${alarmItems.length}`);
+
+    // Check custom retention for log_3 (90 days)
+    const log3 = dataItems.find(l => l.name === 'Trend_Digital');
+    assert(log3?.retentionDays === 90, `Multi-Log: log_3 retention is 90 days, got ${log3?.retentionDays}`);
+
+    // Check segment sizes are multiple of 4 MB and >= 4 MB
+    for (const item of multiResult.logItems) {
+      assert(item.sqliteSegmentMb % 4 === 0, `Multi-Log: ${item.name} sqliteSegmentMb must be multiple of 4, got ${item.sqliteSegmentMb}`);
+      assert(item.sqliteSegmentMb >= 4, `Multi-Log: ${item.name} sqliteSegmentMb >= 4 MB, got ${item.sqliteSegmentMb}`);
+      assert(item.totalLogMb >= item.sqliteSegmentMb, `Multi-Log: ${item.name} totalLogMb >= sqliteSegmentMb`);
+    }
+
+    // Verify sum of storage
+    const expectedSumMb = multiResult.logItems.filter(l => l.enabled).reduce((acc, l) => acc + l.totalLogMb, 0);
+    assert(multiResult.totalStorageUsedMb === expectedSumMb, `Multi-Log: totalStorageUsedMb matches sum (${expectedSumMb} MB)`);
+    assert(Math.abs(multiResult.totalStorageUsedGb - expectedSumMb / 1024) < 0.001, `Multi-Log: totalStorageUsedGb matches conversion`);
+
+    // Edge case: disable all alarm logs and 1 data log
+    const disabledConfig: UnifiedConfig = {
+      ...multiLogConfig,
+      dataLogs: [
+        { id: 'log_1', name: 'Trend_Fast', enabled: true },
+        { id: 'log_2', name: 'Trend_Slow', enabled: false },
+        { id: 'log_3', name: 'Trend_Digital', enabled: true },
+      ],
+      alarmLogs: multiLogConfig.alarmLogs?.map(a => ({ ...a, enabled: false })),
+    };
+    const disabledResult = calculateUnified(multiTags, disabledConfig);
+    const activeItems = disabledResult.logItems.filter(l => l.enabled && l.totalLogMb > 0);
+    assert(activeItems.length === 2, `Multi-Log: Only 2 active data logs should be calculated, got ${activeItems.length}`);
   }
 
   console.log(`\n========================================`);

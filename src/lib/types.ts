@@ -13,6 +13,43 @@ export interface UnifiedTag {
   entriesPerSec: number;
   count: number;
   dataType: 'Real' | 'LReal' | 'DInt' | 'Int' | 'Bool' | 'String';
+  dataLogId?: string;
+}
+
+export interface UnifiedDataLogConfig {
+  id: string;
+  name: string; // e.g. 'Trend_Logs', 'Fast_Logs'
+  retentionDays?: number; // optional individual retention override
+  segmentHours?: number;  // optional individual segment time override
+  enabled: boolean;
+}
+
+export interface UnifiedAlarmLogConfig {
+  id: string;
+  name: string; // e.g. 'Alarms_log', 'Events_log'
+  entriesPerDay: number;
+  retentionDays?: number; // optional individual retention override
+  segmentHours?: number;  // optional individual segment time override
+  enabled: boolean;
+}
+
+export interface CalculatedLogItem {
+  id: string;
+  name: string;
+  category: 'data' | 'alarm' | 'audit';
+  categoryNameRu: string;
+  categoryNameEn: string;
+  tagCount?: number;
+  entriesPerDay: number;
+  retentionDays: number;
+  segmentHours: number;
+  totalSegments: number;
+  rawSegmentMb: number;
+  sqliteSegmentMb: number; // multiple of 4 MB, min 4 MB
+  totalLogMb: number;      // total archive size in MB
+  totalLogGb: number;
+  storageOccupancyPct: number;
+  enabled: boolean;
 }
 
 export interface UnifiedConfig {
@@ -21,6 +58,8 @@ export interface UnifiedConfig {
   segmentHours: number;
   perEntryBytes: number;
   headroomPct: number;
+  dataLogs?: UnifiedDataLogConfig[];
+  alarmLogs?: UnifiedAlarmLogConfig[];
   includeAlarms: boolean;
   alarmsPerDay: number;
   includeAudit: boolean;
@@ -56,6 +95,10 @@ export interface UnifiedResult {
   estimatedFlashLifeYears: number;
   network: NetworkMetrics;
   warnings: string[];
+  // Multi-Log calculations
+  logItems: CalculatedLogItem[];
+  totalStorageUsedMb: number;
+  totalStorageUsedGb: number;
 }
 
 // WINCC COMFORT / ADVANCED
