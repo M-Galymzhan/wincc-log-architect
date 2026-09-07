@@ -1311,6 +1311,66 @@ async function runAsyncTests() {
     assert(formatSegTime(24) === '1.00:00:00', `TIA Time Format: 24h formats to 1.00:00:00, got ${formatSegTime(24)}`);
     assert(formatSegTime(12) === '0.12:00:00', `TIA Time Format: 12h formats to 0.12:00:00, got ${formatSegTime(12)}`);
     assert(formatSegTime(168) === '7.00:00:00', `TIA Time Format: 168h formats to 7.00:00:00, got ${formatSegTime(168)}`);
+
+    // --- Test Suite 15: ISA-18.2 / EEMUA 191 Alarm Rate Advisory Suite ---
+    console.log(`\n=== [15] ISA-18.2 / EEMUA 191 ALARM RATE ADVISORY SUITE ===`);
+    const baseConfigForIsa: UnifiedConfig = {
+      deviceType: 'ucp',
+      retentionDays: 30,
+      segmentHours: 24,
+      perEntryBytes: 50,
+      headroomPct: 30,
+      includeAlarms: true,
+      alarmsPerDay: 0,
+      includeAudit: false,
+      auditEntriesPerDay: 0,
+      storageMedium: 'sd_12g',
+      storageSizeGb: 12,
+    };
+
+    // 15.1 Acceptable rate (<6 alarms/hr = <144 alarms/day)
+    const resAcceptable = calculateUnified([], {
+      ...baseConfigForIsa,
+      alarmLogs: [{ id: 'al_acc', name: 'Alarms', entriesPerDay: 72, enabled: true }],
+    });
+    assert(resAcceptable.isa18AlarmAssessment?.status === 'acceptable', `ISA-18.2: 72 alarms/day is acceptable, got ${resAcceptable.isa18AlarmAssessment?.status}`);
+    assert(resAcceptable.isa18AlarmAssessment?.alarmsPerHour === 3, `ISA-18.2: 72 alarms/day = 3 alarms/hr, got ${resAcceptable.isa18AlarmAssessment?.alarmsPerHour}`);
+
+    // 15.2 Manageable rate (6-12 alarms/hr = 144-288 alarms/day)
+    const resManageable = calculateUnified([], {
+      ...baseConfigForIsa,
+      alarmLogs: [{ id: 'al_man', name: 'Alarms', entriesPerDay: 216, enabled: true }],
+    });
+    assert(resManageable.isa18AlarmAssessment?.status === 'manageable', `ISA-18.2: 216 alarms/day is manageable, got ${resManageable.isa18AlarmAssessment?.status}`);
+    assert(resManageable.isa18AlarmAssessment?.alarmsPerHour === 9, `ISA-18.2: 216 alarms/day = 9 alarms/hr, got ${resManageable.isa18AlarmAssessment?.alarmsPerHour}`);
+
+    // 15.3 Demanding rate (12-30 alarms/hr = 288-720 alarms/day)
+    const resDemanding = calculateUnified([], {
+      ...baseConfigForIsa,
+      alarmLogs: [{ id: 'al_dem', name: 'Alarms', entriesPerDay: 480, enabled: true }],
+    });
+    assert(resDemanding.isa18AlarmAssessment?.status === 'demanding', `ISA-18.2: 480 alarms/day is demanding, got ${resDemanding.isa18AlarmAssessment?.status}`);
+    assert(resDemanding.isa18AlarmAssessment?.alarmsPerHour === 20, `ISA-18.2: 480 alarms/day = 20 alarms/hr, got ${resDemanding.isa18AlarmAssessment?.alarmsPerHour}`);
+
+    // 15.4 Overload rate (>30 alarms/hr = >720 alarms/day)
+    const resOverload = calculateUnified([], {
+      ...baseConfigForIsa,
+      alarmLogs: [{ id: 'al_ovl', name: 'Alarms', entriesPerDay: 960, enabled: true }],
+    });
+    assert(resOverload.isa18AlarmAssessment?.status === 'overload', `ISA-18.2: 960 alarms/day is overload, got ${resOverload.isa18AlarmAssessment?.status}`);
+    assert(resOverload.isa18AlarmAssessment?.alarmsPerHour === 40, `ISA-18.2: 960 alarms/day = 40 alarms/hr, got ${resOverload.isa18AlarmAssessment?.alarmsPerHour}`);
+
+    // 15.5 Alarm Tags summation into ISA-18.2
+    const resWithAlarmTags = calculateUnified([], {
+      ...baseConfigForIsa,
+      alarmLogs: [{ id: 'al_tags', name: 'Alarms', entriesPerDay: 0, enabled: true }],
+      alarmTags: [
+        { id: 'at1', name: 'Pump_Trip', alarmClass: 'Alarm', triggerType: 'digital', eventsPerDay: 10, count: 5, alarmLogId: 'al_tags' }, // 50 events
+        { id: 'at2', name: 'High_Temp', alarmClass: 'Alarm', triggerType: 'analog', eventsPerDay: 22, count: 1, alarmLogId: 'al_tags' },  // 22 events
+      ],
+    });
+    assert(resWithAlarmTags.isa18AlarmAssessment?.totalAlarmsPerDay === 72, `ISA-18.2: sums alarm tags correctly (50+22=72), got ${resWithAlarmTags.isa18AlarmAssessment?.totalAlarmsPerDay}`);
+    assert(resWithAlarmTags.isa18AlarmAssessment?.status === 'acceptable', `ISA-18.2: tag-derived rate is acceptable, got ${resWithAlarmTags.isa18AlarmAssessment?.status}`);
   }
 
   console.log(`\n========================================`);

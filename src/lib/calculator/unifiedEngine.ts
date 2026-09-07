@@ -1,4 +1,4 @@
-import { UnifiedTag, UnifiedConfig, UnifiedResult, Language } from '../types';
+import { UnifiedTag, UnifiedConfig, UnifiedResult, Language, Isa18AlarmAssessment } from '../types';
 import { calculateUnifiedNetwork } from './networkEngine';
 
 export function getDataTypeBytes(dataType: UnifiedTag['dataType'] | undefined, baseBytes: number = 50): number {
@@ -405,6 +405,48 @@ export function calculateUnified(
     );
   }
 
+  // ISA-18.2 / EEMUA 191 Alarm Load Assessment (Advisory only)
+  const totalAlarmEntriesPerDay = logItems
+    .filter((i) => i.enabled && i.category === 'alarm')
+    .reduce((sum, i) => sum + i.entriesPerDay, 0);
+
+  const alarmsPerHour = Math.round((totalAlarmEntriesPerDay / 24) * 10) / 10;
+  let isaStatus: 'acceptable' | 'manageable' | 'demanding' | 'overload' = 'acceptable';
+  let isaLabelRu = 'Оптимально (<6 алармов/час)';
+  let isaLabelEn = 'Acceptable (<6 alarms/hr)';
+  let isaDescRu = 'Штатная нагрузка оператора по ISA-18.2 / EEMUA 191 (≤1 аларм за 10 минут).';
+  let isaDescEn = 'Manageable operator workload per ISA-18.2 / EEMUA 191 (≤1 alarm per 10 min).';
+
+  if (alarmsPerHour > 30) {
+    isaStatus = 'overload';
+    isaLabelRu = 'Перегрузка (>30 алармов/час)';
+    isaLabelEn = 'Overload (>30 alarms/hr)';
+    isaDescRu = 'Высокий риск пропуска критических аварий (лавина алармов / Alarm Flood по ISA-18.2). Рекомендуется рационализация и фильтрация дребезга.';
+    isaDescEn = 'Severe operator overload & Alarm Flood risk per ISA-18.2. Alarm rationalization and deadband filtering recommended.';
+  } else if (alarmsPerHour > 12) {
+    isaStatus = 'demanding';
+    isaLabelRu = 'Высокая нагрузка (12–30 алармов/час)';
+    isaLabelEn = 'Demanding (12–30 alarms/hr)';
+    isaDescRu = 'Повышенная интенсивность аварий (2–5 алармов за 10 минут). Оператор может испытывать перегрузку при инцидентах.';
+    isaDescEn = 'High alarm rate (2–5 alarms per 10 min). Operator may experience stress during plant upsets.';
+  } else if (alarmsPerHour > 6) {
+    isaStatus = 'manageable';
+    isaLabelRu = 'Умеренная нагрузка (6–12 алармов/час)';
+    isaLabelEn = 'Manageable (6–12 alarms/hr)';
+    isaDescRu = 'Приемлемый уровень нагрузки (1–2 аларма за 10 минут) согласно EEMUA 191.';
+    isaDescEn = 'Manageable alarm rate (1–2 alarms per 10 min) according to EEMUA 191.';
+  }
+
+  const isa18AlarmAssessment: Isa18AlarmAssessment = {
+    totalAlarmsPerDay: totalAlarmEntriesPerDay,
+    alarmsPerHour,
+    status: isaStatus,
+    labelRu: isaLabelRu,
+    labelEn: isaLabelEn,
+    descRu: isaDescRu,
+    descEn: isaDescEn,
+  };
+
   return {
     totalTags: totalTagsCount,
     totalEntriesPerSec,
@@ -423,5 +465,6 @@ export function calculateUnified(
     logItems,
     totalStorageUsedMb,
     totalStorageUsedGb,
+    isa18AlarmAssessment,
   };
 }

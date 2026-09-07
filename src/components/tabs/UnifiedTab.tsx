@@ -1081,7 +1081,38 @@ export const UnifiedTab: React.FC<UnifiedTabProps> = ({
                   })}
                 </div>
               )}
-            </div>
+
+            {/* ISA-18.2 / EEMUA 191 Alarm Rate Advisory (Non-blocking Engineering Recommendation) */}
+            {result.isa18AlarmAssessment && result.isa18AlarmAssessment.totalAlarmsPerDay > 0 && (
+              <div className={`mt-2.5 p-2 rounded-lg border text-[11px] flex items-start gap-2 ${
+                result.isa18AlarmAssessment.status === 'acceptable'
+                  ? 'bg-emerald-500/10 border-emerald-500/20 text-emerald-800 dark:text-emerald-300'
+                  : result.isa18AlarmAssessment.status === 'manageable'
+                  ? 'bg-blue-500/10 border-blue-500/20 text-blue-800 dark:text-blue-300'
+                  : result.isa18AlarmAssessment.status === 'demanding'
+                  ? 'bg-amber-500/10 border-amber-500/20 text-amber-800 dark:text-amber-300'
+                  : 'bg-rose-500/10 border-rose-500/20 text-rose-800 dark:text-rose-300'
+              }`}>
+                <span className="shrink-0 text-xs">ℹ️</span>
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-1.5 flex-wrap">
+                    <span className="font-bold">
+                      {lang === 'ru' ? 'Рекомендация ISA-18.2 / EEMUA 191:' : 'ISA-18.2 / EEMUA 191 Advisory:'}
+                    </span>
+                    <span className="font-semibold underline decoration-dotted">
+                      {lang === 'ru' ? result.isa18AlarmAssessment.labelRu : result.isa18AlarmAssessment.labelEn}
+                    </span>
+                    <span className="font-mono text-[10px] opacity-80">
+                      (~{result.isa18AlarmAssessment.alarmsPerHour} {lang === 'ru' ? 'соб/ч' : 'alm/h'})
+                    </span>
+                  </div>
+                  <p className="text-[10px] opacity-90 mt-0.5 leading-snug">
+                    {lang === 'ru' ? result.isa18AlarmAssessment.descRu : result.isa18AlarmAssessment.descEn}
+                  </p>
+                </div>
+              </div>
+            )}
+          </div>
 
             {/* Section 3: Audit Trail Toggle */}
             <div className="flex items-center justify-between p-2.5 rounded-xl border border-slate-200/80 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-900/40">

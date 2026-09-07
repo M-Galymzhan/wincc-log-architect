@@ -91,6 +91,16 @@ export interface NetworkMetrics {
   recommendationEn: string;
 }
 
+export interface Isa18AlarmAssessment {
+  totalAlarmsPerDay: number;
+  alarmsPerHour: number;
+  status: 'acceptable' | 'manageable' | 'demanding' | 'overload';
+  labelRu: string;
+  labelEn: string;
+  descRu: string;
+  descEn: string;
+}
+
 export interface UnifiedResult {
   totalTags: number;
   totalEntriesPerSec: number;
@@ -110,6 +120,7 @@ export interface UnifiedResult {
   logItems: CalculatedLogItem[];
   totalStorageUsedMb: number;
   totalStorageUsedGb: number;
+  isa18AlarmAssessment?: Isa18AlarmAssessment;
 }
 
 // WINCC COMFORT / ADVANCED
