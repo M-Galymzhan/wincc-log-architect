@@ -1,5 +1,5 @@
 'use client';
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { ActiveTab, Language, Theme, UnifiedTag, UnifiedConfig, ComfortTag, ComfortConfig, ProfessionalTag, ProfessionalConfig, ToastMessage } from '../lib/types';
 import { calculateUnified } from '../lib/calculator/unifiedEngine';
 import { calculateComfort } from '../lib/calculator/comfortEngine';
@@ -16,8 +16,11 @@ import { IndustryPresetsModal } from '../components/IndustryPresetsModal';
 import { IndustryPreset } from '../lib/presets';
 import { Toast } from '../components/Toast';
 
+const emptySubscribe = () => () => {};
+
 export default function Home() {
-  const [mounted, setMounted] = useState(false);
+  const mounted = React.useSyncExternalStore(emptySubscribe, () => true, () => false);
+  const isLoadedRef = useRef(false);
   const [lang, setLang] = useState<Language>('ru');
   const [theme, setTheme] = useState<Theme>('dark');
   const [activeTab, setActiveTab] = useState<ActiveTab>('unified');
@@ -107,7 +110,7 @@ export default function Home() {
 
   // Load from LocalStorage
   useEffect(() => {
-    setMounted(true);
+    /* eslint-disable react-hooks/set-state-in-effect */
     try {
       const savedLang = localStorage.getItem('wincc_lang') as Language;
       if (savedLang === 'ru' || savedLang === 'en') setLang(savedLang);
@@ -130,12 +133,14 @@ export default function Home() {
       }
     } catch (e) {
       console.error('LocalStorage load error:', e);
+    } finally {
+      isLoadedRef.current = true;
     }
   }, []);
 
   // Save to LocalStorage
   useEffect(() => {
-    if (!mounted) return;
+    if (!isLoadedRef.current) return;
     try {
       localStorage.setItem('wincc_lang', lang);
       localStorage.setItem('wincc_theme', theme);
@@ -152,7 +157,7 @@ export default function Home() {
     } catch (e) {
       console.error('LocalStorage save error:', e);
     }
-  }, [lang, theme, unifiedTags, unifiedConfig, comfortTags, comfortConfig, proTags, proConfig, mounted]);
+  }, [lang, theme, unifiedTags, unifiedConfig, comfortTags, comfortConfig, proTags, proConfig]);
 
   // Export Project JSON
   const handleExportJson = () => {

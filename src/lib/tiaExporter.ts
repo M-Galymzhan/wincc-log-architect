@@ -95,7 +95,7 @@ function createTagRow(
   acqCycle: string,
   comment: string,
   options?: TiaXlsxExportOptions
-): any[] {
+): (string | number)[] {
   const path = options?.path || '<No Value>';
   const connection = options?.connectionName || '<No Value>';
   const length = (dataType === 'String' || dataType === 'WString') ? 254 : 1;
@@ -147,7 +147,7 @@ export function generateTiaPortalXlsx(
   options?: TiaXlsxExportOptions
 ): Uint8Array {
   const dataLogMap = new Map((dataLogs || []).map(dl => [dl.id, dl.name]));
-  const rows: any[][] = [TIA_HMI_TAGS_HEADERS];
+  const rows: (string | number)[][] = [TIA_HMI_TAGS_HEADERS];
 
   if (tab === 'unified') {
     (tags as UnifiedTag[]).forEach((tag, idx) => {
@@ -173,7 +173,9 @@ export function generateTiaPortalXlsx(
       const baseName = sanitizeName(tag.description || `Comfort_Tag_${idx + 1}`);
       const mode: 'Cyclic in operation' | 'On change' = tag.mode === 'onchange' ? 'On change' : 'Cyclic in operation';
       const cycle = tag.mode === 'onchange' ? 'None' : formatTiaCycle(tag.cycleSec);
-      const dataType = (tag as any).dataType || 'Real';
+      const dataType = ('dataType' in tag && typeof (tag as { dataType?: unknown }).dataType === 'string') 
+        ? (tag as { dataType: string }).dataType 
+        : 'Real';
 
       if (options?.expandCount && tag.count > 1) {
         for (let i = 1; i <= tag.count; i++) {
@@ -192,7 +194,9 @@ export function generateTiaPortalXlsx(
       const archiveType = (tag.archiveType || (tag.cycleSec < 60 ? 'fast' : 'slow')).toUpperCase();
       const archiveName = archiveType === 'FAST' ? 'TagLoggingFast' : 'TagLoggingSlow';
       const cycle = formatTiaCycle(tag.cycleSec);
-      const dataType = (tag as any).dataType || 'Real';
+      const dataType = ('dataType' in tag && typeof (tag as { dataType?: unknown }).dataType === 'string') 
+        ? (tag as { dataType: string }).dataType 
+        : 'Real';
 
       if (options?.expandCount && tag.count > 1) {
         for (let i = 1; i <= tag.count; i++) {
@@ -227,14 +231,16 @@ export function generateTiaPortalAlarmXlsx(
   options?: TiaXlsxExportOptions
 ): Uint8Array {
   const alarmLogMap = new Map((alarmLogs || []).map(al => [al.id, al.name]));
-  const rows: any[][] = [TIA_HMI_TAGS_HEADERS];
+  const rows: (string | number)[][] = [TIA_HMI_TAGS_HEADERS];
 
   alarmTags.forEach((at, idx) => {
     const baseName = sanitizeName(at.name || `Alarm_${idx + 1}`);
     const targetLog = (at.alarmLogId && alarmLogMap.get(at.alarmLogId)) || 'Alarms_log';
     const totalEv = Math.round((at.eventsPerDay || 0) * (at.count || 1));
-    const dataType = (at as any).dataType || (at.triggerType === 'analog' ? 'Real' : 'Bool');
-    const acqMode: 'Cyclic in operation' = 'Cyclic in operation';
+    const dataType = ('dataType' in at && typeof (at as { dataType?: unknown }).dataType === 'string')
+      ? (at as { dataType: string }).dataType
+      : (at.triggerType === 'analog' ? 'Real' : 'Bool');
+    const acqMode = 'Cyclic in operation' as const;
     const acqCycle = 'T250ms';
 
     if (options?.expandCount && at.count > 1) {
@@ -346,7 +352,7 @@ export function downloadFile(content: string, filename: string, mimeType: string
 }
 
 export function downloadXlsxFile(data: Uint8Array | ArrayBuffer, filename: string) {
-  const blob = new Blob([data as any], {
+  const blob = new Blob([data as unknown as BlobPart], {
     type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
   });
   const url = URL.createObjectURL(blob);

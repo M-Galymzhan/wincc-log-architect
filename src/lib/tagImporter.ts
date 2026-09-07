@@ -167,7 +167,7 @@ export function detectColumns(headers: string[]): DetectedColumns {
 /**
  * Parses raw 2D row array into structured ParsedTagItem list.
  */
-export function parseRowsToTags(rows: any[][]): { tags: ParsedTagItem[]; errors: string[] } {
+export function parseRowsToTags(rows: unknown[][]): { tags: ParsedTagItem[]; errors: string[] } {
   const errors: string[] = [];
   if (!rows || rows.length < 2) {
     errors.push('Файл пуст или содержит только заголовок');
@@ -267,7 +267,7 @@ function parseCsvLine(line: string, delimiter: string): string[] {
 /**
  * Parses raw CSV text into 2D row array.
  */
-export function parseCsvText(csvText: string): any[][] {
+export function parseCsvText(csvText: string): string[][] {
   const lines = csvText.split(/\r?\n/).filter(line => line.trim().length > 0);
   if (lines.length === 0) return [];
 
@@ -287,15 +287,16 @@ export function parseCsvText(csvText: string): any[][] {
 /**
  * Extracts rows from readXlsxFile result regardless of single-sheet or multi-sheet return schema.
  */
-export function extractXlsxRows(result: any): { rows: any[][]; sheetName?: string } {
+export function extractXlsxRows(result: unknown): { rows: unknown[][]; sheetName?: string } {
   if (!Array.isArray(result) || result.length === 0) {
     return { rows: [] };
   }
 
-  // Multi-sheet structure: Array<{ sheet: string, data: any[][] }>
-  if (result[0] && typeof result[0] === 'object' && Array.isArray(result[0].data)) {
+  // Multi-sheet structure: Array<{ sheet?: string, data?: unknown[][] }>
+  const arr = result as Array<{ sheet?: string; data?: unknown[][] }>;
+  if (arr[0] && typeof arr[0] === 'object' && Array.isArray(arr[0].data)) {
     // Prefer sheet with 'tag', 'hmi', 'log' in name
-    const tagSheet = result.find((s: any) =>
+    const tagSheet = arr.find((s) =>
       s.sheet && (
         s.sheet.toLowerCase().includes('tag') ||
         s.sheet.toLowerCase().includes('hmi') ||
@@ -307,8 +308,8 @@ export function extractXlsxRows(result: any): { rows: any[][]; sheetName?: strin
     }
 
     // Otherwise find sheet with max rows
-    let maxSheet = result[0];
-    for (const s of result) {
+    let maxSheet = arr[0];
+    for (const s of arr) {
       if (s.data && s.data.length > (maxSheet.data?.length || 0)) {
         maxSheet = s;
       }
@@ -316,9 +317,9 @@ export function extractXlsxRows(result: any): { rows: any[][]; sheetName?: strin
     return { rows: maxSheet.data || [], sheetName: maxSheet.sheet };
   }
 
-  // Single sheet: Array<any[]>
+  // Single sheet: Array<unknown[]>
   if (Array.isArray(result[0])) {
-    return { rows: result };
+    return { rows: result as unknown[][] };
   }
 
   return { rows: [] };
@@ -373,13 +374,14 @@ export async function parseTagsFromFile(file: File): Promise<ImportParseResult> 
         format: 'csv',
       };
     }
-  } catch (err: any) {
+  } catch (err: unknown) {
+    const errMsg = err instanceof Error ? err.message : String(err);
     return {
       success: false,
       filename,
       totalDetected: 0,
       tags: [],
-      errors: [`Ошибка чтения файла: ${err?.message || String(err)}`],
+      errors: [`Ошибка чтения файла: ${errMsg}`],
       format: isXlsx ? 'xlsx' : 'csv',
     };
   }

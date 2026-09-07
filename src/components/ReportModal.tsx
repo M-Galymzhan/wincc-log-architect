@@ -26,12 +26,17 @@ export const ReportModal: React.FC<ReportModalProps> = ({
 }) => {
   const t = translations[lang];
 
-  const [projectName, setProjectName] = useState(() =>
-    lang === 'ru' ? 'Проект автоматизации Siemens' : 'Siemens Automation Project'
-  );
-  const [engineerName, setEngineerName] = useState(() =>
-    lang === 'ru' ? 'Инженер АСУ ТП' : 'Siemens Certified Engineer'
-  );
+  const [customProjectName, setCustomProjectName] = useState<string | null>(null);
+  const [customEngineerName, setCustomEngineerName] = useState<string | null>(null);
+
+  const projectName = customProjectName !== null
+    ? customProjectName
+    : (lang === 'ru' ? 'Проект автоматизации Siemens' : 'Siemens Automation Project');
+
+  const engineerName = customEngineerName !== null
+    ? customEngineerName
+    : (lang === 'ru' ? 'Инженер АСУ ТП' : 'Siemens Certified Engineer');
+
   const [viewMode, setViewMode] = useState<'active' | 'all'>('active');
 
   const dateStr = new Date().toLocaleDateString(lang === 'ru' ? 'ru-RU' : 'en-US', {
@@ -39,19 +44,6 @@ export const ReportModal: React.FC<ReportModalProps> = ({
     month: 'long',
     day: 'numeric',
   });
-
-  useEffect(() => {
-    if (lang === 'ru' && (projectName === 'Siemens Automation Project' || !projectName)) {
-      setProjectName('Проект автоматизации Siemens');
-    } else if (lang === 'en' && (projectName === 'Проект автоматизации Siemens' || !projectName)) {
-      setProjectName('Siemens Automation Project');
-    }
-    if (lang === 'ru' && (engineerName === 'Siemens Certified Engineer' || !engineerName)) {
-      setEngineerName('Инженер АСУ ТП');
-    } else if (lang === 'en' && (engineerName === 'Инженер АСУ ТП' || !engineerName)) {
-      setEngineerName('Siemens Certified Engineer');
-    }
-  }, [lang]);
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -153,7 +145,7 @@ export const ReportModal: React.FC<ReportModalProps> = ({
                 <input
                   type="text"
                   value={projectName}
-                  onChange={(e) => setProjectName(e.target.value)}
+                  onChange={(e) => setCustomProjectName(e.target.value)}
                   className="p-1 px-1.5 text-xs font-semibold rounded border border-slate-300 dark:border-slate-700 bg-transparent text-slate-900 dark:text-slate-100 text-right outline-none focus:ring-1 focus:ring-[#00646E]"
                 />
               </div>
@@ -162,7 +154,7 @@ export const ReportModal: React.FC<ReportModalProps> = ({
                 <input
                   type="text"
                   value={engineerName}
-                  onChange={(e) => setEngineerName(e.target.value)}
+                  onChange={(e) => setCustomEngineerName(e.target.value)}
                   className="p-1 px-1.5 text-xs font-semibold rounded border border-slate-300 dark:border-slate-700 bg-transparent text-slate-900 dark:text-slate-100 text-right outline-none focus:ring-1 focus:ring-[#00646E]"
                 />
               </div>
@@ -226,7 +218,7 @@ export const ReportModal: React.FC<ReportModalProps> = ({
                     </td>
                     <td className="py-2 text-slate-500 dark:text-slate-400">{t.reportFlashEndurance}</td>
                     <td className="py-2 font-semibold text-emerald-600 dark:text-emerald-400 font-mono">
-                      ~{unifiedData.result.estimatedFlashLifeYears.toFixed(1)} {lang === 'ru' ? 'года' : 'years'}
+                      {unifiedData.config.deviceType === 'pc_rt' ? 'N/A' : `~${unifiedData.result.estimatedFlashLifeYears.toFixed(1)} ${lang === 'ru' ? 'лет' : 'yrs'}`}
                     </td>
                   </tr>
                 </tbody>

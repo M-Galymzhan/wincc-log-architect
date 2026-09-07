@@ -28,16 +28,15 @@ export const TiaCheatSheetModal: React.FC<TiaCheatSheetModalProps> = ({
   const t = translations[lang];
   const [copiedKey, setCopiedKey] = useState<string | null>(null);
   const [modalView, setModalView] = useState<'properties' | 'checklist'>('properties');
-  const [checkedRules, setCheckedRules] = useState<Record<number, boolean>>({});
-
-  useEffect(() => {
+  const [checkedRules, setCheckedRules] = useState<Record<number, boolean>>(() => {
     if (typeof window !== 'undefined') {
       try {
         const saved = localStorage.getItem('wincc_storage_checklist');
-        if (saved) setCheckedRules(JSON.parse(saved));
+        if (saved) return JSON.parse(saved);
       } catch {}
     }
-  }, []);
+    return {};
+  });
 
   const toggleRule = (ruleNum: number) => {
     setCheckedRules((prev) => {

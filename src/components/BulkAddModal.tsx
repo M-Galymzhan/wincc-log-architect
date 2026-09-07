@@ -28,19 +28,13 @@ export const BulkAddModal: React.FC<BulkAddModalProps> = ({
 }) => {
   const t = translations[lang];
   const [count, setCount] = useState<number | ''>(50);
-  const [prefix, setPrefix] = useState<string>(
-    tab === 'unified' ? 'Unified_Sensor_' : tab === 'comfort' ? 'Comfort_Tag_' : 'SCADA_Signal_'
-  );
+  const [customPrefix, setCustomPrefix] = useState<string | null>(null);
+  const defaultPrefix = tab === 'unified' ? 'Unified_Sensor_' : tab === 'comfort' ? 'Comfort_Tag_' : 'SCADA_Signal_';
+  const prefix = customPrefix !== null ? customPrefix : defaultPrefix;
   const [cycleSec, setCycleSec] = useState<number | ''>(2);
   const [mode, setMode] = useState<'cyclic' | 'onchange'>('cyclic');
   const [dataType, setDataType] = useState<UnifiedTag['dataType']>('Real');
   const [archiveType, setArchiveType] = useState<'fast' | 'slow'>('fast');
-
-  useEffect(() => {
-    if (tab === 'unified') setPrefix('Unified_Sensor_');
-    else if (tab === 'comfort') setPrefix('Comfort_Tag_');
-    else setPrefix('SCADA_Signal_');
-  }, [tab]);
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -149,7 +143,7 @@ export const BulkAddModal: React.FC<BulkAddModalProps> = ({
               type="text"
               required
               value={prefix}
-              onChange={(e) => setPrefix(e.target.value)}
+              onChange={(e) => setCustomPrefix(e.target.value)}
               className="w-full p-2 text-xs font-medium rounded-xl border border-slate-300 dark:border-slate-700 bg-white/80 dark:bg-slate-900 text-slate-900 dark:text-slate-100 focus:border-[#00646E] focus:ring-2 focus:ring-[#00646E]/20 outline-none"
             />
             <p className="text-[10px] text-slate-500 dark:text-slate-300 mt-1">

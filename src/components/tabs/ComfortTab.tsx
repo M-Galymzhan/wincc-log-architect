@@ -5,7 +5,7 @@ import { translations, formatPlural } from '../../lib/i18n';
 import { BulkAddModal } from '../BulkAddModal';
 import { ConfirmModal } from '../ConfirmModal';
 import { ImportTagsModal } from '../ImportTagsModal';
-import { Plus, Trash2, HardDrive, AlertTriangle, CheckCircle2, RefreshCw, FileSpreadsheet, Layers, Download, Upload } from 'lucide-react';
+import { Plus, Trash2, HardDrive, AlertTriangle, CheckCircle2, RefreshCw, FileSpreadsheet, Layers, Upload } from 'lucide-react';
 import { getSiemensArticle } from '../../lib/calculator/mlfbCatalog';
 import { generateTiaPortalCsv, generateTiaPortalXlsx, downloadFile, downloadXlsxFile } from '../../lib/tiaExporter';
 import { convertToComfortTags, ParsedTagItem } from '../../lib/tagImporter';

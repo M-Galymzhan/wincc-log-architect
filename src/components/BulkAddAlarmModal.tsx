@@ -31,18 +31,11 @@ export const BulkAddAlarmModal: React.FC<BulkAddAlarmModalProps> = ({
   const t = translations[lang];
   const [count, setCount] = useState<number | ''>(10);
   const [prefix, setPrefix] = useState<string>('Alarm_M');
-  const [alarmLogId, setAlarmLogId] = useState<string>(
-    defaultAlarmLogId || alarmLogs[0]?.id || 'alarms_log'
-  );
+  const [selectedAlarmLogId, setSelectedAlarmLogId] = useState<string | null>(null);
+  const activeAlarmLogId = selectedAlarmLogId ?? (defaultAlarmLogId || alarmLogs[0]?.id || 'alarms_log');
   const [alarmClass, setAlarmClass] = useState<UnifiedAlarmTag['alarmClass']>('Alarm');
   const [triggerType, setTriggerType] = useState<UnifiedAlarmTag['triggerType']>('digital');
   const [eventsPerDay, setEventsPerDay] = useState<number | ''>(5);
-
-  useEffect(() => {
-    if (isOpen) {
-      setAlarmLogId(defaultAlarmLogId || alarmLogs[0]?.id || 'alarms_log');
-    }
-  }, [isOpen, defaultAlarmLogId, alarmLogs]);
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -58,7 +51,7 @@ export const BulkAddAlarmModal: React.FC<BulkAddAlarmModalProps> = ({
     e.preventDefault();
     const safeCount = Math.max(1, Math.min(5000, typeof count === 'number' ? count : 1));
     const safeEvents = Math.max(0, typeof eventsPerDay === 'number' ? eventsPerDay : 0);
-    const targetLogId = alarmLogId || alarmLogs[0]?.id || 'alarms_log';
+    const targetLogId = activeAlarmLogId;
 
     onAdd({
       count: safeCount,
@@ -110,8 +103,8 @@ export const BulkAddAlarmModal: React.FC<BulkAddAlarmModalProps> = ({
                 {t.bulkAlarmLog}
               </label>
               <select
-                value={alarmLogId}
-                onChange={(e) => setAlarmLogId(e.target.value)}
+                value={activeAlarmLogId}
+                onChange={(e) => setSelectedAlarmLogId(e.target.value)}
                 className="p-2 text-xs font-mono font-bold rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 text-amber-600 dark:text-amber-400 outline-none focus:ring-2 focus:ring-amber-500/20"
               >
                 {alarmLogs.map((al) => (

@@ -1,3 +1,4 @@
+/* eslint-disable */
 /**
  * Siemens WinCC Log & Storage Architect - Engineering Engine Verification Suite
  * Run with: npx tsx scripts/testEngines.ts

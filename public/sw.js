@@ -1,6 +1,6 @@
-const CACHE_NAME = 'wincc-log-architect-v2-5-0';
+const CACHE_NAME = 'wincc-log-architect-v2-11-2';
 
-self.addEventListener('install', (event) => {
+self.addEventListener('install', () => {
   self.skipWaiting();
 });
 

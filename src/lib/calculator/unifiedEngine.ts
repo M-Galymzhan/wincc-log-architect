@@ -57,7 +57,6 @@ export function calculateUnified(
   const logItems: import('../types').CalculatedLogItem[] = [];
   let totalRatePerSec = 0;
   let totalTagsCount = 0;
-  let totalBytesPerDayAllLogs = 0;
 
   // 4. Calculate each Data Log
   dataLogConfigs.forEach((dl, index) => {
@@ -143,7 +142,6 @@ export function calculateUnified(
     if (isEnabled) {
       totalRatePerSec += dlRatePerSec;
       totalTagsCount += dlTagCount;
-      totalBytesPerDayAllLogs += dlBytesPerDay;
     }
   });
 
@@ -214,7 +212,6 @@ export function calculateUnified(
 
     if (isEnabled) {
       totalRatePerSec += alEntriesPerDay / 86400;
-      totalBytesPerDayAllLogs += alBytesPerDay;
     }
   });
 
@@ -257,7 +254,6 @@ export function calculateUnified(
     });
 
     totalRatePerSec += auditEntriesPerDay / 86400;
-    totalBytesPerDayAllLogs += auditBytesPerDay;
   }
 
   // 7. Summary Metrics

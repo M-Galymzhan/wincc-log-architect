@@ -12,7 +12,7 @@ import { ConfirmModal } from '../ConfirmModal';
 import { ImportTagsModal } from '../ImportTagsModal';
 import { 
   Plus, Trash2, Layers, AlertTriangle, CheckCircle2, 
-  ShieldCheck, ShieldAlert, Bell, BellRing, Cpu, Clock, RefreshCw, Download, Settings2, Upload,
+  ShieldCheck, ShieldAlert, Bell, Cpu, Clock, RefreshCw, Settings2, Upload,
   Database, Copy, Check, Filter
 } from 'lucide-react';
 import { getSiemensArticle } from '../../lib/calculator/mlfbCatalog';
@@ -923,7 +923,6 @@ export const UnifiedTab: React.FC<UnifiedTabProps> = ({
                     const matchingAlarmTags = alarmTags.filter((at) => (at.alarmLogId ? at.alarmLogId === al.id : idx === 0));
                     const tagsEvents = matchingAlarmTags.reduce((sum, at) => sum + (Math.max(0, at.eventsPerDay || 0) * Math.max(1, at.count || 1)), 0);
                     const tagsCount = matchingAlarmTags.reduce((sum, at) => sum + Math.max(1, at.count || 1), 0);
-                    const logCalc = result.logItems.find(i => i.id === al.id);
                     const curRetention = al.retentionDays !== undefined ? al.retentionDays : config.retentionDays;
                     const rawCurSegment = al.segmentHours !== undefined ? al.segmentHours : config.segmentHours;
                     const curSegment = Math.min(Math.max(1, (curRetention || 1) * 24), rawCurSegment || 24);

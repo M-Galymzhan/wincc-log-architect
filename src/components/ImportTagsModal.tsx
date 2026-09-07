@@ -1,18 +1,18 @@
 'use client';
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { ActiveTab, Language } from '../lib/types';
 import { translations, formatPlural } from '../lib/i18n';
 import { ParsedTagItem, ImportParseResult, parseTagsFromFile } from '../lib/tagImporter';
 import { 
   FileSpreadsheet, X, Upload, CheckCircle2, AlertTriangle, 
-  FileText, ArrowRight, RefreshCw, Layers 
+  ArrowRight, RefreshCw 
 } from 'lucide-react';
 
 interface ImportTagsModalProps {
   isOpen: boolean;
   onClose: () => void;
   onImport: (tags: ParsedTagItem[], mode: 'append' | 'replace') => void;
-  tab: ActiveTab;
+  tab?: ActiveTab;
   lang: Language;
 }
 
@@ -20,7 +20,6 @@ export const ImportTagsModal: React.FC<ImportTagsModalProps> = ({
   isOpen,
   onClose,
   onImport,
-  tab,
   lang,
 }) => {
   const t = translations[lang];
@@ -31,24 +30,22 @@ export const ImportTagsModal: React.FC<ImportTagsModalProps> = ({
   const [parseResult, setParseResult] = useState<ImportParseResult | null>(null);
   const [importMode, setImportMode] = useState<'append' | 'replace'>('append');
 
-  // Reset state on open/close
-  useEffect(() => {
-    if (!isOpen) {
-      setParseResult(null);
-      setIsProcessing(false);
-      setIsDragging(false);
-      setImportMode('append');
-    }
-  }, [isOpen]);
+  const handleClose = useCallback(() => {
+    setParseResult(null);
+    setIsProcessing(false);
+    setIsDragging(false);
+    setImportMode('append');
+    onClose();
+  }, [onClose]);
 
   // Escape key handler
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === 'Escape' && isOpen) onClose();
+      if (e.key === 'Escape' && isOpen) handleClose();
     };
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [isOpen, onClose]);
+  }, [isOpen, handleClose]);
 
   if (!isOpen) return null;
 
@@ -57,13 +54,14 @@ export const ImportTagsModal: React.FC<ImportTagsModalProps> = ({
     try {
       const result = await parseTagsFromFile(file);
       setParseResult(result);
-    } catch (err: any) {
+    } catch (err: unknown) {
+      const errMsg = err instanceof Error ? err.message : (typeof err === 'string' ? err : 'Ошибка чтения файла');
       setParseResult({
         success: false,
         filename: file.name,
         totalDetected: 0,
         tags: [],
-        errors: [err?.message || 'Ошибка чтения файла'],
+        errors: [errMsg],
         format: 'xlsx',
       });
     } finally {
@@ -132,7 +130,7 @@ export const ImportTagsModal: React.FC<ImportTagsModalProps> = ({
             </div>
           </div>
           <button
-            onClick={onClose}
+            onClick={handleClose}
             className="p-1.5 rounded-xl text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors cursor-pointer"
             aria-label="Close"
           >
@@ -324,7 +322,7 @@ export const ImportTagsModal: React.FC<ImportTagsModalProps> = ({
         <div className="flex items-center justify-end gap-2 pt-4 mt-4 border-t border-slate-200 dark:border-slate-800 shrink-0">
           <button
             type="button"
-            onClick={onClose}
+            onClick={handleClose}
             className="px-4 py-2 text-xs font-semibold rounded-xl text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors cursor-pointer"
           >
             {t.btnCancel}
