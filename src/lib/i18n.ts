@@ -355,6 +355,25 @@ export const translations = {
     networkRecommendationTitle: 'Инженерная рекомендация по топологии',
     networkReportTitle: 'Оценка сетевой нагрузки Industrial Ethernet (Network Sizing)',
     networkReportDesc: 'Расчет полосы пропускания и трафика опроса тегов между ПЛК и WinCC',
+
+    // Support & Ko-fi
+    supportTitle: 'Поддержать проект',
+    supportDesc: 'Если калькулятор сэкономил вам рабочее время при проектировании или пусконаладке АСУ ТП — угостите автора кофе! Это помогает поддерживать развитие и хостинг инструмента.',
+    kofiBtn: 'Угостить кофе на Ko-fi',
+    kofiHeaderTooltip: 'На чай разработчику (Ko-fi)',
+
+    // SEO & Technical Guide
+    seoHeading: 'Инженерный калькулятор архивов Siemens WinCC для TIA Portal',
+    seoIntro: 'Siemens WinCC Log & Storage Architect — специализированный инструмент для прецизионного расчета емкости хранилищ, периодов ротации сегментов, времени жизни flash-памяти и аварийных очередей в проектах автоматизации на базе TIA Portal (V14–V20).',
+    faqTitle: 'Часто задаваемые вопросы (FAQ)',
+    faqQ1: 'Почему размер сегмента WinCC Unified кратен 4 МБ?',
+    faqA1: 'Архивы WinCC Unified базируются на СУБД SQLite в режиме Write-Ahead Logging (WAL). Siemens выделяет дисковое пространство монолитными блоками, кратными 4 МБ, с минимальным размером сегмента 4 МБ. При циклической ротации удаляется весь старый 4 МБ файл сегмента целиком, что предотвращает фрагментацию файловой системы на картах SDHC/SDXC.',
+    faqQ2: 'Что означает Write Amplification 1.5x в расчете Flash памяти?',
+    faqA2: 'При записи каждой строки SQLite сначала фиксирует транзакцию в журнал упреждающей записи (*.wal), а затем выполняет сброс (checkpoint) в основной файл базы данных (*.db3). С учетом служебных метаданных и индексов B-tree суммарная нагрузка на flash-память в 1.5–1.8 раза превышает чистый объем полезных данных тегов.',
+    faqQ3: 'Каковы аппаратные ограничения для панелей Comfort и RT Advanced?',
+    faqA3: 'Панели SIMATIC Comfort под управлением Windows CE 6.0 поддерживают карты памяти SDHC объемом не более 32 ГБ с файловой системой FAT32. Максимальное число записей в одном файле журнала RDB/CSV ограничено системным пределом 500 000 строк. При превышении этого порога требуется создавать последовательность файлов (Sequence of log files).',
+    faqQ4: 'Как интерпретировать анализ тревог по стандарту ISA-18.2 / EEMUA 191?',
+    faqA4: 'Стандарт управления сигнализацией ISA-18.2 / EEMUA 191 рекомендует удерживать среднюю частоту тревог на уровне менее 6 алармов в час в нормальном технологическом режиме и не более 12 при переходных процессах. Превышение порога в 30 алармов в час классифицируется как лавина тревог (Alarm Flood), перегружающая оператора и требующая рационализации сигналов.',
   },
   en: {
     appTitle: 'Siemens WinCC Log & Storage Architect',
@@ -698,6 +717,25 @@ export const translations = {
     networkRecommendationTitle: 'Engineering Topology Recommendation',
     networkReportTitle: 'Industrial Ethernet Network Sizing Assessment',
     networkReportDesc: 'Calculated polling bandwidth and traffic between PLC and WinCC',
+
+    // Support & Ko-fi
+    supportTitle: 'Support the Project',
+    supportDesc: 'If this calculator saved you valuable engineering and commissioning time on your SCADA project, consider buying me a coffee! It helps keep the tool updated and hosted.',
+    kofiBtn: 'Support on Ko-fi',
+    kofiHeaderTooltip: 'Buy me a coffee (Ko-fi)',
+
+    // SEO & Technical Guide
+    seoHeading: 'Siemens WinCC Storage Sizing & Validation Guide',
+    seoIntro: 'Siemens WinCC Log & Storage Architect is a specialized offline/PWA engineering calculator designed to calculate database volumes, segment rotation periods, flash endurance (TBW), and alarm rates for TIA Portal V14–V20 automation projects.',
+    faqTitle: 'Frequently Asked Questions (FAQ)',
+    faqQ1: 'Why are WinCC Unified segments aligned to 4 MB multiples?',
+    faqA1: 'WinCC Unified runtime utilizes SQLite with Write-Ahead Logging (WAL). Siemens allocates log storage in discrete 4 MB multiples with a 4 MB minimum segment size. Cyclic deletion removes entire 4 MB segment files at once, avoiding filesystem fragmentation on industrial SD cards.',
+    faqQ2: 'What is the SQLite WAL 1.5x Write Amplification factor?',
+    faqA2: 'Every logged entry is first appended to the write-ahead log (*.wal) and subsequently merged into the main database file (*.db3). Including B-tree indexing and journal checkpoints, the actual byte volume written to flash is approximately 1.5x higher than raw tag data payload.',
+    faqQ3: 'What are the hardware limits for Comfort Panels and RT Advanced?',
+    faqA3: 'SIMATIC Comfort Panels (running Windows CE 6.0) are limited to 32 GB SDHC cards formatted in FAT32. Furthermore, Siemens enforces a hard limit of 500,000 records per individual RDB or CSV log file before requiring a segmented file sequence.',
+    faqQ4: 'How does the ISA-18.2 / EEMUA 191 alarm assessment work?',
+    faqA4: 'ISA-18.2 and EEMUA 191 recommend keeping average alarm rates under 6 alarms per hour during steady-state operation, with a manageable ceiling of 12 alarms per hour. A rate exceeding 30 alarms per hour is defined as an Alarm Flood condition, requiring alarm rationalization.',
   }
 };
 

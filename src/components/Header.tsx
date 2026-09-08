@@ -2,7 +2,7 @@
 import React from 'react';
 import { Language, Theme } from '../lib/types';
 import { translations } from '../lib/i18n';
-import { Sun, Moon, FileText, Download, Upload, Copy, Cpu, Sparkles } from 'lucide-react';
+import { Sun, Moon, FileText, Download, Upload, Copy, Cpu, Sparkles, Coffee } from 'lucide-react';
 
 interface HeaderProps {
   lang: Language;
@@ -51,11 +51,21 @@ export const Header: React.FC<HeaderProps> = ({
                   href="https://github.com/M-Galymzhan/wincc-log-architect/commits/main"
                   target="_blank"
                   rel="noopener noreferrer"
-                  title={lang === 'ru' ? 'Релиз v2.11.4 (кликните для просмотра коммитов на GitHub)' : 'Release v2.11.4 (click to view GitHub commits)'}
+                  title={lang === 'ru' ? 'Релиз v2.11.5 (кликните для просмотра коммитов на GitHub)' : 'Release v2.11.5 (click to view GitHub commits)'}
                   className="text-[10px] font-mono font-bold tracking-tight px-1.5 sm:px-2 py-0.5 rounded-full bg-emerald-500/15 hover:bg-emerald-500/25 text-emerald-700 dark:text-emerald-300 border border-emerald-500/30 flex items-center gap-1 sm:gap-1.5 shadow-sm transition-all cursor-pointer active:scale-95 whitespace-nowrap shrink-0"
                 >
                   <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse shrink-0" />
-                  <span>v2.11.4</span>
+                  <span>v2.11.5</span>
+                </a>
+                <a
+                  href="https://ko-fi.com/glmm1"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  title={t.kofiHeaderTooltip}
+                  className="text-[10px] font-semibold tracking-tight px-2 py-0.5 rounded-full bg-[#FF5E5B]/15 hover:bg-[#FF5E5B]/25 text-[#FF5E5B] dark:text-[#ff7b78] border border-[#FF5E5B]/30 flex items-center gap-1 shadow-sm transition-all cursor-pointer active:scale-95 whitespace-nowrap shrink-0"
+                >
+                  <Coffee className="w-3 h-3 text-[#FF5E5B]" />
+                  <span className="hidden sm:inline">{lang === 'ru' ? 'На чай' : 'Ko-fi'}</span>
                 </a>
               </div>
               <p className="text-xs text-slate-500 dark:text-slate-400 truncate hidden md:block">

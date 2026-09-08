@@ -15,6 +15,7 @@ import { ReportModal } from '../components/ReportModal';
 import { IndustryPresetsModal } from '../components/IndustryPresetsModal';
 import { IndustryPreset } from '../lib/presets';
 import { Toast } from '../components/Toast';
+import { Coffee, HelpCircle } from 'lucide-react';
 
 const emptySubscribe = () => () => {};
 
@@ -24,6 +25,7 @@ export default function Home() {
   const [lang, setLang] = useState<Language>('ru');
   const [theme, setTheme] = useState<Theme>('dark');
   const [activeTab, setActiveTab] = useState<ActiveTab>('unified');
+  const t = translations[lang];
 
   const [isCheatSheetOpen, setIsCheatSheetOpen] = useState(false);
   const [isReportOpen, setIsReportOpen] = useState(false);
@@ -343,6 +345,86 @@ export default function Home() {
               onShowToast={addToast}
             />
           )}
+
+          {/* SEO Technical Guide & FAQ Section */}
+          <section className="mt-16 pt-10 border-t border-slate-200/80 dark:border-slate-800">
+            <div className="text-center max-w-3xl mx-auto mb-8">
+              <h2 className="text-xl sm:text-2xl font-bold text-slate-900 dark:text-slate-100 mb-2.5 tracking-tight">
+                {t.seoHeading}
+              </h2>
+              <p className="text-xs sm:text-sm text-slate-600 dark:text-slate-400 leading-relaxed">
+                {t.seoIntro}
+              </p>
+            </div>
+
+            {/* FAQ Cards Grid */}
+            <div className="max-w-5xl mx-auto mb-12">
+              <div className="flex items-center gap-2 mb-4 justify-center sm:justify-start">
+                <HelpCircle className="w-5 h-5 text-[#00646E] dark:text-[#00A3B5]" />
+                <h3 className="text-base sm:text-lg font-semibold text-slate-800 dark:text-slate-200">
+                  {t.faqTitle}
+                </h3>
+              </div>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="p-4 sm:p-5 rounded-2xl bg-white/70 dark:bg-slate-900/60 border border-slate-200/80 dark:border-slate-800/80 shadow-xs hover:border-[#00646E]/30 dark:hover:border-[#00A3B5]/30 transition-all">
+                  <h4 className="text-xs sm:text-sm font-bold text-slate-900 dark:text-slate-100 mb-2">
+                    {t.faqQ1}
+                  </h4>
+                  <p className="text-xs text-slate-600 dark:text-slate-400 leading-relaxed">
+                    {t.faqA1}
+                  </p>
+                </div>
+                <div className="p-4 sm:p-5 rounded-2xl bg-white/70 dark:bg-slate-900/60 border border-slate-200/80 dark:border-slate-800/80 shadow-xs hover:border-[#00646E]/30 dark:hover:border-[#00A3B5]/30 transition-all">
+                  <h4 className="text-xs sm:text-sm font-bold text-slate-900 dark:text-slate-100 mb-2">
+                    {t.faqQ2}
+                  </h4>
+                  <p className="text-xs text-slate-600 dark:text-slate-400 leading-relaxed">
+                    {t.faqA2}
+                  </p>
+                </div>
+                <div className="p-4 sm:p-5 rounded-2xl bg-white/70 dark:bg-slate-900/60 border border-slate-200/80 dark:border-slate-800/80 shadow-xs hover:border-[#00646E]/30 dark:hover:border-[#00A3B5]/30 transition-all">
+                  <h4 className="text-xs sm:text-sm font-bold text-slate-900 dark:text-slate-100 mb-2">
+                    {t.faqQ3}
+                  </h4>
+                  <p className="text-xs text-slate-600 dark:text-slate-400 leading-relaxed">
+                    {t.faqA3}
+                  </p>
+                </div>
+                <div className="p-4 sm:p-5 rounded-2xl bg-white/70 dark:bg-slate-900/60 border border-slate-200/80 dark:border-slate-800/80 shadow-xs hover:border-[#00646E]/30 dark:hover:border-[#00A3B5]/30 transition-all">
+                  <h4 className="text-xs sm:text-sm font-bold text-slate-900 dark:text-slate-100 mb-2">
+                    {t.faqQ4}
+                  </h4>
+                  <p className="text-xs text-slate-600 dark:text-slate-400 leading-relaxed">
+                    {t.faqA4}
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            {/* Support / Donation Footer */}
+            <div className="pt-8 pb-12 border-t border-slate-200/60 dark:border-slate-800 text-center">
+              <h3 className="text-xl sm:text-2xl font-bold mb-2.5 text-slate-900 dark:text-slate-100">
+                {t.supportTitle}
+              </h3>
+              <p className="text-slate-600 dark:text-slate-400 mb-6 max-w-xl mx-auto text-xs sm:text-sm leading-relaxed">
+                {t.supportDesc}
+              </p>
+              <div className="flex items-center justify-center">
+                <a
+                  href="https://ko-fi.com/glmm1"
+                  target="_blank"
+                  rel="noreferrer"
+                  className="inline-flex items-center gap-2.5 px-7 py-3 bg-[#FF5E5B] hover:bg-[#ff4542] text-white font-bold text-sm sm:text-base rounded-2xl shadow-xl shadow-[#FF5E5B]/25 transition-all duration-300 hover:scale-105 active:scale-95 cursor-pointer"
+                >
+                  <Coffee className="w-5 h-5" />
+                  {t.kofiBtn}
+                </a>
+              </div>
+              <div className="mt-8 text-[11px] text-slate-400 dark:text-slate-500">
+                © {new Date().getFullYear()} Siemens WinCC Log & Storage Architect • Open Source Engineering Tool
+              </div>
+            </div>
+          </section>
         </div>
       </main>
 

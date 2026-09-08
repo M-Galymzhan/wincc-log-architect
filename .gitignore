@@ -38,6 +38,54 @@ yarn-error.log*
 *.tsbuildinfo
 next-env.d.ts
 
+# IDE & Editors
+.vscode/
+!.vscode/extensions.json
+.idea/
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
+
+# OS Generated Files (Windows & macOS)
+Thumbs.db
+Thumbs.db:encryptable
+ehthumbs.db
+Desktop.ini
+$RECYCLE.BIN/
+.DS_Store
+.AppleDouble
+.LSOverride
+._*
+
+# Logs & Temporary Files
+*.log
+*.tmp
+*.temp
+server.log
+crash.log
+
+# Python cache & virtual environments (for push.py & local scripts)
+__pycache__/
+*.py[cod]
+*$py.class
+.venv/
+venv/
+env/
+
+# Build caches & Turbopack
+.turbo/
+.swc/
+
+# Local agent scratch & temporary excel exports
+scratch/
+*.local
+*.xlsx.tmp
+.gemini/
+.claude/
+
 # local agent context & memories (internal only)
 handoff.md
 MEMORIES.md
+
