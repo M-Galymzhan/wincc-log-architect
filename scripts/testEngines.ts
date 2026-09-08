@@ -4,7 +4,7 @@
  * Run with: npx tsx scripts/testEngines.ts
  */
 
-import { calculateUnified, getDataTypeBytes } from '../src/lib/calculator/unifiedEngine';
+import { calculateUnified, getDataTypeBytes, getMediumPeCycles } from '../src/lib/calculator/unifiedEngine';
 import { calculateComfort } from '../src/lib/calculator/comfortEngine';
 import { calculateProfessional } from '../src/lib/calculator/professionalEngine';
 import { UnifiedTag, UnifiedAlarmTag, UnifiedConfig, ComfortTag, ComfortConfig, ProfessionalTag, ProfessionalConfig } from '../src/lib/types';
@@ -1371,6 +1371,81 @@ async function runAsyncTests() {
     });
     assert(resWithAlarmTags.isa18AlarmAssessment?.totalAlarmsPerDay === 72, `ISA-18.2: sums alarm tags correctly (50+22=72), got ${resWithAlarmTags.isa18AlarmAssessment?.totalAlarmsPerDay}`);
     assert(resWithAlarmTags.isa18AlarmAssessment?.status === 'acceptable', `ISA-18.2: tag-derived rate is acceptable, got ${resWithAlarmTags.isa18AlarmAssessment?.status}`);
+
+    // ==========================================
+    // 16. Flash Wear & Endurance Calculations (Flash Life v2)
+    // ==========================================
+    console.log('\n--- 16. Flash Life & Wear Calculations (P/E Differentiated & Overflow Guard) ---');
+
+    // 16.1 P/E cycle lookup helper verification
+    assert(getMediumPeCycles('sd_12g').peCycles === 60000, 'P/E: Siemens SD is SLC (60 000 P/E)');
+    assert(getMediumPeCycles('sd_32g').peCycles === 60000, 'P/E: Siemens SD 32GB is SLC (60 000 P/E)');
+    assert(getMediumPeCycles('usb_128g').peCycles === 3000, 'P/E: Siemens Industrial USB is 3 000 P/E');
+    assert(getMediumPeCycles('sd_custom_x52', 'slc').peCycles === 60000, 'P/E: Custom SD SLC is 60 000 P/E');
+    assert(getMediumPeCycles('sd_custom_x52', 'pslc').peCycles === 20000, 'P/E: Custom SD pSLC is 20 000 P/E');
+    assert(getMediumPeCycles('sd_custom_x52', 'mlc').peCycles === 3000, 'P/E: Custom SD MLC is 3 000 P/E');
+    assert(getMediumPeCycles('sd_custom_x52', 'tlc').peCycles === 1000, 'P/E: Custom SD TLC is 1 000 P/E');
+    assert(getMediumPeCycles('sd_custom_x52', 'qlc').peCycles === 300, 'P/E: Custom SD QLC is 300 P/E');
+    assert(getMediumPeCycles('usb_custom', 'tlc').peCycles === 1000, 'P/E: Custom USB TLC is 1 000 P/E');
+    assert(getMediumPeCycles('ssd_custom').peCycles === 1500, 'P/E: Enterprise SSD is 1 500 P/E');
+
+    // 16.2 Siemens 12GB SD Card with moderate traffic
+    const testTagsForFlash: UnifiedTag[] = [
+      { id: 'f1', description: 'Pressure', mode: 'cyclic', cycleSec: 1, entriesPerSec: 1, count: 10, dataType: 'Real' }, // 10 entries/sec
+    ];
+    const baseConfigFlash: UnifiedConfig = {
+      deviceType: 'ucp',
+      retentionDays: 30,
+      segmentHours: 24,
+      perEntryBytes: 50,
+      headroomPct: 30,
+      storageMedium: 'sd_12g',
+      storageSizeGb: 12,
+      includeAlarms: false,
+      alarmsPerDay: 0,
+      includeAudit: false,
+      auditEntriesPerDay: 0,
+    };
+    const resSiemensFlash = calculateUnified(testTagsForFlash, baseConfigFlash);
+    assert(resSiemensFlash.peCyclesUsed === 60000, `Flash: Siemens SD uses 60000 P/E, got ${resSiemensFlash.peCyclesUsed}`);
+    assert(resSiemensFlash.flashLifeApplicable === true, 'Flash: Siemens SD is applicable under normal storage');
+    assert(resSiemensFlash.flashLifeReason === 'ok', 'Flash: reason is ok');
+    assert(resSiemensFlash.estimatedFlashLifeYears === 30, `Flash: Siemens SLC caps at 30 years, got ${resSiemensFlash.estimatedFlashLifeYears}`);
+
+    // 16.3 User Custom USB (Kingston 64 GB Consumer TLC)
+    const configKingstonUsb: UnifiedConfig = {
+      ...baseConfigFlash,
+      storageMedium: 'usb_custom',
+      storageSizeGb: 64,
+      nandClass: 'tlc',
+    };
+    const resKingstonUsb = calculateUnified(testTagsForFlash, configKingstonUsb);
+    assert(resKingstonUsb.peCyclesUsed === 1000, `Flash: Kingston USB uses 1000 P/E, got ${resKingstonUsb.peCyclesUsed}`);
+    assert(resKingstonUsb.flashLifeApplicable === true, 'Flash: Kingston USB is applicable');
+    assert(resKingstonUsb.warnings.some(w => w.includes('Power-Loss') || w.includes('бытовая память')), 'Flash: warning includes PLP advisory for consumer TLC');
+
+    // 16.4 Overflow suppression guard (>100% capacity)
+    const configOverflow: UnifiedConfig = {
+      ...baseConfigFlash,
+      retentionDays: 365, // huge retention to force overflow
+      storageSizeGb: 2,   // tiny 2GB storage
+    };
+    const resOverflow = calculateUnified(testTagsForFlash, configOverflow);
+    assert(resOverflow.storageOccupancyPct > 100, `Flash: setup produces overflow (>100%), got ${resOverflow.storageOccupancyPct}%`);
+    assert(resOverflow.flashLifeApplicable === false, 'Flash: flash life is NOT applicable on overflow');
+    assert(resOverflow.flashLifeReason === 'overflow', `Flash: reason is overflow, got ${resOverflow.flashLifeReason}`);
+    assert(!resOverflow.warnings.some(w => w.includes('Расчетный ресурс') || w.includes('Estimated storage endurance')), 'Flash: wear warning is suppressed during overflow');
+
+    // 16.5 PC Runtime / HDD suppression
+    const configPcRt: UnifiedConfig = {
+      ...baseConfigFlash,
+      deviceType: 'pc_rt',
+      storageMedium: 'ssd_custom',
+      storageSizeGb: 256,
+    };
+    const resPcRt = calculateUnified(testTagsForFlash, configPcRt);
+    assert(resPcRt.flashLifeApplicable === false, 'Flash: flash life is not applicable for PC RT');
+    assert(resPcRt.flashLifeReason === 'pc_rt', `Flash: reason is pc_rt, got ${resPcRt.flashLifeReason}`);
   }
 
   console.log(`\n========================================`);

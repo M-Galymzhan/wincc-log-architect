@@ -1,5 +1,41 @@
-import { UnifiedTag, UnifiedConfig, UnifiedResult, Language, Isa18AlarmAssessment } from '../types';
+import { UnifiedTag, UnifiedConfig, UnifiedResult, Language, Isa18AlarmAssessment, NandClass } from '../types';
 import { calculateUnifiedNetwork } from './networkEngine';
+
+export function getMediumPeCycles(storageMedium: string, nandClass?: NandClass): { peCycles: number; maxYears: number } {
+  // Siemens SIMATIC SD Cards (SLC NAND - 60 000 P/E cycles per Siemens SIOS / Swissbit)
+  if (['sd_512m', 'sd_2g', 'sd_12g', 'sd_32g'].includes(storageMedium)) {
+    return { peCycles: 60000, maxYears: 30 };
+  }
+
+  // Siemens Industrial USB (MLC/pSLC - 3 000 P/E cycles)
+  if (storageMedium === 'usb_128g') {
+    return { peCycles: 3000, maxYears: 30 };
+  }
+
+  // Custom User SD (Slot X52) or Custom User USB (Slot X61)
+  if (storageMedium === 'sd_custom_x52' || storageMedium === 'usb_custom') {
+    switch (nandClass) {
+      case 'slc':
+        return { peCycles: 60000, maxYears: 30 };
+      case 'pslc':
+        return { peCycles: 20000, maxYears: 30 };
+      case 'mlc':
+        return { peCycles: 3000, maxYears: 30 };
+      case 'qlc':
+        return { peCycles: 300, maxYears: 30 };
+      case 'tlc':
+      default:
+        return { peCycles: 1000, maxYears: 30 }; // Conservative default for consumer 3D TLC (Kingston, SanDisk)
+    }
+  }
+
+  // Industrial IPC SSD
+  if (storageMedium === 'ssd_custom') {
+    return { peCycles: 1500, maxYears: 50 };
+  }
+
+  return { peCycles: 1000, maxYears: 30 };
+}
 
 export function getDataTypeBytes(dataType: UnifiedTag['dataType'] | undefined, baseBytes: number = 50): number {
   const scale = baseBytes / 50;
@@ -289,17 +325,31 @@ export function calculateUnified(
   }, 0);
   const dailyWrittenGb = (totalDailyWriteMb * 1.5) / 1024; // WAL amplification
 
-  let peCycles = 2000; // default for SD cards
-  let maxYears = 30;
-  if (config.storageMedium === 'ssd_custom') {
-    peCycles = 600;
-    maxYears = 50;
-  } else if (config.storageMedium === 'usb_128g') {
-    peCycles = 1000;
-  }
-  
+  const { peCycles, maxYears } = getMediumPeCycles(config.storageMedium, config.nandClass);
   const totalCardTbwGb = storageSizeGb * peCycles;
-  const estimatedFlashLifeYears = dailyWrittenGb > 0 ? Math.min(maxYears, totalCardTbwGb / (dailyWrittenGb * 365)) : maxYears;
+  const totalCardTbwTb = totalCardTbwGb / 1024;
+
+  const isOverflow = storageOccupancyPct > 100;
+  const isPcRt = config.deviceType === 'pc_rt';
+  const hasZeroWrites = dailyWrittenGb <= 0 || totalEntriesPerDay === 0;
+
+  let flashLifeApplicable = true;
+  let flashLifeReason: 'overflow' | 'pc_rt' | 'zero_writes' | 'ok' = 'ok';
+
+  if (isPcRt) {
+    flashLifeApplicable = false;
+    flashLifeReason = 'pc_rt';
+  } else if (isOverflow) {
+    flashLifeApplicable = false;
+    flashLifeReason = 'overflow';
+  } else if (hasZeroWrites) {
+    flashLifeApplicable = false;
+    flashLifeReason = 'zero_writes';
+  }
+
+  const estimatedFlashLifeYears = flashLifeApplicable
+    ? Math.min(maxYears, totalCardTbwGb / (dailyWrittenGb * 365))
+    : maxYears;
 
   // Traffic status (Siemens limit recommendations)
   let trafficStatus: 'safe' | 'warning' | 'critical' = 'safe';
@@ -362,27 +412,46 @@ export function calculateUnified(
     );
   }
 
-  if (config.deviceType === 'ucp' && estimatedFlashLifeYears < 3 && totalEntriesPerDay > 0) {
-    if (config.storageMedium === 'sd_custom_x52') {
+  if (config.deviceType === 'ucp' && flashLifeApplicable && estimatedFlashLifeYears < 3 && totalEntriesPerDay > 0) {
+    if (config.storageMedium === 'sd_custom_x52' || config.storageMedium === 'usb_custom') {
+      const mediumLabelRu = config.storageMedium === 'usb_custom' ? 'USB-накопителя' : 'SD-карты';
+      const mediumLabelEn = config.storageMedium === 'usb_custom' ? 'USB flash drive' : 'SD card';
       warnings.push(
         lang === 'ru'
-          ? `Предупреждение по износу Flash: Расчетный ресурс SD-карты составляет ${estimatedFlashLifeYears.toFixed(1)} г. Для слота X52 строго рекомендуется использовать карту High Endurance или Industrial (pSLC/MLC) с Power-Loss Protection, либо перейти на сетевой диск (NAS/SMB).`
-          : `Flash wear alert: Estimated SD card endurance is ${estimatedFlashLifeYears.toFixed(1)} years. For Slot X52, High Endurance or Industrial grade cards (pSLC/MLC) with Power-Loss Protection or network archiving (NAS/SMB) are strongly recommended.`
+          ? `Предупреждение по износу Flash: Расчетный ресурс ${mediumLabelRu} составляет ${estimatedFlashLifeYears.toFixed(1)} г. Строго рекомендуется использовать карту/накопитель класса High Endurance или Industrial (pSLC/MLC) с Power-Loss Protection, либо перейти на сетевой диск (NAS/SMB).`
+          : `Flash wear alert: Estimated ${mediumLabelEn} endurance is ${estimatedFlashLifeYears.toFixed(1)} years. High Endurance or Industrial grade media (pSLC/MLC) with Power-Loss Protection or network archiving (NAS/SMB) are strongly recommended.`
       );
     } else {
       warnings.push(
         lang === 'ru'
-          ? `Предупреждение по износу Flash: Расчетный ресурс SD-карты составляет ${estimatedFlashLifeYears.toFixed(1)} г. Рекомендуется архивация на сетевой диск (NAS / SMB).`
-          : `Flash wear alert: Estimated SD card endurance is ${estimatedFlashLifeYears.toFixed(1)} years. Archiving to network share (NAS / SMB) is recommended.`
+          ? `Предупреждение по износу Flash: Расчетный ресурс накопителя составляет ${estimatedFlashLifeYears.toFixed(1)} г. Рекомендуется архивация на сетевой диск (NAS / SMB).`
+          : `Flash wear alert: Estimated storage endurance is ${estimatedFlashLifeYears.toFixed(1)} years. Archiving to network share (NAS / SMB) is recommended.`
       );
     }
   }
 
-  if (config.deviceType === 'ucp' && config.storageMedium === 'sd_custom_x52' && storageSizeGb > 32) {
+  // Consumer flash reliability & PLP advisory for Slot X52 and Port X61
+  if (
+    config.deviceType === 'ucp' &&
+    (config.storageMedium === 'sd_custom_x52' || config.storageMedium === 'usb_custom') &&
+    (config.nandClass === 'tlc' || config.nandClass === 'qlc' || !config.nandClass)
+  ) {
+    const mediumNameRu = config.storageMedium === 'usb_custom' ? 'USB-накопителе' : 'SD-карте';
+    const mediumNameEn = config.storageMedium === 'usb_custom' ? 'USB drive' : 'SD card';
     warnings.push(
       lang === 'ru'
-        ? `Внимание по файловой системе (SDXC ${storageSizeGb} GB): Слот SD X52 не поддерживает заводскую разметку exFAT! Обязательно отформатируйте карту в NTFS (рекомендация Siemens SIOS для надежности SQLite) или FAT32 перед установкой в панель.`
-        : `File system advisory (SDXC ${storageSizeGb} GB): SD Slot X52 does NOT support factory-default exFAT! The card must be formatted in NTFS (Siemens SIOS recommendation for SQLite integrity) or FAT32 before inserting into the panel.`
+        ? `Внимание по надежности: На ${mediumNameRu} используется бытовая память (3D TLC/QLC) без аппаратной защиты от сбоев питания (Power-Loss Protection). При аварийном отключении питания панели возможна порча базы SQLite WAL. Для 24/7 логирования рекомендуется класс High Endurance или Industrial (pSLC/MLC).`
+        : `Reliability advisory: ${mediumNameEn} utilizes consumer flash (3D TLC/QLC) without hardware Power-Loss Protection. Sudden panel power cuts may corrupt SQLite WAL databases. High Endurance or Industrial grade media (pSLC/MLC) is recommended for 24/7.`
+    );
+  }
+
+  if (config.deviceType === 'ucp' && (config.storageMedium === 'sd_custom_x52' || config.storageMedium === 'usb_custom') && storageSizeGb > 32) {
+    const portNameRu = config.storageMedium === 'usb_custom' ? 'USB X61' : 'SD X52';
+    const portNameEn = config.storageMedium === 'usb_custom' ? 'USB Slot X61' : 'SD Slot X52';
+    warnings.push(
+      lang === 'ru'
+        ? `Внимание по файловой системе (${portNameRu} ${storageSizeGb} GB): Слот ${portNameRu} не поддерживает заводскую разметку exFAT! Обязательно отформатируйте накопитель в NTFS (рекомендация Siemens SIOS для надежности SQLite) или FAT32 перед установкой в панель.`
+        : `File system advisory (${portNameEn} ${storageSizeGb} GB): Port ${portNameEn} does NOT support factory-default exFAT! The medium must be formatted in NTFS (Siemens SIOS recommendation for SQLite integrity) or FAT32 before inserting into the panel.`
     );
   }
 
@@ -460,6 +529,11 @@ export function calculateUnified(
     rule3SegmentsValid,
     storageOccupancyPct,
     estimatedFlashLifeYears,
+    flashLifeApplicable,
+    flashLifeReason,
+    dailyWrittenGb,
+    totalCardTbwTb,
+    peCyclesUsed: peCycles,
     network: calculateUnifiedNetwork(tags),
     warnings,
     logItems,

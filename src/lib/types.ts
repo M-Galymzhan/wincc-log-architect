@@ -62,6 +62,8 @@ export interface CalculatedLogItem {
   enabled: boolean;
 }
 
+export type NandClass = 'slc' | 'pslc' | 'mlc' | 'tlc' | 'qlc';
+
 export interface UnifiedConfig {
   deviceType: UnifiedDeviceType;
   retentionDays: number;
@@ -75,8 +77,9 @@ export interface UnifiedConfig {
   alarmsPerDay: number;
   includeAudit: boolean;
   auditEntriesPerDay: number;
-  storageMedium: 'sd_512m' | 'sd_2g' | 'sd_12g' | 'sd_32g' | 'usb_128g' | 'ssd_custom' | 'sd_custom_x52';
+  storageMedium: 'sd_512m' | 'sd_2g' | 'sd_12g' | 'sd_32g' | 'usb_128g' | 'ssd_custom' | 'sd_custom_x52' | 'usb_custom';
   storageSizeGb: number;
+  nandClass?: NandClass;
 }
 
 export interface NetworkMetrics {
@@ -114,6 +117,11 @@ export interface UnifiedResult {
   rule3SegmentsValid: boolean;
   storageOccupancyPct: number;
   estimatedFlashLifeYears: number;
+  flashLifeApplicable: boolean;
+  flashLifeReason?: 'overflow' | 'pc_rt' | 'zero_writes' | 'ok';
+  dailyWrittenGb: number;
+  totalCardTbwTb: number;
+  peCyclesUsed: number;
   network: NetworkMetrics;
   warnings: string[];
   // Multi-Log calculations

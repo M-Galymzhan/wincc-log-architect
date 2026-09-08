@@ -72,6 +72,15 @@ export const SIEMENS_STORAGE_CATALOG: Record<string, SiemensHardwareItem> = {
     descriptionEn: 'Third-party SDHC/SDXC card for Slot X52 (Data). High Endurance or Industrial grade (pSLC/MLC/3D TLC Industrial) with power-loss protection is strongly recommended for 24/7 logging.',
     recommendedFor: 'Unified Comfort Slot X52 (High Endurance / Industrial)',
   },
+  usb_custom: {
+    name: 'User USB Flash Drive (Slot X61)',
+    mlfb: 'USER-USB-X61 (Consumer / Industrial)',
+    capacityGb: 64,
+    type: 'usb',
+    descriptionRu: 'Сторонний USB-накопитель для порта X61 (Kingston, SanDisk и др.). Для 24/7 логирования настоятельно рекомендуется промышленный класс с аппаратной защитой питания (PLP).',
+    descriptionEn: 'Third-party USB flash drive for Port X61 (Kingston, SanDisk, etc.). Industrial grade with hardware Power-Loss Protection (PLP) is strongly recommended for 24/7 logging.',
+    recommendedFor: 'Unified Comfort Slot X61 (Пользовательский USB)',
+  },
 };
 
 export function getSiemensArticle(mediumKey: string): SiemensHardwareItem {

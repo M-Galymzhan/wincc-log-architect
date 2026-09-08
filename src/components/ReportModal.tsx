@@ -205,12 +205,12 @@ export const ReportModal: React.FC<ReportModalProps> = ({
                     <td className="py-2 text-slate-500 dark:text-slate-400">{t.reportStorageUsage}</td>
                     <td className="py-2 font-semibold">
                       {unifiedData.config.storageSizeGb} GB ({unifiedData.result.storageOccupancyPct.toFixed(1)}%)
-                      {unifiedData.config.storageMedium === 'sd_custom_x52' && (
+                      {(unifiedData.config.storageMedium === 'sd_custom_x52' || unifiedData.config.storageMedium === 'usb_custom') && (
                         <span className="ml-1.5 inline-block text-[10px] font-mono font-bold px-1.5 py-0.5 rounded bg-amber-500/15 text-amber-700 dark:text-amber-300 border border-amber-500/30">
-                          High Endurance / Industrial
+                          {unifiedData.config.nandClass ? unifiedData.config.nandClass.toUpperCase() : '3D TLC'}
                         </span>
                       )}
-                      {unifiedData.config.deviceType === 'ucp' && unifiedData.config.storageMedium === 'sd_custom_x52' && (unifiedData.config.storageSizeGb || 0) > 32 && (
+                      {unifiedData.config.deviceType === 'ucp' && (unifiedData.config.storageMedium === 'sd_custom_x52' || unifiedData.config.storageMedium === 'usb_custom') && (unifiedData.config.storageSizeGb || 0) > 32 && (
                         <span className="ml-1.5 inline-block text-[10px] font-mono font-bold px-1.5 py-0.5 rounded bg-red-500/15 text-red-700 dark:text-red-300 border border-red-500/30">
                           NTFS / FAT32 (exFAT not supported)
                         </span>
@@ -218,7 +218,13 @@ export const ReportModal: React.FC<ReportModalProps> = ({
                     </td>
                     <td className="py-2 text-slate-500 dark:text-slate-400">{t.reportFlashEndurance}</td>
                     <td className="py-2 font-semibold text-emerald-600 dark:text-emerald-400 font-mono">
-                      {unifiedData.config.deviceType === 'pc_rt' ? 'N/A' : `~${unifiedData.result.estimatedFlashLifeYears.toFixed(1)} ${lang === 'ru' ? 'лет' : 'yrs'}`}
+                      {unifiedData.config.deviceType === 'pc_rt' 
+                        ? 'N/A' 
+                        : !unifiedData.result.flashLifeApplicable && unifiedData.result.flashLifeReason === 'overflow'
+                        ? <span className="text-red-600 dark:text-red-400 font-sans text-xs">{t.flashLifeOverflow}</span>
+                        : !unifiedData.result.flashLifeApplicable && unifiedData.result.flashLifeReason === 'zero_writes'
+                        ? t.flashLifeZeroWrites
+                        : `~${unifiedData.result.estimatedFlashLifeYears.toFixed(1)} ${lang === 'ru' ? 'лет' : 'yrs'}`}
                     </td>
                   </tr>
                 </tbody>
@@ -378,7 +384,7 @@ export const ReportModal: React.FC<ReportModalProps> = ({
                 <tbody className="divide-y divide-slate-200 dark:divide-slate-800">
                   {showUnified && (() => {
                     const art = getSiemensArticle(unifiedData.config.storageMedium);
-                    const effectiveGb = (unifiedData.config.storageMedium === 'ssd_custom' || unifiedData.config.storageMedium === 'sd_custom_x52')
+                    const effectiveGb = (unifiedData.config.storageMedium === 'ssd_custom' || unifiedData.config.storageMedium === 'sd_custom_x52' || unifiedData.config.storageMedium === 'usb_custom')
                       ? unifiedData.config.storageSizeGb
                       : art.capacityGb;
                     return (
@@ -387,6 +393,8 @@ export const ReportModal: React.FC<ReportModalProps> = ({
                         <td className="p-2.5">
                           {unifiedData.config.storageMedium === 'sd_custom_x52'
                             ? (lang === 'ru' ? 'Пользовательская SDHC/SDXC (Слот X52 Data)' : art.name)
+                            : unifiedData.config.storageMedium === 'usb_custom'
+                            ? (lang === 'ru' ? 'Пользовательский USB Flash (Слот X61)' : art.name)
                             : art.name}
                         </td>
                         <td className="p-2.5 font-mono font-bold text-slate-900 dark:text-white">{art.mlfb}</td>

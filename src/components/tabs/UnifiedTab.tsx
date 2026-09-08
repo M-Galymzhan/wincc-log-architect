@@ -454,9 +454,10 @@ export const UnifiedTab: React.FC<UnifiedTabProps> = ({
                   else if (val === 'sd_12g') gb = 12;
                   else if (val === 'sd_32g') gb = 32;
                   else if (val === 'usb_128g') gb = 128;
+                  else if (val === 'usb_custom') gb = config.storageMedium === 'usb_custom' ? (config.storageSizeGb || 64) : 64;
                   else if (val === 'sd_custom_x52') gb = config.storageMedium === 'sd_custom_x52' ? (config.storageSizeGb || 32) : 32;
                   else if (val === 'ssd_custom') gb = config.storageMedium === 'ssd_custom' ? (config.storageSizeGb || 256) : 256;
-                  setConfig({ ...config, storageMedium: val, storageSizeGb: gb });
+                  setConfig({ ...config, storageMedium: val, storageSizeGb: gb, nandClass: (val === 'sd_custom_x52' || val === 'usb_custom') ? (config.nandClass || 'tlc') : undefined });
                 }}
                 className="col-span-2 p-2 rounded-lg border border-slate-300 dark:border-slate-700 bg-white/80 dark:bg-slate-900 text-xs font-medium text-slate-900 dark:text-slate-100 focus:border-[#00646E] focus:ring-2 focus:ring-[#00646E]/20 outline-none"
               >
@@ -466,13 +467,18 @@ export const UnifiedTab: React.FC<UnifiedTabProps> = ({
                 <option value="sd_32g">SIMATIC SD Card 32 GB</option>
                 <option value="sd_custom_x52">{t.storageSdCustomX52}</option>
                 <option value="usb_128g">Industrial USB Flash 128 GB</option>
+                <option value="usb_custom">{t.storageUsbCustom}</option>
                 <option value="ssd_custom">{t.storageCustomSsd}</option>
               </select>
 
-              {(config.storageMedium === 'ssd_custom' || config.storageMedium === 'sd_custom_x52') && (
+              {(config.storageMedium === 'ssd_custom' || config.storageMedium === 'sd_custom_x52' || config.storageMedium === 'usb_custom') && (
                 <div className="col-span-2 flex flex-wrap items-center gap-2 mt-1">
                   <span className="text-xs text-slate-700 dark:text-slate-300">
-                    {config.storageMedium === 'sd_custom_x52' ? (lang === 'ru' ? 'Емкость SDHC/SDXC (X52):' : 'SDHC/SDXC (X52) capacity:') : `${t.storageCustom}:`}
+                    {config.storageMedium === 'sd_custom_x52' 
+                      ? (lang === 'ru' ? 'Емкость SDHC/SDXC (X52):' : 'SDHC/SDXC (X52) capacity:') 
+                      : config.storageMedium === 'usb_custom'
+                      ? t.storageUsbCustomCapacity
+                      : `${t.storageCustom}:`}
                   </span>
                   <input
                     type="number"
@@ -486,7 +492,7 @@ export const UnifiedTab: React.FC<UnifiedTabProps> = ({
                   />
                   <span className="text-xs font-semibold text-slate-800 dark:text-slate-200">GB</span>
                   <div className="flex items-center gap-1">
-                    {(config.storageMedium === 'sd_custom_x52' ? [16, 32, 64, 128] : [120, 256, 512, 1024]).map((size) => (
+                    {(config.storageMedium === 'usb_custom' ? [16, 32, 64, 128, 256] : config.storageMedium === 'sd_custom_x52' ? [16, 32, 64, 128] : [120, 256, 512, 1024]).map((size) => (
                       <button
                         key={size}
                         type="button"
@@ -503,15 +509,34 @@ export const UnifiedTab: React.FC<UnifiedTabProps> = ({
                   </div>
                 </div>
               )}
+
+              {(config.storageMedium === 'sd_custom_x52' || config.storageMedium === 'usb_custom') && (
+                <div className="col-span-2 flex items-center justify-between gap-2 mt-2 pt-2 border-t border-slate-200/50 dark:border-slate-800/50">
+                  <span className="text-xs text-slate-700 dark:text-slate-300 font-medium">
+                    {t.nandClassLabel}
+                  </span>
+                  <select
+                    value={config.nandClass || 'tlc'}
+                    onChange={(e) => setConfig({ ...config, nandClass: e.target.value as import('../../lib/types').NandClass })}
+                    className="p-1.5 px-2 text-xs rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 font-medium focus:ring-2 focus:ring-[#00646E]/20 outline-none cursor-pointer"
+                  >
+                    <option value="slc">{t.nandClassSlc}</option>
+                    <option value="pslc">{t.nandClassPslc}</option>
+                    <option value="mlc">{t.nandClassMlc}</option>
+                    <option value="tlc">{t.nandClassTlc}</option>
+                    <option value="qlc">{t.nandClassQlc}</option>
+                  </select>
+                </div>
+              )}
             </div>
 
-            {/* High Endurance / Industrial Recommendation Banner for Slot X52 */}
-            {config.deviceType === 'ucp' && config.storageMedium === 'sd_custom_x52' && (
+            {/* High Endurance / Industrial Recommendation Banner for Custom Media */}
+            {config.deviceType === 'ucp' && (config.storageMedium === 'sd_custom_x52' || config.storageMedium === 'usb_custom') && (
               <div className="mt-3 p-3 rounded-xl bg-amber-500/10 dark:bg-amber-500/15 border border-amber-500/30 text-xs">
                 <div className="flex items-center justify-between gap-2 mb-1.5">
                   <div className="flex items-center gap-1.5 font-bold text-amber-800 dark:text-amber-200">
                     <ShieldAlert className="w-4 h-4 text-amber-600 dark:text-amber-400 shrink-0" />
-                    <span>{t.sdX52RecommendationTitle}</span>
+                    <span>{config.storageMedium === 'usb_custom' ? (lang === 'ru' ? 'Рекомендация по надежности для слота USB X61' : 'Reliability Recommendation for USB Slot X61') : t.sdX52RecommendationTitle}</span>
                   </div>
                   <span className="text-[10px] font-mono uppercase font-bold tracking-wider px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-900 dark:text-amber-200 border border-amber-500/30 shrink-0">
                     {t.sdX52RecommendationBadge}
@@ -523,13 +548,13 @@ export const UnifiedTab: React.FC<UnifiedTabProps> = ({
               </div>
             )}
 
-            {/* Dynamic File System Warning for Slot X52 with SDXC (> 32 GB) */}
-            {config.deviceType === 'ucp' && config.storageMedium === 'sd_custom_x52' && (config.storageSizeGb || 0) > 32 && (
+            {/* Dynamic File System Warning for Custom SD/USB (> 32 GB) */}
+            {config.deviceType === 'ucp' && (config.storageMedium === 'sd_custom_x52' || config.storageMedium === 'usb_custom') && (config.storageSizeGb || 0) > 32 && (
               <div className="mt-3 p-3 rounded-xl bg-red-500/10 dark:bg-red-500/15 border border-red-500/30 text-xs animate-in fade-in duration-200">
                 <div className="flex items-center justify-between gap-2 mb-1.5">
                   <div className="flex items-center gap-1.5 font-bold text-red-700 dark:text-red-300">
                     <AlertTriangle className="w-4 h-4 text-red-600 dark:text-red-400 shrink-0" />
-                    <span>{t.sdX52ExFatWarningTitle}</span>
+                    <span>{config.storageMedium === 'usb_custom' ? (lang === 'ru' ? 'Внимание: Заводская разметка exFAT не поддерживается слотом USB X61' : 'Warning: Factory exFAT is unsupported in USB Slot X61') : t.sdX52ExFatWarningTitle}</span>
                   </div>
                   <span className="text-[10px] font-mono uppercase font-bold tracking-wider px-2 py-0.5 rounded-full bg-red-500/20 text-red-800 dark:text-red-200 border border-red-500/30 shrink-0">
                     {t.sdX52ExFatWarningBadge}
@@ -1761,7 +1786,7 @@ export const UnifiedTab: React.FC<UnifiedTabProps> = ({
                   <td colSpan={5} className="p-3 text-slate-800 dark:text-slate-200">
                     <div className="flex items-center gap-2">
                       <span className="font-bold uppercase tracking-wider text-[11px] text-[#00646E] dark:text-[#00A3B5]">
-                        {t.totalStorageUsedBanner} ({config.storageMedium === 'usb_128g' ? 'USB-X61' : config.storageMedium === 'sd_custom_x52' ? 'SD-X52' : config.storageMedium.startsWith('sd') ? 'SD-X51' : 'SSD'} {config.storageSizeGb} GB):
+                        {t.totalStorageUsedBanner} ({(config.storageMedium === 'usb_128g' || config.storageMedium === 'usb_custom') ? 'USB-X61' : config.storageMedium === 'sd_custom_x52' ? 'SD-X52' : config.storageMedium.startsWith('sd') ? 'SD-X51' : 'SSD'} {config.storageSizeGb} GB):
                       </span>
                     </div>
                   </td>
@@ -1953,9 +1978,21 @@ export const UnifiedTab: React.FC<UnifiedTabProps> = ({
             )}
 
             <div className="text-[11px] text-slate-500 dark:text-slate-400 flex items-center justify-between">
-              <span>{t.flashLifeLabel}:</span>
-              <span className="font-bold text-slate-800 dark:text-slate-200 font-mono">
-                {config.deviceType === 'pc_rt' ? 'N/A' : `~${result.estimatedFlashLifeYears.toFixed(1)} ${lang === 'ru' ? 'лет' : 'yrs'}`}
+              <span>
+                {config.storageMedium.startsWith('sd')
+                  ? t.flashLifeLabelSd
+                  : config.storageMedium.includes('usb')
+                  ? t.flashLifeLabelUsb
+                  : t.flashLifeLabelSsd}:
+              </span>
+              <span className={`font-bold ${!result.flashLifeApplicable && result.flashLifeReason === 'overflow' ? 'text-red-600 dark:text-red-400 text-[10px] font-sans' : 'text-slate-800 dark:text-slate-200 font-mono'}`}>
+                {config.deviceType === 'pc_rt'
+                  ? 'N/A'
+                  : !result.flashLifeApplicable && result.flashLifeReason === 'overflow'
+                  ? t.flashLifeOverflow
+                  : !result.flashLifeApplicable && result.flashLifeReason === 'zero_writes'
+                  ? t.flashLifeZeroWrites
+                  : `~${result.estimatedFlashLifeYears.toFixed(1)} ${lang === 'ru' ? 'лет' : 'yrs'}`}
               </span>
             </div>
           </div>
