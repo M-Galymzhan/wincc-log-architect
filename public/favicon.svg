@@ -1,0 +1,37 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+  <defs>
+    <linearGradient id="siemensGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#005B66" />
+      <stop offset="100%" stop-color="#00A3B5" />
+    </linearGradient>
+    <linearGradient id="boltGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#FFF066" />
+      <stop offset="100%" stop-color="#FFB300" />
+    </linearGradient>
+    <filter id="glow" x="-20%" y="-20%" width="140%" height="140%">
+      <feGaussianBlur stdDeviation="8" result="blur" />
+      <feComposite in="SourceGraphic" in2="blur" operator="over" />
+    </filter>
+  </defs>
+
+  <!-- Background Squircle -->
+  <rect x="24" y="24" width="464" height="464" rx="112" fill="url(#siemensGrad)" stroke="#00E5FF" stroke-opacity="0.3" stroke-width="8" />
+
+  <!-- Database Cylinders Stack (WinCC Data Logs) -->
+  <g fill="#FFFFFF" opacity="0.95">
+    <!-- Top Cylinder -->
+    <path d="M 120 170 C 120 145, 340 145, 340 170 L 340 220 C 340 245, 120 245, 120 220 Z" />
+    <ellipse cx="230" cy="170" rx="110" ry="25" fill="#E0F7FA" />
+
+    <!-- Middle Cylinder -->
+    <path d="M 120 245 C 120 220, 340 220, 340 245 L 340 295 C 340 320, 120 320, 120 295 Z" />
+    <ellipse cx="230" cy="245" rx="110" ry="25" fill="#E0F7FA" />
+
+    <!-- Bottom Cylinder -->
+    <path d="M 120 320 C 120 295, 340 295, 340 320 L 340 370 C 340 395, 120 395, 120 370 Z" />
+    <ellipse cx="230" cy="320" rx="110" ry="25" fill="#E0F7FA" />
+  </g>
+
+  <!-- High-Speed Lightning Bolt (Real-Time SCADA Energy) -->
+  <polygon points="360,95 240,260 320,260 190,440 270,285 200,285" fill="url(#boltGrad)" stroke="#FFFFFF" stroke-width="6" stroke-linejoin="round" filter="url(#glow)" />
+</svg>
