@@ -1,6 +1,6 @@
 'use client';
 import React, { useState, useEffect } from 'react';
-import { Language, UnifiedAlarmLogConfig, UnifiedAlarmTag } from '../lib/types';
+import { Language, UnifiedAlarmTag } from '../lib/types';
 import { translations } from '../lib/i18n';
 import { Bell, X, Plus } from 'lucide-react';
 
@@ -15,9 +15,10 @@ interface BulkAddAlarmModalProps {
     eventsPerDay: number;
     alarmLogId: string;
   }) => void;
-  alarmLogs: UnifiedAlarmLogConfig[];
+  alarmLogs: Array<{ id: string; name: string }>;
   defaultAlarmLogId?: string;
   lang: Language;
+  tab?: 'unified' | 'comfort';
 }
 
 export const BulkAddAlarmModal: React.FC<BulkAddAlarmModalProps> = ({
@@ -27,6 +28,7 @@ export const BulkAddAlarmModal: React.FC<BulkAddAlarmModalProps> = ({
   alarmLogs,
   defaultAlarmLogId,
   lang,
+  tab = 'unified',
 }) => {
   const t = translations[lang];
   const [count, setCount] = useState<number | ''>(10);
@@ -82,7 +84,7 @@ export const BulkAddAlarmModal: React.FC<BulkAddAlarmModalProps> = ({
                 {t.modalBulkAlarmTitle}
               </h3>
               <p className="text-[11px] text-slate-400 font-medium">
-                WinCC Unified HMI Alarms & Events (SQLite)
+                {tab === 'comfort' ? 'WinCC Comfort / Advanced Historical Alarms' : 'WinCC Unified HMI Alarms & Events (SQLite)'}
               </p>
             </div>
           </div>

@@ -306,16 +306,92 @@ export const ReportModal: React.FC<ReportModalProps> = ({
                     </td>
                     <td className="py-2 text-slate-500 dark:text-slate-400">{t.reportStorageUsage}</td>
                     <td className="py-2 font-semibold">
-                      {comfortData.config.storageMediumMb} MB ({comfortData.result.storageOccupancyPct.toFixed(1)}%)
+                      {comfortData.config.storageSizeGb ? `${comfortData.config.storageSizeGb} GB` : `${comfortData.config.storageMediumMb} MB`} ({comfortData.result.storageOccupancyPct.toFixed(1)}%)
                       {comfortData.config.deviceType === 'comfort_panel' && (
                         <span className="ml-1.5 inline-block text-[10px] font-mono font-bold px-1.5 py-0.5 rounded bg-amber-500/15 text-amber-700 dark:text-amber-300 border border-amber-500/30">
                           Max 32 GB (FAT32)
                         </span>
                       )}
+                      {comfortData.config.nandClass && (
+                        <span className="ml-1.5 inline-block text-[10px] font-mono font-bold px-1.5 py-0.5 rounded bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 border border-emerald-500/30">
+                          {comfortData.config.nandClass.toUpperCase()}
+                        </span>
+                      )}
+                    </td>
+                  </tr>
+                  <tr>
+                    <td className="py-2 text-slate-500 dark:text-slate-400">{t.reportTotalTagsRate}</td>
+                    <td className="py-2 font-semibold font-mono">
+                      ~{comfortData.result.entriesPerSec.toFixed(1)} {lang === 'ru' ? 'зап/сек' : 'rec/s'} ({comfortData.result.totalRecordsForPeriod.toLocaleString()} {lang === 'ru' ? 'всего' : 'total'})
+                    </td>
+                    <td className="py-2 text-slate-500 dark:text-slate-400">{t.reportFlashEndurance}</td>
+                    <td className="py-2 font-semibold text-emerald-600 dark:text-emerald-400 font-mono">
+                      {comfortData.config.deviceType === 'rt_advanced'
+                        ? 'N/A'
+                        : !comfortData.result.flashLifeApplicable && comfortData.result.flashLifeReason === 'overflow'
+                        ? <span className="text-red-600 dark:text-red-400 font-sans text-xs">{t.flashLifeOverflow}</span>
+                        : !comfortData.result.flashLifeApplicable && comfortData.result.flashLifeReason === 'zero_writes'
+                        ? t.flashLifeZeroWrites
+                        : `~${comfortData.result.estimatedFlashLifeYears.toFixed(1)} ${lang === 'ru' ? 'лет' : 'yrs'}`}
                     </td>
                   </tr>
                 </tbody>
               </table>
+
+              {/* Multi-Log Specification Breakdown */}
+              {comfortData.result.logItems && comfortData.result.logItems.length > 0 && (
+                <div className="mt-4 pt-3 border-t border-slate-200 dark:border-slate-800">
+                  <div className="text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 mb-2">
+                    {lang === 'ru' ? 'Спецификация баз данных журналов (Data logs & Alarm logs)' : 'Databases Specification (Data logs & Alarm logs)'}
+                  </div>
+                  <table className="w-full text-xs text-left border border-slate-200 dark:border-slate-800 rounded-lg overflow-hidden">
+                    <thead className="bg-slate-100 dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800 font-semibold text-[10px] uppercase">
+                      <tr>
+                        <th className="p-2">{lang === 'ru' ? 'Имя в TIA' : 'Name in TIA'}</th>
+                        <th className="p-2">{lang === 'ru' ? 'Тип' : 'Category'}</th>
+                        <th className="p-2">{lang === 'ru' ? 'Записей/файл' : 'Records/file'}</th>
+                        <th className="p-2">{lang === 'ru' ? 'Файлов' : 'Files'}</th>
+                        <th className="p-2">{lang === 'ru' ? 'Срок' : 'Retention'}</th>
+                        <th className="p-2 font-mono text-emerald-600 dark:text-emerald-400">{lang === 'ru' ? 'Формат' : 'Format'}</th>
+                        <th className="p-2 text-right">{lang === 'ru' ? 'Объем' : 'Footprint'}</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-slate-200 dark:divide-slate-800 font-mono text-[11px]">
+                      {comfortData.result.logItems.map(item => (
+                        <tr key={item.id}>
+                          <td className="p-2 font-bold font-mono">{item.name}</td>
+                          <td className="p-2">{lang === 'ru' ? item.categoryNameRu : item.categoryNameEn}</td>
+                          <td className="p-2">{item.recordsPerLog.toLocaleString()}</td>
+                          <td className="p-2 font-bold text-emerald-600 dark:text-emerald-400">{item.recommendedLogFiles}</td>
+                          <td className="p-2">{item.retentionDays} d</td>
+                          <td className="p-2 uppercase">{item.format}</td>
+                          <td className="p-2 text-right font-bold">{item.totalLogGb >= 1 ? `${item.totalLogGb.toFixed(2)} GB` : `${item.totalLogMb} MB`}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              )}
+
+              {/* ISA-18.2 Alarm Assessment */}
+              {comfortData.result.isa18AlarmAssessment && comfortData.result.isa18AlarmAssessment.totalAlarmsPerDay > 0 && (
+                <div className="mt-3 p-2.5 rounded-lg border text-xs bg-slate-50 dark:bg-slate-900/60 border-slate-200 dark:border-slate-800 flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <span className="font-bold text-slate-700 dark:text-slate-300">ISA-18.2 / EEMUA 191:</span>
+                    <span>{lang === 'ru' ? comfortData.result.isa18AlarmAssessment.labelRu : comfortData.result.isa18AlarmAssessment.labelEn}</span>
+                    <span className="text-slate-500">({comfortData.result.isa18AlarmAssessment.alarmsPerHour} {lang === 'ru' ? 'соб/ч' : 'alm/h'})</span>
+                  </div>
+                  <span className={`text-[10px] font-bold px-2 py-0.5 rounded uppercase ${
+                    comfortData.result.isa18AlarmAssessment.status === 'acceptable'
+                      ? 'bg-emerald-100 text-emerald-800 dark:bg-emerald-900/40 dark:text-emerald-300'
+                      : comfortData.result.isa18AlarmAssessment.status === 'manageable'
+                      ? 'bg-amber-100 text-amber-800 dark:bg-amber-900/40 dark:text-amber-300'
+                      : 'bg-red-100 text-red-800 dark:bg-red-900/40 dark:text-red-300'
+                  }`}>
+                    {comfortData.result.isa18AlarmAssessment.status}
+                  </span>
+                </div>
+              )}
             </div>
           )}
 

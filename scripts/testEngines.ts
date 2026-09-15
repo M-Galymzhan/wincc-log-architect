@@ -296,6 +296,126 @@ const comfortOverflow = calculateComfort([
 assert(comfortOverflow.totalArchiveSizeMb > 512, 'Comfort: archive exceeds 512 MB capacity');
 assert(comfortOverflow.warnings.some(w => w.includes('превышает емкость') || w.includes('exceeds storage capacity')), 'Comfort: emits critical storage overflow alert');
 
+// 2.8 Comfort Multi-Log Architecture Verification
+const comfortMultiLogTags: ComfortTag[] = [
+  { id: '1', description: 'FastPressure', mode: 'cyclic', cycleSec: 1, count: 10, dataType: 'Real', dataLogId: 'log_fast' },
+  { id: '2', description: 'SlowTemp', mode: 'cyclic', cycleSec: 10, count: 20, dataType: 'Real', dataLogId: 'log_slow' },
+];
+const comfortMultiLogConfig: ComfortConfig = {
+  deviceType: 'comfort_panel',
+  format: 'rdb',
+  retentionDays: 30,
+  recordsPerLog: 50000,
+  logMethod: 'segmented',
+  storageMediumMb: 2048,
+  storageMedium: 'sd_2g',
+  storageSizeGb: 2,
+  nandClass: 'slc',
+  dataLogs: [
+    { id: 'log_fast', name: 'Data_Log_Fast', recordsPerLog: 50000, format: 'rdb', retentionDays: 14, enabled: true },
+    { id: 'log_slow', name: 'Data_Log_Slow', recordsPerLog: 10000, format: 'rdb', retentionDays: 30, enabled: true },
+  ],
+  alarmLogs: [
+    { id: 'log_alarms', name: 'Alarms_log', entriesPerDay: 500, recordsPerLog: 5000, format: 'rdb', retentionDays: 30, enabled: true },
+  ],
+  alarmTags: [
+    { id: 'alm_1', name: 'PumpFail', alarmLogId: 'log_alarms', alarmClass: 'Alarm', eventsPerDay: 50, count: 10 },
+  ],
+  includeAlarms: true,
+};
+const comfortMultiRes = calculateComfort(comfortMultiLogTags, comfortMultiLogConfig);
+assert(comfortMultiRes.logItems.length === 3, 'Comfort: correctly creates 3 log items (2 data + 1 alarm)');
+assert(comfortMultiRes.logItems[0].name === 'Data_Log_Fast', 'Comfort: first log item is Data_Log_Fast');
+assert(comfortMultiRes.logItems[1].name === 'Data_Log_Slow', 'Comfort: second log item is Data_Log_Slow');
+assert(comfortMultiRes.logItems[2].name === 'Alarms_log', 'Comfort: third log item is Alarms_log');
+assert(comfortMultiRes.logItems[0].retentionDays === 14, 'Comfort: Data_Log_Fast has independent 14 days retention');
+assert(comfortMultiRes.logItems[1].retentionDays === 30, 'Comfort: Data_Log_Slow has independent 30 days retention');
+assert(comfortMultiRes.totalStorageUsedMb > 0, 'Comfort: totalStorageUsedMb calculated correctly');
+assert(comfortMultiRes.totalStorageUsedGb > 0, 'Comfort: totalStorageUsedGb calculated correctly');
+
+// 2.9 Comfort Flash Life wear model (SLC vs TLC)
+const comfortSlc = calculateComfort(comfortMultiLogTags, {
+  ...comfortMultiLogConfig,
+  storageMedium: 'sd_2g',
+  storageSizeGb: 2,
+  nandClass: 'slc',
+});
+const comfortTlc = calculateComfort(comfortMultiLogTags, {
+  ...comfortMultiLogConfig,
+  storageMedium: 'sd_custom',
+  storageSizeGb: 2,
+  nandClass: 'tlc',
+});
+assert(comfortSlc.flashLifeApplicable === true, 'Comfort: flashLifeApplicable is true for Comfort Panel with valid storage');
+assert(comfortSlc.totalCardTbwTb >= comfortTlc.totalCardTbwTb * 10, 'Comfort: SLC TBW is > 10x higher than consumer TLC TBW');
+assert(comfortSlc.totalCardTbwTb > 0, 'Comfort: totalCardTbwTb > 0');
+assert(comfortSlc.dailyWrittenGb > 0, 'Comfort: dailyWrittenGb > 0');
+
+// Under heavy writes (without overflow), verify SLC lifespan > TLC lifespan
+const comfortHeavyTags: ComfortTag[] = [
+  { id: '1', description: 'Heavy', mode: 'cyclic', cycleSec: 0.1, count: 20, dataType: 'Real', dataLogId: 'log_fast' }
+];
+const comfortHeavySlc = calculateComfort(comfortHeavyTags, {
+  ...comfortMultiLogConfig,
+  retentionDays: 1,
+  dataLogs: [
+    { id: 'log_fast', name: 'Data_Log_Fast', recordsPerLog: 50000, format: 'rdb', retentionDays: 1, enabled: true },
+  ],
+  alarmLogs: [],
+  storageMedium: 'sd_2g',
+  storageSizeGb: 2,
+  nandClass: 'slc',
+});
+const comfortHeavyTlc = calculateComfort(comfortHeavyTags, {
+  ...comfortMultiLogConfig,
+  retentionDays: 1,
+  dataLogs: [
+    { id: 'log_fast', name: 'Data_Log_Fast', recordsPerLog: 50000, format: 'rdb', retentionDays: 1, enabled: true },
+  ],
+  alarmLogs: [],
+  storageMedium: 'sd_custom',
+  storageSizeGb: 2,
+  nandClass: 'tlc',
+});
+assert(comfortHeavySlc.estimatedFlashLifeYears > comfortHeavyTlc.estimatedFlashLifeYears, 'Comfort: SLC flash life is longer than consumer TLC under heavy writes');
+
+// 2.10 Comfort Flash Life Overflow Guard
+const comfortOverflowGuard = calculateComfort(comfortMultiLogTags, {
+  ...comfortMultiLogConfig,
+  storageMedium: 'sd_512m',
+  storageSizeGb: 0.5,
+  storageMediumMb: 512,
+  dataLogs: [
+    { id: 'log_fast', name: 'Data_Log_Fast', recordsPerLog: 50000, format: 'rdb', retentionDays: 365, enabled: true },
+  ],
+});
+if (comfortOverflowGuard.storageOccupancyPct > 100) {
+  assert(comfortOverflowGuard.flashLifeApplicable === false, 'Comfort: flashLifeApplicable is false when storage is overfilled');
+  assert(comfortOverflowGuard.flashLifeReason === 'overflow', 'Comfort: flashLifeReason is "overflow"');
+}
+
+// 2.11 Comfort ISA-18.2 Alarm Assessment
+assert(comfortMultiRes.isa18AlarmAssessment !== undefined, 'Comfort: ISA-18.2 alarm assessment is generated');
+assert(comfortMultiRes.isa18AlarmAssessment?.totalAlarmsPerDay === 500, 'Comfort: total alarms per day correctly summed (500)');
+assert(typeof comfortMultiRes.isa18AlarmAssessment?.alarmsPerHour === 'number', 'Comfort: alarmsPerHour is calculated');
+assert(['acceptable', 'manageable', 'demanding'].includes(comfortMultiRes.isa18AlarmAssessment?.status || ''), 'Comfort: valid ISA-18 status');
+
+// 2.12 Comfort Traffic Gauge Thresholds (Windows CE)
+const comfortLightLoad = calculateComfort([
+  { id: '1', description: 'Slow1', mode: 'cyclic', cycleSec: 1, count: 5 } // 5 rec/s < 15
+], comfortMultiLogConfig);
+assert(comfortLightLoad.trafficStatus === 'safe', 'Comfort: 5 rec/s is safe (< 15 rec/s)');
+
+const comfortMediumLoad = calculateComfort([
+  { id: '1', description: 'Med1', mode: 'cyclic', cycleSec: 1, count: 25 } // 25 rec/s in [15, 50]
+], comfortMultiLogConfig);
+assert(comfortMediumLoad.trafficStatus === 'warning', 'Comfort: 25 rec/s is warning (15..50 rec/s)');
+
+const comfortHeavyLoad = calculateComfort([
+  { id: '1', description: 'Heavy1', mode: 'cyclic', cycleSec: 1, count: 60 } // 60 rec/s > 50
+], comfortMultiLogConfig);
+assert(comfortHeavyLoad.trafficStatus === 'critical', 'Comfort: 60 rec/s is critical (> 50 rec/s on CE)');
+
 console.log('\n=== [3] WINCC PROFESSIONAL SCADA ENGINE VERIFICATION ===');
 
 // 3.1 Empty state

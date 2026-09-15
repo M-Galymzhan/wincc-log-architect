@@ -135,12 +135,65 @@ export interface UnifiedResult {
 export type ComfortDeviceType = 'comfort_panel' | 'rt_advanced';
 export type ComfortLogFormat = 'rdb' | 'csv';
 
+export interface ComfortDataLogConfig {
+  id: string;
+  name: string;
+  recordsPerLog: number;
+  logMethod?: 'circular' | 'segmented';
+  format?: ComfortLogFormat;
+  retentionDays?: number;
+  enabled: boolean;
+}
+
+export interface ComfortAlarmLogConfig {
+  id: string;
+  name: string;
+  entriesPerDay: number;
+  recordsPerLog: number;
+  logMethod?: 'circular' | 'segmented';
+  format?: ComfortLogFormat;
+  retentionDays?: number;
+  enabled: boolean;
+}
+
+export interface ComfortAlarmTag {
+  id: string;
+  name: string;
+  alarmLogId?: string;
+  alarmClass?: 'Alarm' | 'Warning' | 'Event';
+  triggerType?: 'digital' | 'analog';
+  eventsPerDay: number;
+  count?: number;
+}
+
+export interface CalculatedComfortLogItem {
+  id: string;
+  name: string;
+  category: 'data' | 'alarm';
+  categoryNameRu: string;
+  categoryNameEn: string;
+  format: ComfortLogFormat;
+  logMethod: 'circular' | 'segmented';
+  entriesPerDay: number;
+  retentionDays: number;
+  recordsPerLog: number;
+  recommendedLogFiles: number;
+  fileSizeMb: number;
+  totalLogMb: number;
+  totalLogGb: number;
+  storageOccupancyPct: number;
+  path: string;
+  enabled: boolean;
+}
+
 export interface ComfortTag {
   id: string;
   description: string;
   mode: 'cyclic' | 'onchange';
   cycleSec: number;
   count: number;
+  dataType?: 'Real' | 'LReal' | 'DInt' | 'Int' | 'Bool' | 'String';
+  dataLogId?: string;
 }
 
 export interface ComfortConfig {
@@ -150,6 +203,15 @@ export interface ComfortConfig {
   recordsPerLog: number;
   logMethod: 'circular' | 'segmented';
   storageMediumMb: number;
+  // Multi-Log additions
+  dataLogs?: ComfortDataLogConfig[];
+  alarmLogs?: ComfortAlarmLogConfig[];
+  alarmTags?: ComfortAlarmTag[];
+  includeAlarms?: boolean;
+  alarmsPerDay?: number;
+  storageMedium?: 'sd_512m' | 'sd_2g' | 'sd_4g' | 'sd_12g' | 'sd_32g' | 'sd_custom' | 'sd_custom_x52' | 'usb_128g' | 'usb_custom' | 'ssd_custom';
+  storageSizeGb?: number;
+  nandClass?: NandClass;
 }
 
 export interface ComfortResult {
@@ -162,8 +224,20 @@ export interface ComfortResult {
   totalArchiveSizeMb: number;
   totalArchiveSizeGb: number;
   storageOccupancyPct: number;
+  trafficStatus: 'safe' | 'warning' | 'critical';
   network: NetworkMetrics;
   warnings: string[];
+  // Multi-Log and Flash Life additions
+  logItems: CalculatedComfortLogItem[];
+  totalStorageUsedMb: number;
+  totalStorageUsedGb: number;
+  dailyWrittenGb: number;
+  estimatedFlashLifeYears: number;
+  flashLifeApplicable: boolean;
+  flashLifeReason?: 'overflow' | 'pc_rt' | 'zero_writes' | 'ok';
+  totalCardTbwTb: number;
+  peCyclesUsed: number;
+  isa18AlarmAssessment?: Isa18AlarmAssessment;
 }
 
 // WINCC PROFESSIONAL

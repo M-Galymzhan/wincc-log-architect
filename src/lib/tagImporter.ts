@@ -412,6 +412,7 @@ export function convertToComfortTags(items: ParsedTagItem[]): ComfortTag[] {
     mode: item.mode,
     cycleSec: item.cycleSec,
     count: item.count,
+    dataType: item.dataType,
   }));
 }
 

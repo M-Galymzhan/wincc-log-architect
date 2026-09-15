@@ -7,21 +7,29 @@ import { translations } from '../lib/i18n';
 interface TrafficGaugeProps {
   rate: number; // entries per second
   maxRate?: number;
+  warnThreshold?: number;
+  critThreshold?: number;
   lang?: Language;
 }
 
-export const TrafficGauge: React.FC<TrafficGaugeProps> = ({ rate, maxRate = 800, lang = 'ru' }) => {
+export const TrafficGauge: React.FC<TrafficGaugeProps> = ({ 
+  rate, 
+  maxRate = 800, 
+  warnThreshold = 300, 
+  critThreshold = 500, 
+  lang = 'ru' 
+}) => {
   const t = translations[lang] || translations.ru;
   const percentage = Math.min(100, Math.max(0, (rate / maxRate) * 100));
   
   let statusColor = '#10B981'; // Green (Safe)
-  let statusText = t.trafficSafe;
-  if (rate > 500) {
+  let statusText = warnThreshold === 300 ? t.trafficSafe : `${lang === 'ru' ? 'Норма' : 'Normal'} (< ${warnThreshold})`;
+  if (rate > critThreshold) {
     statusColor = '#EF4444'; // Red (Critical)
-    statusText = t.trafficCrit;
-  } else if (rate > 300) {
+    statusText = critThreshold === 500 ? t.trafficCrit : `${lang === 'ru' ? 'Критично' : 'Critical'} (> ${critThreshold})`;
+  } else if (rate > warnThreshold) {
     statusColor = '#F59E0B'; // Yellow (Warning)
-    statusText = t.trafficWarn;
+    statusText = (warnThreshold === 300 && critThreshold === 500) ? t.trafficWarn : `${lang === 'ru' ? 'Повышенная' : 'Warning'} (${warnThreshold}–${critThreshold})`;
   }
 
   return (
@@ -50,8 +58,8 @@ export const TrafficGauge: React.FC<TrafficGaugeProps> = ({ rate, maxRate = 800,
       
       <div className="flex justify-between text-[10px] text-slate-500 dark:text-slate-400 font-mono font-medium">
         <span>0 ({t.trafficIdle})</span>
-        <span>300 ({lang === 'ru' ? 'Вним' : 'Warn'})</span>
-        <span>500 ({t.trafficMaxSqlite})</span>
+        <span>{warnThreshold} ({lang === 'ru' ? 'Вним' : 'Warn'})</span>
+        <span>{critThreshold} ({critThreshold === 500 ? t.trafficMaxSqlite : lang === 'ru' ? 'Крит' : 'Crit'})</span>
         <span>{maxRate}+</span>
       </div>
     </div>

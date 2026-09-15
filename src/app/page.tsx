@@ -80,9 +80,9 @@ export default function Home() {
 
   // 2. Comfort State
   const [comfortTags, setComfortTags] = useState<ComfortTag[]>([
-    { id: '1', description: 'Zone Pressures (1s)', mode: 'cyclic', cycleSec: 1, count: 20 },
-    { id: '2', description: 'Pump Status (2s)', mode: 'cyclic', cycleSec: 2, count: 40 },
-    { id: '3', description: 'Total Flow Counters (10s)', mode: 'cyclic', cycleSec: 10, count: 30 },
+    { id: '1', description: 'Zone Pressures (1s)', mode: 'cyclic', cycleSec: 1, count: 20, dataType: 'Real', dataLogId: 'default_data_log' },
+    { id: '2', description: 'Pump Status (2s)', mode: 'cyclic', cycleSec: 2, count: 40, dataType: 'Int', dataLogId: 'default_data_log' },
+    { id: '3', description: 'Total Flow Counters (10s)', mode: 'cyclic', cycleSec: 10, count: 30, dataType: 'DInt', dataLogId: 'default_data_log' },
   ]);
 
   const [comfortConfig, setComfortConfig] = useState<ComfortConfig>({
@@ -92,6 +92,23 @@ export default function Home() {
     recordsPerLog: 50000,
     logMethod: 'segmented',
     storageMediumMb: 2048,
+    storageMedium: 'sd_2g',
+    storageSizeGb: 2,
+    dataLogs: [
+      { id: 'default_data_log', name: 'Data_Log_1', retentionDays: 30, recordsPerLog: 50000, enabled: true },
+    ],
+    alarmLogs: [
+      { id: 'alarms_log', name: 'Alarms_log', entriesPerDay: 50, retentionDays: 30, recordsPerLog: 20000, enabled: true },
+      { id: 'events_log', name: 'Events_log', entriesPerDay: 100, retentionDays: 30, recordsPerLog: 20000, enabled: true },
+    ],
+    alarmTags: [
+      { id: 'alm_1', name: 'M101_Trip_Overload', alarmClass: 'Alarm', triggerType: 'digital', eventsPerDay: 2, count: 4, alarmLogId: 'alarms_log' },
+      { id: 'alm_2', name: 'Tank_Level_HighHigh', alarmClass: 'Alarm', triggerType: 'analog', eventsPerDay: 1, count: 2, alarmLogId: 'alarms_log' },
+      { id: 'alm_3', name: 'Emergency_Stop_Pushed', alarmClass: 'Alarm', triggerType: 'digital', eventsPerDay: 0.5, count: 2, alarmLogId: 'alarms_log' },
+      { id: 'alm_4', name: 'Operator_Setpoint_Change', alarmClass: 'Event', triggerType: 'digital', eventsPerDay: 20, count: 5, alarmLogId: 'events_log' },
+      { id: 'alm_5', name: 'Pump_Start_Stop_Event', alarmClass: 'Event', triggerType: 'digital', eventsPerDay: 30, count: 4, alarmLogId: 'events_log' },
+      { id: 'alm_6', name: 'System_Warning_Battery', alarmClass: 'Warning', triggerType: 'digital', eventsPerDay: 1, count: 1, alarmLogId: 'events_log' },
+    ],
   });
 
   // 3. Professional State

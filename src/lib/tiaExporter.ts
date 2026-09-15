@@ -1,5 +1,5 @@
 import * as XLSX from 'xlsx';
-import { UnifiedTag, ComfortTag, ProfessionalTag, UnifiedAlarmTag, ActiveTab } from './types';
+import { UnifiedTag, ComfortTag, ProfessionalTag, UnifiedAlarmTag, ComfortAlarmTag, ActiveTab } from './types';
 
 export const TIA_HMI_TAGS_HEADERS = [
   'Name',
@@ -169,8 +169,10 @@ export function generateTiaPortalXlsx(
       }
     });
   } else if (tab === 'comfort') {
+    const dataLogMap = new Map((dataLogs || []).map(dl => [dl.id, dl.name]));
     (tags as ComfortTag[]).forEach((tag, idx) => {
       const baseName = sanitizeName(tag.description || `Comfort_Tag_${idx + 1}`);
+      const targetLog = (tag.dataLogId && dataLogMap.get(tag.dataLogId)) || logName;
       const mode: 'Cyclic in operation' | 'On change' = tag.mode === 'onchange' ? 'On change' : 'Cyclic in operation';
       const cycle = tag.mode === 'onchange' ? 'None' : formatTiaCycle(tag.cycleSec);
       const dataType = ('dataType' in tag && typeof (tag as { dataType?: unknown }).dataType === 'string') 
@@ -180,11 +182,11 @@ export function generateTiaPortalXlsx(
       if (options?.expandCount && tag.count > 1) {
         for (let i = 1; i <= tag.count; i++) {
           const tagName = `${baseName}_${i}`;
-          const comment = `Log: ${logName}, Comfort Historical Data [Instance ${i}/${tag.count}]`;
+          const comment = `Log: ${targetLog}, Comfort Historical Data [Instance ${i}/${tag.count}]`;
           rows.push(createTagRow(tagName, dataType, mode, cycle, comment, options));
         }
       } else {
-        const comment = `Count: ${tag.count}x, Comfort Historical Data, Log: ${logName}`;
+        const comment = `Count: ${tag.count}x, Comfort Historical Data, Log: ${targetLog}`;
         rows.push(createTagRow(baseName, dataType, mode, cycle, comment, options));
       }
     });
@@ -226,7 +228,7 @@ export function generateTiaPortalXlsx(
  * Generates an XLSX workbook for Siemens TIA Portal alarm tags (discrete alarm triggers).
  */
 export function generateTiaPortalAlarmXlsx(
-  alarmTags: UnifiedAlarmTag[],
+  alarmTags: (UnifiedAlarmTag | ComfortAlarmTag)[],
   alarmLogs?: { id: string; name: string }[],
   options?: TiaXlsxExportOptions
 ): Uint8Array {
@@ -236,21 +238,23 @@ export function generateTiaPortalAlarmXlsx(
   alarmTags.forEach((at, idx) => {
     const baseName = sanitizeName(at.name || `Alarm_${idx + 1}`);
     const targetLog = (at.alarmLogId && alarmLogMap.get(at.alarmLogId)) || 'Alarms_log';
-    const totalEv = Math.round((at.eventsPerDay || 0) * (at.count || 1));
+    const count = at.count || 1;
+    const totalEv = Math.round((at.eventsPerDay || 0) * count);
     const dataType = ('dataType' in at && typeof (at as { dataType?: unknown }).dataType === 'string')
       ? (at as { dataType: string }).dataType
       : (at.triggerType === 'analog' ? 'Real' : 'Bool');
     const acqMode = 'Cyclic in operation' as const;
     const acqCycle = 'T250ms';
+    const alarmClass = at.alarmClass || 'Alarm';
 
-    if (options?.expandCount && at.count > 1) {
-      for (let i = 1; i <= at.count; i++) {
+    if (options?.expandCount && count > 1) {
+      for (let i = 1; i <= count; i++) {
         const tagName = `${baseName}_${i}`;
-        const comment = `Class: ${at.alarmClass}, TargetLog: ${targetLog} [Instance ${i}/${at.count}]`;
+        const comment = `Class: ${alarmClass}, TargetLog: ${targetLog} [Instance ${i}/${count}]`;
         rows.push(createTagRow(tagName, dataType, acqMode, acqCycle, comment, options));
       }
     } else {
-      const comment = `Class: ${at.alarmClass}, TargetLog: ${targetLog}, Events: ${at.eventsPerDay}/day, Count: ${at.count}x, Total: ${totalEv} ev/day`;
+      const comment = `Class: ${alarmClass}, TargetLog: ${targetLog}, Events: ${at.eventsPerDay}/day, Count: ${count}x, Total: ${totalEv} ev/day`;
       rows.push(createTagRow(baseName, dataType, acqMode, acqCycle, comment, options));
     }
   });
@@ -295,13 +299,15 @@ export function generateTiaPortalCsv(
     return BOM + header + rows;
   } else if (tab === 'comfort') {
     // WinCC Comfort / Advanced Historical Data CSV structure
+    const dataLogMap = new Map((dataLogs || []).map(dl => [dl.id, dl.name]));
     const header = 'Name;Data log;Logging mode;Logging cycle;Acquisition cycle;Comment\r\n';
     const rows = (tags as ComfortTag[]).map((tag, idx) => {
       const tagName = sanitizeName(tag.description || `Comfort_Tag_${idx + 1}`);
+      const targetLog = (tag.dataLogId && dataLogMap.get(tag.dataLogId)) || logName;
       const mode = tag.mode === 'cyclic' ? 'Cyclic' : 'On change';
       const cycle = tag.mode === 'cyclic' ? `${tag.cycleSec} s` : 'None';
       const comment = `Count: ${tag.count}x, Comfort Historical Data`;
-      return `${tagName};${logName};${mode};${cycle};1 s;${comment}`;
+      return `${tagName};${targetLog};${mode};${cycle};1 s;${comment}`;
     }).join('\r\n');
 
     return BOM + header + rows;
@@ -322,7 +328,7 @@ export function generateTiaPortalCsv(
 }
 
 export function generateTiaPortalAlarmCsv(
-  alarmTags: UnifiedAlarmTag[],
+  alarmTags: (UnifiedAlarmTag | ComfortAlarmTag)[],
   alarmLogs?: { id: string; name: string }[]
 ): string {
   const BOM = '\uFEFF';
@@ -331,9 +337,12 @@ export function generateTiaPortalAlarmCsv(
   const rows = alarmTags.map((at, idx) => {
     const name = sanitizeName(at.name || `Alarm_${idx + 1}`);
     const targetLog = (at.alarmLogId && alarmLogMap.get(at.alarmLogId)) || 'Alarms_log';
-    const totalEv = Math.round((at.eventsPerDay || 0) * (at.count || 1));
-    const comment = `Events: ${at.eventsPerDay}/day, Count: ${at.count}x, Total: ${totalEv} ev/day`;
-    return `${name};${targetLog};${at.alarmClass};${at.triggerType};${at.eventsPerDay};${at.count};${comment}`;
+    const count = at.count || 1;
+    const totalEv = Math.round((at.eventsPerDay || 0) * count);
+    const alarmClass = at.alarmClass || 'Alarm';
+    const triggerType = at.triggerType || 'digital';
+    const comment = `Events: ${at.eventsPerDay}/day, Count: ${count}x, Total: ${totalEv} ev/day`;
+    return `${name};${targetLog};${alarmClass};${triggerType};${at.eventsPerDay};${count};${comment}`;
   }).join('\r\n');
 
   return BOM + header + rows;

@@ -156,14 +156,47 @@ export const TiaCheatSheetModal: React.FC<TiaCheatSheetModalProps> = ({
     }
   } else if (activeTab === 'comfort') {
     title = lang === 'ru'
-      ? 'WinCC Comfort / Advanced — Настройки архивации (TIA Portal)'
+      ? 'WinCC Comfort / Advanced — Свойства Data Logs и Alarm Logs (TIA Portal)'
       : 'WinCC Comfort / Advanced — Historical Data Properties (TIA Portal)';
-    items = [
-      { label: 'Data records per log', value: `${comfortData.config.recordsPerLog.toLocaleString()}`, tip: t.cheatTipRecordsPerLog },
-      { label: 'Sequence of log files', value: `${comfortData.result.recommendedLogFiles}`, tip: t.cheatTipSequenceFiles },
-      { label: 'Log type / Storage location', value: comfortData.config.format === 'rdb' ? 'RDB (binary)' : 'CSV (ASCII)', tip: t.cheatTipFormat },
-      { label: 'Path to storage', value: comfortData.config.deviceType === 'comfort_panel' ? '\\Storage Card SD\\Logs' : 'C:\\Logs', tip: comfortData.config.deviceType === 'comfort_panel' ? t.cheatTipComfortStoragePath : t.cheatTipComfortStoragePathPc },
-    ];
+
+    const logItems = comfortData.result.logItems && comfortData.result.logItems.length > 0
+      ? comfortData.result.logItems
+      : [];
+
+    items = [];
+
+    if (logItems.length > 0) {
+      logItems.forEach((log) => {
+        items.push({
+          label: `[${log.name}] Max. number of data records per log`,
+          value: `${log.recordsPerLog.toLocaleString()}`,
+          tip: `${lang === 'ru' ? log.categoryNameRu : log.categoryNameEn} • ${t.cheatTipRecordsPerLog}`,
+        });
+        items.push({
+          label: `[${log.name}] Sequence of log files`,
+          value: `${log.recommendedLogFiles}`,
+          tip: `${lang === 'ru' ? log.categoryNameRu : log.categoryNameEn} • ${t.cheatTipSequenceFiles}`,
+        });
+        items.push({
+          label: `[${log.name}] Log type / Storage location`,
+          value: log.format === 'rdb' ? 'RDB (binary)' : 'CSV (ASCII)',
+          tip: t.cheatTipFormat,
+        });
+        items.push({
+          label: `[${log.name}] Path to storage`,
+          value: log.path,
+          tip: comfortData.config.deviceType === 'comfort_panel' ? t.cheatTipComfortStoragePath : t.cheatTipComfortStoragePathPc,
+        });
+      });
+    } else {
+      items = [
+        { label: 'Data records per log', value: `${comfortData.config.recordsPerLog.toLocaleString()}`, tip: t.cheatTipRecordsPerLog },
+        { label: 'Sequence of log files', value: `${comfortData.result.recommendedLogFiles}`, tip: t.cheatTipSequenceFiles },
+        { label: 'Log type / Storage location', value: comfortData.config.format === 'rdb' ? 'RDB (binary)' : 'CSV (ASCII)', tip: t.cheatTipFormat },
+        { label: 'Path to storage', value: comfortData.config.deviceType === 'comfort_panel' ? '\\Storage Card SD\\Logs' : 'C:\\Logs', tip: comfortData.config.deviceType === 'comfort_panel' ? t.cheatTipComfortStoragePath : t.cheatTipComfortStoragePathPc },
+      ];
+    }
+
     if (comfortData.config.deviceType === 'comfort_panel') {
       items.push({
         label: 'Storage medium requirement',
