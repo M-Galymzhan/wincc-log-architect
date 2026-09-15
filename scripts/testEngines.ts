@@ -1312,6 +1312,32 @@ async function runAsyncTests() {
     assert(formatSegTime(12) === '0.12:00:00', `TIA Time Format: 12h formats to 0.12:00:00, got ${formatSegTime(12)}`);
     assert(formatSegTime(168) === '7.00:00:00', `TIA Time Format: 168h formats to 7.00:00:00, got ${formatSegTime(168)}`);
 
+    // 14.7 Multi-Log KPI: Maximum log size per item and total storage consistency
+    const multiLogStorageTest = calculateUnified([
+      { id: 't_m1', description: 'Data Tag', mode: 'cyclic', cycleSec: 1, entriesPerSec: 1, count: 50, dataType: 'Real', dataLogId: 'dl_main' }
+    ], {
+      deviceType: 'ucp',
+      retentionDays: 30,
+      segmentHours: 24,
+      perEntryBytes: 50,
+      headroomPct: 30,
+      includeAlarms: true,
+      alarmsPerDay: 500,
+      includeAudit: false,
+      auditEntriesPerDay: 0,
+      storageMedium: 'sd_32g',
+      storageSizeGb: 32,
+      dataLogs: [{ id: 'dl_main', name: 'Data_Log_Main', retentionDays: 15, segmentHours: 24, enabled: true }],
+      alarmLogs: [{ id: 'al_main', name: 'Alarm_Log_Main', entriesPerDay: 500, retentionDays: 30, segmentHours: 24, enabled: true }],
+    });
+    const dlMain = multiLogStorageTest.logItems.find(l => l.id === 'dl_main');
+    const alMain = multiLogStorageTest.logItems.find(l => l.id === 'al_main');
+    assert(dlMain !== undefined && dlMain.totalLogMb > 0, 'Multi-Log Storage: Data log has positive totalLogMb');
+    assert(alMain !== undefined && alMain.totalLogMb > 0, 'Multi-Log Storage: Alarm log has positive totalLogMb');
+    const sumMb = (dlMain?.totalLogMb || 0) + (alMain?.totalLogMb || 0);
+    assert(multiLogStorageTest.totalStorageUsedMb === sumMb, `Multi-Log Storage: totalStorageUsedMb (${multiLogStorageTest.totalStorageUsedMb}) matches sum of logs (${sumMb})`);
+    assert(multiLogStorageTest.totalStorageUsedGb === sumMb / 1024, 'Multi-Log Storage: totalStorageUsedGb matches sum in GB');
+
     // --- Test Suite 15: ISA-18.2 / EEMUA 191 Alarm Rate Advisory Suite ---
     console.log(`\n=== [15] ISA-18.2 / EEMUA 191 ALARM RATE ADVISORY SUITE ===`);
     const baseConfigForIsa: UnifiedConfig = {

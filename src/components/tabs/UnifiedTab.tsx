@@ -1821,134 +1821,254 @@ export const UnifiedTab: React.FC<UnifiedTabProps> = ({
             </div>
           </div>
 
-          {/* SQLite Segment Size (Multiple of 4 MB) */}
+          {/* Card 2 & Card 3: TIA Portal Parameters (Segment & Max Log Size) */}
           {(() => {
             const activeKpiLogs = result.logItems.filter((i) => i.enabled && (i.totalLogMb > 0 || i.entriesPerDay > 0));
             const fallbackKpiLogs = activeKpiLogs.length > 0 ? activeKpiLogs : result.logItems;
-            const maxKpiLog = fallbackKpiLogs.reduce((max, cur) => (
+            const maxSegmentLog = fallbackKpiLogs.reduce((max, cur) => (
               cur.sqliteSegmentMb > max.sqliteSegmentMb ||
               (cur.sqliteSegmentMb === max.sqliteSegmentMb && cur.rawSegmentMb > max.rawSegmentMb)
                 ? cur
                 : max
             ), fallbackKpiLogs[0]);
-            const currentKpiLog = selectedKpiLogId === 'max'
-              ? maxKpiLog
-              : (fallbackKpiLogs.find(l => l.id === selectedKpiLogId) || maxKpiLog);
+            const maxLogSizeLog = fallbackKpiLogs.reduce((max, cur) => (
+              cur.totalLogMb > max.totalLogMb ||
+              (cur.totalLogMb === max.totalLogMb && cur.totalLogGb > max.totalLogGb)
+                ? cur
+                : max
+            ), fallbackKpiLogs[0]);
+            const currentSegmentLog = selectedKpiLogId === 'max'
+              ? maxSegmentLog
+              : (fallbackKpiLogs.find(l => l.id === selectedKpiLogId) || maxSegmentLog);
+            const currentLogSizeLog = selectedKpiLogId === 'max'
+              ? maxLogSizeLog
+              : (fallbackKpiLogs.find(l => l.id === selectedKpiLogId) || maxLogSizeLog);
 
             return (
-              <div className="p-4 rounded-xl border-2 border-[#00646E] bg-[#00646E]/5 dark:bg-[#00A3B5]/10 shadow-sm relative overflow-hidden flex flex-col justify-between">
-                <div>
-                  <div className="flex items-center justify-between gap-1 mb-1">
-                    <div className="text-xs font-semibold text-[#00646E] dark:text-[#00A3B5] truncate" title={t.sqliteSegmentLabel}>
-                      {t.sqliteSegmentLabel}
-                    </div>
-                    {activeKpiLogs.length > 1 && (
-                      <span className="text-[10px] px-1.5 py-0.2 rounded-full font-mono bg-[#00646E]/10 dark:bg-[#00A3B5]/20 text-[#00646E] dark:text-[#00A3B5] font-bold shrink-0">
-                        {activeKpiLogs.length} {lang === 'ru' ? 'лог.' : 'logs'}
-                      </span>
-                    )}
-                  </div>
-
-                  <div className="flex items-baseline gap-1.5 flex-wrap">
-                    <div className="text-2xl font-black font-mono text-[#00646E] dark:text-[#00A3B5]">
-                      {currentKpiLog ? currentKpiLog.sqliteSegmentMb : result.sqliteSegmentMb} MB
-                    </div>
-                    {activeKpiLogs.length > 1 && currentKpiLog && (
-                      <span className="text-[11px] font-mono font-semibold text-slate-600 dark:text-slate-300 truncate max-w-[130px]" title={currentKpiLog.name}>
-                        ({selectedKpiLogId === 'max' ? `${lang === 'ru' ? 'Макс:' : 'Max:'} ${currentKpiLog.name}` : currentKpiLog.name})
-                      </span>
-                    )}
-                  </div>
-
-                  <div className="text-[11px] text-slate-500 dark:text-slate-400 mt-1">
-                    {t.sqliteMultiple4Mb}
-                  </div>
-                  <div className="text-[10px] text-slate-400 mt-0.5 flex items-center justify-between">
-                    <span>
-                      {lang === 'ru' ? 'Сырой расчет:' : 'Raw calculation:'}{' '}
-                      <span className="font-mono font-medium">
-                        {currentKpiLog ? currentKpiLog.rawSegmentMb.toFixed(2) : result.rawSegmentMb.toFixed(2)} MB
-                      </span>
-                    </span>
-                    {currentKpiLog && (
-                      <span className="text-slate-400 font-mono text-[10px]">
-                        {currentKpiLog.segmentHours} {lang === 'ru' ? 'ч/сегм' : 'h/seg'}
-                      </span>
-                    )}
-                  </div>
-                </div>
-
-                {/* Multi-log Segment Breakdown Chips */}
-                {activeKpiLogs.length > 1 && (
-                  <div className="mt-2.5 pt-2 border-t border-[#00646E]/15 dark:border-[#00A3B5]/20">
-                    <div className="text-[10px] text-slate-500 dark:text-slate-400 mb-1 flex items-center justify-between">
-                      <span>{lang === 'ru' ? 'Сегменты по архивам (TIA):' : 'Segments by log (TIA):'}</span>
-                      {selectedKpiLogId !== 'max' && (
-                        <button
-                          type="button"
-                          onClick={() => setSelectedKpiLogId('max')}
-                          className="text-[9px] text-[#00646E] dark:text-[#00A3B5] hover:underline cursor-pointer font-medium"
-                        >
-                          {lang === 'ru' ? 'Сброс (Max)' : 'Reset (Max)'}
-                        </button>
+              <>
+                {/* SQLite Segment Size (Multiple of 4 MB) */}
+                <div className="p-4 rounded-xl border-2 border-[#00646E] bg-[#00646E]/5 dark:bg-[#00A3B5]/10 shadow-sm relative overflow-hidden flex flex-col justify-between">
+                  <div>
+                    <div className="flex items-center justify-between gap-1 mb-1">
+                      <div className="text-xs font-semibold text-[#00646E] dark:text-[#00A3B5] leading-tight" title={t.sqliteSegmentLabel}>
+                        {t.sqliteSegmentLabel}
+                      </div>
+                      {activeKpiLogs.length > 1 && (
+                        <span className="text-[10px] px-1.5 py-0.5 rounded-full font-mono bg-[#00646E]/10 dark:bg-[#00A3B5]/20 text-[#00646E] dark:text-[#00A3B5] font-bold shrink-0">
+                          {activeKpiLogs.length} {lang === 'ru' ? 'лог.' : 'logs'}
+                        </span>
                       )}
                     </div>
-                    <div className="flex flex-wrap gap-1 max-h-24 overflow-y-auto pr-0.5">
-                      {activeKpiLogs.map((l) => {
-                        const isSelected = (selectedKpiLogId === l.id) || (selectedKpiLogId === 'max' && l.id === maxKpiLog?.id);
-                        return (
-                          <button
-                            key={l.id}
-                            type="button"
-                            onClick={() => setSelectedKpiLogId(l.id)}
-                            className={`px-1.5 py-0.5 rounded text-[10px] font-mono transition-all cursor-pointer flex items-center gap-1 shrink-0 ${
-                              isSelected
-                                ? 'bg-[#00646E] text-white dark:bg-[#00A3B5] dark:text-slate-900 font-bold shadow-xs ring-1 ring-[#00646E]'
-                                : 'bg-white/80 dark:bg-slate-800/80 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-700 hover:border-[#00646E]/50'
-                            }`}
-                            title={`${l.name} (${lang === 'ru' ? (l.categoryNameRu || l.category) : (l.categoryNameEn || l.category)}): ${l.sqliteSegmentMb} MB (${lang === 'ru' ? 'сырой' : 'raw'}: ${l.rawSegmentMb.toFixed(2)} MB)`}
-                          >
-                            {l.category === 'data' ? (
-                              <Database className="w-2.5 h-2.5 shrink-0" />
-                            ) : l.category === 'alarm' ? (
-                              <Bell className="w-2.5 h-2.5 shrink-0" />
-                            ) : (
-                              <ShieldCheck className="w-2.5 h-2.5 shrink-0" />
-                            )}
-                            <span className="truncate max-w-[85px]">{l.name}:</span>
-                            <span className="font-bold">{l.sqliteSegmentMb} MB</span>
-                          </button>
-                        );
-                      })}
+
+                    <div className="flex items-baseline gap-1.5 flex-wrap">
+                      <div className="text-2xl font-black font-mono text-[#00646E] dark:text-[#00A3B5]">
+                        {currentSegmentLog ? currentSegmentLog.sqliteSegmentMb : result.sqliteSegmentMb} MB
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => handleCopyValue('kpi_seg', currentSegmentLog ? currentSegmentLog.sqliteSegmentMb : result.sqliteSegmentMb)}
+                        title={t.copySegmentTooltip}
+                        className="p-1 rounded hover:bg-[#00646E]/15 dark:hover:bg-[#00A3B5]/20 text-[#00646E] dark:text-[#00A3B5] cursor-pointer transition-colors"
+                      >
+                        {copiedCellKey === 'kpi_seg' ? <Check className="w-3.5 h-3.5 text-emerald-600" /> : <Copy className="w-3.5 h-3.5" />}
+                      </button>
+                      {activeKpiLogs.length > 1 && currentSegmentLog && (
+                        <span className="text-[11px] font-mono font-semibold text-slate-600 dark:text-slate-300 truncate max-w-[130px]" title={currentSegmentLog.name}>
+                          ({selectedKpiLogId === 'max' ? `${lang === 'ru' ? 'Макс:' : 'Max:'} ${currentSegmentLog.name}` : currentSegmentLog.name})
+                        </span>
+                      )}
+                    </div>
+
+                    <div className="text-[11px] text-slate-500 dark:text-slate-400 mt-1">
+                      {t.sqliteMultiple4Mb}
+                    </div>
+                    <div className="text-[10px] text-slate-400 mt-0.5 flex items-center justify-between">
+                      <span>
+                        {lang === 'ru' ? 'Сырой расчет:' : 'Raw calculation:'}{' '}
+                        <span className="font-mono font-medium">
+                          {currentSegmentLog ? currentSegmentLog.rawSegmentMb.toFixed(2) : result.rawSegmentMb.toFixed(2)} MB
+                        </span>
+                      </span>
+                      {currentSegmentLog && (
+                        <span className="text-slate-400 font-mono text-[10px]">
+                          {currentSegmentLog.segmentHours} {lang === 'ru' ? 'ч/сегм' : 'h/seg'}
+                        </span>
+                      )}
                     </div>
                   </div>
-                )}
-              </div>
+
+                  {/* Multi-log Segment Breakdown Chips */}
+                  {activeKpiLogs.length > 1 && (
+                    <div className="mt-2.5 pt-2 border-t border-[#00646E]/15 dark:border-[#00A3B5]/20">
+                      <div className="text-[10px] text-slate-500 dark:text-slate-400 mb-1 flex items-center justify-between">
+                        <span>{lang === 'ru' ? 'Сегменты по архивам (TIA):' : 'Segments by log (TIA):'}</span>
+                        {selectedKpiLogId !== 'max' && (
+                          <button
+                            type="button"
+                            onClick={() => setSelectedKpiLogId('max')}
+                            className="text-[9px] text-[#00646E] dark:text-[#00A3B5] hover:underline cursor-pointer font-medium"
+                          >
+                            {lang === 'ru' ? 'Сброс (Max)' : 'Reset (Max)'}
+                          </button>
+                        )}
+                      </div>
+                      <div className="flex flex-wrap gap-1 max-h-24 overflow-y-auto pr-0.5">
+                        {activeKpiLogs.map((l) => {
+                          const isSelected = (selectedKpiLogId === l.id) || (selectedKpiLogId === 'max' && l.id === maxSegmentLog?.id);
+                          return (
+                            <button
+                              key={l.id}
+                              type="button"
+                              onClick={() => setSelectedKpiLogId(l.id)}
+                              className={`px-1.5 py-0.5 rounded text-[10px] font-mono transition-all cursor-pointer flex items-center gap-1 shrink-0 ${
+                                isSelected
+                                  ? 'bg-[#00646E] text-white dark:bg-[#00A3B5] dark:text-slate-900 font-bold shadow-xs ring-1 ring-[#00646E]'
+                                  : 'bg-white/80 dark:bg-slate-800/80 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-700 hover:border-[#00646E]/50'
+                              }`}
+                              title={`${l.name} (${lang === 'ru' ? (l.categoryNameRu || l.category) : (l.categoryNameEn || l.category)}): ${l.sqliteSegmentMb} MB (${lang === 'ru' ? 'сырой' : 'raw'}: ${l.rawSegmentMb.toFixed(2)} MB)`}
+                            >
+                              {l.category === 'data' ? (
+                                <Database className="w-2.5 h-2.5 shrink-0" />
+                              ) : l.category === 'alarm' ? (
+                                <Bell className="w-2.5 h-2.5 shrink-0" />
+                              ) : (
+                                <ShieldCheck className="w-2.5 h-2.5 shrink-0" />
+                              )}
+                              <span className="truncate max-w-[85px]">{l.name}:</span>
+                              <span className="font-bold">{l.sqliteSegmentMb} MB</span>
+                            </button>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  )}
+                </div>
+
+                {/* Card 3: Maximum Log Size Recommendation & Storage Footprint */}
+                <div className="p-4 rounded-xl border-2 border-indigo-500/40 dark:border-indigo-400/30 bg-indigo-50/15 dark:bg-indigo-950/10 shadow-sm relative overflow-hidden flex flex-col justify-between">
+                  <div>
+                    <div className="flex items-center justify-between gap-1 mb-1">
+                      <div className="text-xs font-semibold text-indigo-900 dark:text-indigo-300 leading-tight" title={t.totalLogLabel}>
+                        {t.totalLogLabel}
+                      </div>
+                      {activeKpiLogs.length > 1 && (
+                        <span className="text-[10px] px-1.5 py-0.5 rounded-full font-mono bg-indigo-500/10 text-indigo-700 dark:text-indigo-300 font-bold shrink-0">
+                          {activeKpiLogs.length} {lang === 'ru' ? 'лог.' : 'logs'}
+                        </span>
+                      )}
+                    </div>
+
+                    <div className="flex items-baseline gap-1.5 flex-wrap">
+                      <div className="text-2xl font-black font-mono text-indigo-900 dark:text-indigo-200">
+                        {currentLogSizeLog ? currentLogSizeLog.totalLogMb : result.totalLogMb} MB
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => handleCopyValue('kpi_max_log', currentLogSizeLog ? currentLogSizeLog.totalLogMb : result.totalLogMb)}
+                        title={t.copyMaxLogTooltip}
+                        className="p-1 rounded hover:bg-indigo-500/15 text-indigo-700 dark:text-indigo-300 cursor-pointer transition-colors"
+                      >
+                        {copiedCellKey === 'kpi_max_log' ? <Check className="w-3.5 h-3.5 text-emerald-600" /> : <Copy className="w-3.5 h-3.5" />}
+                      </button>
+                      {activeKpiLogs.length > 1 && currentLogSizeLog && (
+                        <span className="text-[11px] font-mono font-semibold text-slate-600 dark:text-slate-300 truncate max-w-[130px]" title={currentLogSizeLog.name}>
+                          ({selectedKpiLogId === 'max' ? `${lang === 'ru' ? 'Макс:' : 'Max:'} ${currentLogSizeLog.name}` : currentLogSizeLog.name})
+                        </span>
+                      )}
+                    </div>
+
+                    <div className="text-[11px] text-slate-500 dark:text-slate-400 mt-1 flex items-center justify-between">
+                      <span>
+                        {currentLogSizeLog ? (
+                          <>
+                            {Math.max(3, Math.ceil((currentLogSizeLog.retentionDays * 24) / currentLogSizeLog.segmentHours))}{' '}
+                            {lang === 'ru' ? 'сегм. по' : 'seg. ×'}{' '}
+                            <span className="font-mono font-medium">{currentLogSizeLog.sqliteSegmentMb} MB</span>
+                          </>
+                        ) : (
+                          `${result.totalSegments} ${lang === 'ru' ? 'сегментов' : 'segments'}`
+                        )}
+                      </span>
+                      {currentLogSizeLog && (
+                        <span className="text-slate-400 font-mono text-[10px]">
+                          {currentLogSizeLog.retentionDays} {lang === 'ru' ? 'дней' : 'd'}
+                        </span>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Multi-log Maximum Log Size Chips */}
+                  {activeKpiLogs.length > 1 && (
+                    <div className="mt-2.5 pt-2 border-t border-indigo-500/15 dark:border-indigo-500/20">
+                      <div className="text-[10px] text-slate-500 dark:text-slate-400 mb-1 flex items-center justify-between">
+                        <span>{lang === 'ru' ? 'Лимиты по архивам (TIA):' : 'Log limits (TIA):'}</span>
+                        {selectedKpiLogId !== 'max' && (
+                          <button
+                            type="button"
+                            onClick={() => setSelectedKpiLogId('max')}
+                            className="text-[9px] text-indigo-600 dark:text-indigo-400 hover:underline cursor-pointer font-medium"
+                          >
+                            {lang === 'ru' ? 'Сброс (Max)' : 'Reset (Max)'}
+                          </button>
+                        )}
+                      </div>
+                      <div className="flex flex-wrap gap-1 max-h-24 overflow-y-auto pr-0.5">
+                        {activeKpiLogs.map((l) => {
+                          const isSelected = (selectedKpiLogId === l.id) || (selectedKpiLogId === 'max' && l.id === maxLogSizeLog?.id);
+                          return (
+                            <button
+                              key={l.id}
+                              type="button"
+                              onClick={() => setSelectedKpiLogId(l.id)}
+                              className={`px-1.5 py-0.5 rounded text-[10px] font-mono transition-all cursor-pointer flex items-center gap-1 shrink-0 ${
+                                isSelected
+                                  ? 'bg-indigo-600 text-white dark:bg-indigo-500 dark:text-white font-bold shadow-xs ring-1 ring-indigo-600'
+                                  : 'bg-white/80 dark:bg-slate-800/80 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-700 hover:border-indigo-500/50'
+                              }`}
+                              title={`${l.name} (${lang === 'ru' ? (l.categoryNameRu || l.category) : (l.categoryNameEn || l.category)}): ${l.totalLogMb} MB (${l.totalLogGb >= 1 ? `${l.totalLogGb.toFixed(2)} GB` : `${l.totalLogMb} MB`})`}
+                            >
+                              {l.category === 'data' ? (
+                                <Database className="w-2.5 h-2.5 shrink-0" />
+                              ) : l.category === 'alarm' ? (
+                                <Bell className="w-2.5 h-2.5 shrink-0" />
+                              ) : (
+                                <ShieldCheck className="w-2.5 h-2.5 shrink-0" />
+                              )}
+                              <span className="truncate max-w-[85px]">{l.name}:</span>
+                              <span className="font-bold">{l.totalLogMb} MB</span>
+                            </button>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Card 3 Footer: Total storage footprint on disk & Rule of 3 segments */}
+                  <div className="mt-2.5 pt-2 border-t border-slate-200/80 dark:border-slate-800 flex flex-col gap-1">
+                    <div className="text-[10px] text-slate-500 dark:text-slate-400 flex items-center justify-between">
+                      <span>{t.totalDiskFootprint}</span>
+                      <span className="font-mono font-bold text-slate-800 dark:text-slate-200">
+                        {result.totalStorageUsedGb >= 1 ? `${result.totalStorageUsedGb.toFixed(2)} GB` : `${result.totalStorageUsedMb} MB`}
+                      </span>
+                    </div>
+                    <div className="text-xs flex items-center gap-1.5">
+                      {result.rule3SegmentsValid ? (
+                        <span className="text-emerald-600 dark:text-emerald-400 flex items-center gap-1 font-medium text-[11px]">
+                          <CheckCircle2 className="w-3.5 h-3.5" />
+                          {t.rule3SegmentsOk}
+                        </span>
+                      ) : (
+                        <span className="text-amber-500 flex items-center gap-1 font-medium text-[11px]">
+                          <AlertTriangle className="w-3.5 h-3.5" />
+                          {t.rule3SegmentsBad}
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              </>
             );
           })()}
-
-          {/* Max Log Size Recommendation */}
-          <div className="p-4 rounded-xl border border-slate-200/80 dark:border-slate-800 bg-white/50 dark:bg-slate-900/50">
-            <div className="text-xs font-medium text-slate-500 dark:text-slate-400 mb-1">
-              {t.totalLogLabel}
-            </div>
-            <div className="text-2xl font-bold font-mono text-slate-900 dark:text-white">
-              {result.totalStorageUsedGb >= 1 ? `${result.totalStorageUsedGb.toFixed(2)} GB` : `${result.totalStorageUsedMb} MB`}
-            </div>
-            <div className="mt-2 text-xs flex items-center gap-1.5">
-              {result.rule3SegmentsValid ? (
-                <span className="text-emerald-600 dark:text-emerald-400 flex items-center gap-1 font-medium text-[11px]">
-                  <CheckCircle2 className="w-3.5 h-3.5" />
-                  {t.rule3SegmentsOk}
-                </span>
-              ) : (
-                <span className="text-amber-500 flex items-center gap-1 font-medium text-[11px]">
-                  <AlertTriangle className="w-3.5 h-3.5" />
-                  {t.rule3SegmentsBad}
-                </span>
-              )}
-            </div>
-          </div>
 
           {/* Storage Medium Occupancy & Flash Wear */}
           <div className={`p-4 rounded-xl border ${result.storageOccupancyPct > 100 ? 'border-red-500 bg-red-50 dark:bg-red-950/20' : 'border-slate-200/80 dark:border-slate-800 bg-white/50 dark:bg-slate-900/50'}`}>
