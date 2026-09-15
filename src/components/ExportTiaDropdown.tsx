@@ -8,7 +8,7 @@ interface ExportTiaDropdownProps {
   onExportXlsx: () => void;
   onExportCsv: () => void;
   lang: Language;
-  themeColor?: 'emerald' | 'amber' | 'purple';
+  themeColor?: 'emerald' | 'amber' | 'purple' | 'blue';
   buttonLabel?: string;
   tooltipTitle?: string;
   className?: string;
@@ -53,6 +53,8 @@ export const ExportTiaDropdown: React.FC<ExportTiaDropdownProps> = ({
 
   const buttonBg = themeColor === 'amber'
     ? 'bg-amber-600 hover:bg-amber-500 text-white'
+    : themeColor === 'blue'
+    ? 'bg-blue-600 hover:bg-blue-500 text-white'
     : themeColor === 'purple'
     ? 'bg-purple-600 hover:bg-purple-500 text-white'
     : 'bg-emerald-600 hover:bg-emerald-500 text-white';

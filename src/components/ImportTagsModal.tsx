@@ -300,7 +300,7 @@ export const ImportTagsModal: React.FC<ImportTagsModalProps> = ({
                             <span className={`px-1.5 py-0.5 rounded text-[10px] font-medium ${
                               tag.mode === 'cyclic'
                                 ? 'bg-[#00646E]/10 text-[#00646E] dark:text-[#00A3B5]'
-                                : 'bg-purple-500/10 text-purple-600 dark:text-purple-400'
+                                : 'bg-blue-500/10 text-blue-600 dark:text-blue-400'
                             }`}>
                               {tag.mode === 'cyclic' ? 'Cyclic' : 'On Change'}
                             </span>

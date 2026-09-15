@@ -398,7 +398,7 @@ export const ReportModal: React.FC<ReportModalProps> = ({
           {/* Section 3: WinCC Professional Summary */}
           {showProfessional && (
             <div>
-              <h4 className="font-bold text-base text-purple-600 dark:text-purple-400 flex items-center gap-2 mb-3 pb-1 border-b border-slate-200 dark:border-slate-800">
+              <h4 className="font-bold text-base text-blue-600 dark:text-blue-400 flex items-center gap-2 mb-3 pb-1 border-b border-slate-200 dark:border-slate-800">
                 <Database className="w-4 h-4" />
                 <span>3. WinCC Professional SCADA (Microsoft SQL Server)</span>
               </h4>
@@ -427,7 +427,7 @@ export const ReportModal: React.FC<ReportModalProps> = ({
                   </tr>
                   <tr>
                     <td className="py-2 text-slate-500 dark:text-slate-400">{t.reportTotalMdf}</td>
-                    <td className="py-2 font-bold font-mono text-purple-600 dark:text-purple-400">
+                    <td className="py-2 font-bold font-mono text-blue-600 dark:text-blue-400">
                       {proData.result.totalMdfSizeGb.toFixed(2)} GB
                     </td>
                     <td className="py-2 text-slate-500 dark:text-slate-400">{t.reportTotalDisk}</td>
@@ -437,7 +437,7 @@ export const ReportModal: React.FC<ReportModalProps> = ({
                   </tr>
                   <tr>
                     <td className="py-2 text-slate-500 dark:text-slate-400">{t.proRequiredIops}</td>
-                    <td className="py-2 font-bold font-mono text-purple-600 dark:text-purple-400">
+                    <td className="py-2 font-bold font-mono text-blue-600 dark:text-blue-400">
                       {proData.result.requiredIops} {t.proIopsUnit}
                     </td>
                     <td className="py-2 text-slate-500 dark:text-slate-400">{lang === 'ru' ? 'Дисковый массив' : 'Disk Array'}</td>
@@ -474,7 +474,7 @@ export const ReportModal: React.FC<ReportModalProps> = ({
                           <td className="p-2.5 font-mono">
                             {arch.segmentPeriod === 'day' ? t.proPeriodDay : arch.segmentPeriod === 'week' ? t.proPeriodWeek : t.proPeriodMonth}
                           </td>
-                          <td className="p-2.5 font-mono font-bold text-purple-600 dark:text-purple-400">
+                          <td className="p-2.5 font-mono font-bold text-blue-600 dark:text-blue-400">
                             {arch.sizeGb.toFixed(2)} GB
                           </td>
                           <td className="p-2.5 font-mono">
@@ -492,12 +492,12 @@ export const ReportModal: React.FC<ReportModalProps> = ({
 
               {/* ISA-18.2 Alarm Assessment if active */}
               {proData.result.isa18AlarmAssessment && (
-                <div className="p-2.5 mb-3 rounded-xl bg-purple-50 dark:bg-purple-950/30 border border-purple-200 dark:border-purple-800/40 text-xs flex items-center justify-between">
+                <div className="p-2.5 mb-3 rounded-xl bg-blue-50 dark:bg-blue-950/30 border border-blue-200 dark:border-blue-800/40 text-xs flex items-center justify-between">
                   <div className="flex items-center gap-2">
-                    <span className="font-bold text-purple-900 dark:text-purple-200">ISA-18.2 / EEMUA 191:</span>
+                    <span className="font-bold text-blue-900 dark:text-blue-200">ISA-18.2 / EEMUA 191:</span>
                     <span className="font-mono">{proData.result.isa18AlarmAssessment.alarmsPerHour} {t.proAlarmsUnit}</span>
                   </div>
-                  <span className="font-bold px-2 py-0.5 rounded text-[10px] bg-purple-200 dark:bg-purple-900 text-purple-900 dark:text-purple-200">
+                  <span className="font-bold px-2 py-0.5 rounded text-[10px] bg-blue-200 dark:bg-blue-900 text-blue-900 dark:text-blue-200">
                     {lang === 'ru' ? proData.result.isa18AlarmAssessment.labelRu : proData.result.isa18AlarmAssessment.labelEn}
                   </span>
                 </div>
@@ -561,7 +561,7 @@ export const ReportModal: React.FC<ReportModalProps> = ({
                     const art = getSiemensArticle('ssd_custom');
                     return (
                       <tr>
-                        <td className="p-2.5 font-semibold text-purple-600 dark:text-purple-400">WinCC Professional</td>
+                        <td className="p-2.5 font-semibold text-blue-600 dark:text-blue-400">WinCC Professional</td>
                         <td className="p-2.5">{art.name}</td>
                         <td className="p-2.5 font-mono font-bold text-slate-900 dark:text-white">{art.mlfb}</td>
                         <td className="p-2.5">{art.capacityGb} GB</td>
@@ -638,7 +638,7 @@ export const ReportModal: React.FC<ReportModalProps> = ({
                   )}
                   {showProfessional && (
                     <tr>
-                      <td className="p-2.5 font-semibold text-purple-600 dark:text-purple-400">WinCC Professional</td>
+                      <td className="p-2.5 font-semibold text-blue-600 dark:text-blue-400">WinCC Professional</td>
                       <td className="p-2.5 font-mono font-bold">
                         {proData.result.network.bandwidthKbps >= 1000
                           ? `${proData.result.network.bandwidthMbps} Mbps`

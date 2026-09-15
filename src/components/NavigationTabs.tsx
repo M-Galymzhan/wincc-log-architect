@@ -40,7 +40,7 @@ export const NavigationTabs: React.FC<NavigationTabsProps> = ({ activeTab, setAc
       label: t.tabProfessional,
       badge: t.tabProfessionalBadge,
       icon: Database,
-      color: '#8B5CF6',
+      color: '#2563EB',
       hasWarning: warnings?.professional,
     },
   ];
