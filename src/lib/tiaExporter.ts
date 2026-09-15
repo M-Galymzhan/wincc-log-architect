@@ -1,5 +1,5 @@
 import * as XLSX from 'xlsx';
-import { UnifiedTag, ComfortTag, ProfessionalTag, UnifiedAlarmTag, ComfortAlarmTag, ActiveTab } from './types';
+import { UnifiedTag, ComfortTag, ProfessionalTag, UnifiedAlarmTag, ComfortAlarmTag, ProfessionalAlarmTag, ActiveTab } from './types';
 
 export const TIA_HMI_TAGS_HEADERS = [
   'Name',
@@ -228,7 +228,7 @@ export function generateTiaPortalXlsx(
  * Generates an XLSX workbook for Siemens TIA Portal alarm tags (discrete alarm triggers).
  */
 export function generateTiaPortalAlarmXlsx(
-  alarmTags: (UnifiedAlarmTag | ComfortAlarmTag)[],
+  alarmTags: (UnifiedAlarmTag | ComfortAlarmTag | ProfessionalAlarmTag)[],
   alarmLogs?: { id: string; name: string }[],
   options?: TiaXlsxExportOptions
 ): Uint8Array {
@@ -328,7 +328,7 @@ export function generateTiaPortalCsv(
 }
 
 export function generateTiaPortalAlarmCsv(
-  alarmTags: (UnifiedAlarmTag | ComfortAlarmTag)[],
+  alarmTags: (UnifiedAlarmTag | ComfortAlarmTag | ProfessionalAlarmTag)[],
   alarmLogs?: { id: string; name: string }[]
 ): string {
   const BOM = '\uFEFF';

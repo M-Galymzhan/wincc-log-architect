@@ -208,12 +208,45 @@ export const TiaCheatSheetModal: React.FC<TiaCheatSheetModalProps> = ({
     title = lang === 'ru'
       ? 'WinCC Professional — Архивация тегов и SQL Server'
       : 'WinCC Professional — Tag Logging & SQL Server';
-    items = [
-      { label: 'Segment time period', value: proData.config.segmentPeriod === 'day' ? t.proPeriodDay : proData.config.segmentPeriod === 'week' ? t.proPeriodWeek : t.proPeriodMonth, tip: t.cheatTipProSegmentPeriod },
-      { label: 'Max size of all segments', value: `${proData.result.totalStorageGb.toFixed(2)} GB`, tip: t.cheatTipProTotalDb },
-      { label: 'Fast Tag Logging Archive (MDF)', value: `${proData.result.fastDatabaseSizeGb.toFixed(2)} GB`, tip: t.cheatTipProFast },
-      { label: 'Slow Tag Logging Archive (MDF)', value: `${proData.result.slowDatabaseSizeGb.toFixed(2)} GB`, tip: t.cheatTipProSlow },
-    ];
+    if (proData.result.archiveItems && proData.result.archiveItems.length > 0) {
+      items = [
+        { 
+          label: 'Total SQL Storage (MDF + LDF)', 
+          value: `${proData.result.totalStorageGb.toFixed(2)} GB`, 
+          tip: t.cheatTipProTotalDb 
+        },
+        { 
+          label: 'Required Disk Performance', 
+          value: `${proData.result.requiredIops} IOPS`, 
+          tip: lang === 'ru' ? 'Расчетная дисковая нагрузка SQL Server' : 'Estimated SQL Server disk IOPS workload' 
+        },
+      ];
+      proData.result.archiveItems.forEach(arch => {
+        const segLabel = arch.segmentPeriod === 'day' ? t.proPeriodDay : arch.segmentPeriod === 'week' ? t.proPeriodWeek : t.proPeriodMonth;
+        items.push({
+          label: `[${arch.name}] Segment time period`,
+          value: segLabel,
+          tip: `${lang === 'ru' ? arch.nameRu : arch.nameEn} • ${t.cheatTipProSegmentPeriod}`,
+        });
+        items.push({
+          label: `[${arch.name}] Max size of all segments`,
+          value: `${arch.sizeGb.toFixed(2)} GB`,
+          tip: `${lang === 'ru' ? arch.nameRu : arch.nameEn} (MDF)`,
+        });
+        items.push({
+          label: `[${arch.name}] Storage Path`,
+          value: arch.path,
+          tip: lang === 'ru' ? 'Каталог размещения архива на сервере SCADA' : 'Archive directory on SCADA Server',
+        });
+      });
+    } else {
+      items = [
+        { label: 'Segment time period', value: proData.config.segmentPeriod === 'day' ? t.proPeriodDay : proData.config.segmentPeriod === 'week' ? t.proPeriodWeek : t.proPeriodMonth, tip: t.cheatTipProSegmentPeriod },
+        { label: 'Max size of all segments', value: `${proData.result.totalStorageGb.toFixed(2)} GB`, tip: t.cheatTipProTotalDb },
+        { label: 'Fast Tag Logging Archive (MDF)', value: `${proData.result.fastDatabaseSizeGb.toFixed(2)} GB`, tip: t.cheatTipProFast },
+        { label: 'Slow Tag Logging Archive (MDF)', value: `${proData.result.slowDatabaseSizeGb.toFixed(2)} GB`, tip: t.cheatTipProSlow },
+      ];
+    }
   }
 
   const checklistRules = [

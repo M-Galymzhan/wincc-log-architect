@@ -427,5 +427,6 @@ export function convertToProfessionalTags(items: ParsedTagItem[]): ProfessionalT
     cycleSec: item.cycleSec,
     count: item.count,
     archiveType: item.cycleSec <= 1 ? 'fast' : 'slow',
+    dataType: item.dataType,
   }));
 }

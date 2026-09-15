@@ -249,6 +249,32 @@ export interface ProfessionalTag {
   cycleSec: number;
   count: number;
   archiveType: 'fast' | 'slow';
+  dataType?: 'Real' | 'LReal' | 'DInt' | 'Int' | 'Bool' | 'String';
+}
+
+export interface ProfessionalAlarmTag {
+  id: string;
+  name: string;
+  alarmClass?: 'Alarm' | 'Warning' | 'Event';
+  triggerType?: 'digital' | 'analog';
+  eventsPerDay: number;
+  count?: number;
+  alarmLogId?: string;
+}
+
+export interface CalculatedSqlArchiveItem {
+  id: string;
+  name: string;
+  archiveType: 'fast' | 'slow' | 'alarm';
+  nameRu: string;
+  nameEn: string;
+  segmentPeriod: 'day' | 'week' | 'month';
+  retentionDays: number;
+  sizeGb: number;
+  sizeMb: number;
+  path: string;
+  descriptionRu: string;
+  descriptionEn: string;
 }
 
 export interface ProfessionalConfig {
@@ -258,6 +284,10 @@ export interface ProfessionalConfig {
   includeAlarmLogging: boolean;
   alarmsPerHour: number;
   databaseHeadroomPct: number;
+  storageDiskType?: 'sata_ssd' | 'nvme_ssd' | 'hdd_raid1' | 'custom';
+  diskCapacityGb?: number;
+  alarmTags?: ProfessionalAlarmTag[];
+  archivePath?: string;
 }
 
 export interface ProfessionalResult {
@@ -267,15 +297,21 @@ export interface ProfessionalResult {
   slowEntriesPerDay: number;
   alarmEntriesPerDay: number;
   totalEntriesPerDay: number;
+  totalRatePerSec: number;
   fastDatabaseSizeGb: number;
   slowDatabaseSizeGb: number;
   alarmDatabaseSizeGb: number;
   totalMdfSizeGb: number;
   estimatedLdfSizeGb: number;
   totalStorageGb: number;
+  storageOccupancyPct: number;
+  requiredIops: number;
+  trafficStatus: 'safe' | 'warning' | 'critical';
   expressLimitExceeded: boolean;
+  archiveItems: CalculatedSqlArchiveItem[];
   network: NetworkMetrics;
   warnings: string[];
+  isa18AlarmAssessment?: Isa18AlarmAssessment;
 }
 
 export interface ToastMessage {

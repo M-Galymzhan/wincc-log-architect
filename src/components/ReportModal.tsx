@@ -435,8 +435,73 @@ export const ReportModal: React.FC<ReportModalProps> = ({
                       {proData.result.totalStorageGb.toFixed(2)} GB
                     </td>
                   </tr>
+                  <tr>
+                    <td className="py-2 text-slate-500 dark:text-slate-400">{t.proRequiredIops}</td>
+                    <td className="py-2 font-bold font-mono text-purple-600 dark:text-purple-400">
+                      {proData.result.requiredIops} {t.proIopsUnit}
+                    </td>
+                    <td className="py-2 text-slate-500 dark:text-slate-400">{lang === 'ru' ? 'Дисковый массив' : 'Disk Array'}</td>
+                    <td className="py-2 font-semibold">
+                      {proData.config.storageDiskType === 'nvme_ssd' ? 'NVMe SSD (RAID 10)' : proData.config.storageDiskType === 'sata_ssd' ? 'SATA SSD (RAID 1)' : proData.config.storageDiskType === 'hdd_raid1' ? 'HDD 7.2k (RAID 1)' : 'Custom'}
+                    </td>
+                  </tr>
                 </tbody>
               </table>
+
+              {/* SQL Server Archives Specification Table */}
+              {proData.result.archiveItems && proData.result.archiveItems.length > 0 && (
+                <div className="overflow-x-auto rounded-xl border border-slate-200 dark:border-slate-800 mb-3">
+                  <table className="w-full text-xs text-left">
+                    <thead className="bg-slate-100 dark:bg-slate-800/80 text-slate-600 dark:text-slate-300 font-semibold uppercase text-[10px] tracking-wider">
+                      <tr>
+                        <th className="p-2.5">{t.proColArchive}</th>
+                        <th className="p-2.5">{t.proColType}</th>
+                        <th className="p-2.5">{t.proColSegment}</th>
+                        <th className="p-2.5">{t.proColSize}</th>
+                        <th className="p-2.5">{t.proColRetention}</th>
+                        <th className="p-2.5">{t.proColPath}</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-slate-200 dark:divide-slate-800">
+                      {proData.result.archiveItems.map((arch) => (
+                        <tr key={arch.id}>
+                          <td className="p-2.5 font-mono font-bold text-slate-900 dark:text-white">
+                            {arch.name}
+                          </td>
+                          <td className="p-2.5 font-mono uppercase text-[10px] font-bold">
+                            {arch.archiveType}
+                          </td>
+                          <td className="p-2.5 font-mono">
+                            {arch.segmentPeriod === 'day' ? t.proPeriodDay : arch.segmentPeriod === 'week' ? t.proPeriodWeek : t.proPeriodMonth}
+                          </td>
+                          <td className="p-2.5 font-mono font-bold text-purple-600 dark:text-purple-400">
+                            {arch.sizeGb.toFixed(2)} GB
+                          </td>
+                          <td className="p-2.5 font-mono">
+                            {arch.retentionDays} {lang === 'ru' ? 'дней' : 'days'}
+                          </td>
+                          <td className="p-2.5 font-mono text-[10px] text-slate-600 dark:text-slate-400">
+                            {arch.path}
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              )}
+
+              {/* ISA-18.2 Alarm Assessment if active */}
+              {proData.result.isa18AlarmAssessment && (
+                <div className="p-2.5 mb-3 rounded-xl bg-purple-50 dark:bg-purple-950/30 border border-purple-200 dark:border-purple-800/40 text-xs flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <span className="font-bold text-purple-900 dark:text-purple-200">ISA-18.2 / EEMUA 191:</span>
+                    <span className="font-mono">{proData.result.isa18AlarmAssessment.alarmsPerHour} {t.proAlarmsUnit}</span>
+                  </div>
+                  <span className="font-bold px-2 py-0.5 rounded text-[10px] bg-purple-200 dark:bg-purple-900 text-purple-900 dark:text-purple-200">
+                    {lang === 'ru' ? proData.result.isa18AlarmAssessment.labelRu : proData.result.isa18AlarmAssessment.labelEn}
+                  </span>
+                </div>
+              )}
             </div>
           )}
 

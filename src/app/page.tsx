@@ -113,9 +113,9 @@ export default function Home() {
 
   // 3. Professional State
   const [proTags, setProTags] = useState<ProfessionalTag[]>([
-    { id: '1', description: 'Turbine Vibration & RPM (0.5s Fast)', cycleSec: 0.5, count: 40, archiveType: 'fast' },
-    { id: '2', description: 'Boiler Feed Pressures (2s Fast)', cycleSec: 2, count: 180, archiveType: 'fast' },
-    { id: '3', description: 'Hourly Environmental Averages (60s Slow)', cycleSec: 60, count: 120, archiveType: 'slow' },
+    { id: '1', description: 'Turbine_Vibration_RPM', cycleSec: 0.5, count: 40, archiveType: 'fast', dataType: 'Real' },
+    { id: '2', description: 'Boiler_Feed_Pressure', cycleSec: 2, count: 180, archiveType: 'fast', dataType: 'Real' },
+    { id: '3', description: 'Hourly_Environmental_Avg', cycleSec: 60, count: 120, archiveType: 'slow', dataType: 'Real' },
   ]);
 
   const [proConfig, setProConfig] = useState<ProfessionalConfig>({
@@ -125,6 +125,15 @@ export default function Home() {
     includeAlarmLogging: true,
     alarmsPerHour: 150,
     databaseHeadroomPct: 25,
+    storageDiskType: 'nvme_ssd',
+    diskCapacityGb: 512,
+    archivePath: 'C:\\WinCC_Project',
+    alarmTags: [
+      { id: 'pro_alm_1', name: 'Turbine_Overheat_Trip', alarmClass: 'Alarm', triggerType: 'digital', eventsPerDay: 5, count: 4 },
+      { id: 'pro_alm_2', name: 'Boiler_Pressure_HiHi', alarmClass: 'Alarm', triggerType: 'analog', eventsPerDay: 2, count: 2 },
+      { id: 'pro_alm_3', name: 'Operator_Setpoint_Change', alarmClass: 'Event', triggerType: 'digital', eventsPerDay: 25, count: 5 },
+      { id: 'pro_alm_4', name: 'Bearing_Temp_Warning', alarmClass: 'Warning', triggerType: 'analog', eventsPerDay: 10, count: 8 },
+    ],
   });
 
   // Load from LocalStorage

@@ -18,7 +18,7 @@ interface BulkAddAlarmModalProps {
   alarmLogs: Array<{ id: string; name: string }>;
   defaultAlarmLogId?: string;
   lang: Language;
-  tab?: 'unified' | 'comfort';
+  tab?: 'unified' | 'comfort' | 'professional';
 }
 
 export const BulkAddAlarmModal: React.FC<BulkAddAlarmModalProps> = ({
@@ -84,7 +84,7 @@ export const BulkAddAlarmModal: React.FC<BulkAddAlarmModalProps> = ({
                 {t.modalBulkAlarmTitle}
               </h3>
               <p className="text-[11px] text-slate-400 font-medium">
-                {tab === 'comfort' ? 'WinCC Comfort / Advanced Historical Alarms' : 'WinCC Unified HMI Alarms & Events (SQLite)'}
+                {tab === 'professional' ? 'WinCC Professional SCADA (Microsoft SQL Server Alarm Logging)' : tab === 'comfort' ? 'WinCC Comfort / Advanced Historical Alarms' : 'WinCC Unified HMI Alarms & Events (SQLite)'}
               </p>
             </div>
           </div>

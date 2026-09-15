@@ -505,6 +505,131 @@ const proHighRate = calculateProfessional([
 });
 assert(proHighRate.warnings.some(w => w.includes('2 000') || w.includes('2000') || w.includes('RAID 10')), 'Professional: warns when total write rate exceeds 2000 rec/s');
 
+// 3.7 Professional DataType weighting (Bool 36B, Real 48B, String 80B)
+const proBool = calculateProfessional([
+  { id: '1', description: 'BoolTag', cycleSec: 1, count: 100, archiveType: 'fast', dataType: 'Bool' }
+], {
+  sqlEdition: 'standard_enterprise',
+  retentionDays: 30,
+  segmentPeriod: 'month',
+  includeAlarmLogging: false,
+  alarmsPerHour: 0,
+  databaseHeadroomPct: 25,
+});
+const proReal = calculateProfessional([
+  { id: '1', description: 'RealTag', cycleSec: 1, count: 100, archiveType: 'fast', dataType: 'Real' }
+], {
+  sqlEdition: 'standard_enterprise',
+  retentionDays: 30,
+  segmentPeriod: 'month',
+  includeAlarmLogging: false,
+  alarmsPerHour: 0,
+  databaseHeadroomPct: 25,
+});
+const proString = calculateProfessional([
+  { id: '1', description: 'StringTag', cycleSec: 1, count: 100, archiveType: 'fast', dataType: 'String' }
+], {
+  sqlEdition: 'standard_enterprise',
+  retentionDays: 30,
+  segmentPeriod: 'month',
+  includeAlarmLogging: false,
+  alarmsPerHour: 0,
+  databaseHeadroomPct: 25,
+});
+assert(proReal.fastDatabaseSizeGb > proBool.fastDatabaseSizeGb, 'Professional: Real tags (48B) take more MDF space than Bool tags (36B)');
+assert(proString.fastDatabaseSizeGb > proReal.fastDatabaseSizeGb, 'Professional: String tags (80B) take more MDF space than Real tags (48B)');
+
+// 3.8 Professional Alarm Tags & ISA-18.2 Assessment
+const proAlarms = calculateProfessional([], {
+  sqlEdition: 'standard_enterprise',
+  retentionDays: 30,
+  segmentPeriod: 'month',
+  includeAlarmLogging: true,
+  alarmsPerHour: 0,
+  databaseHeadroomPct: 25,
+  alarmTags: [
+    { id: 'alm_1', name: 'HighTemp', alarmClass: 'Alarm', eventsPerDay: 48, count: 1 },
+    { id: 'alm_2', name: 'LowPressure', alarmClass: 'Warning', eventsPerDay: 24, count: 1 },
+  ],
+});
+assert(proAlarms.alarmEntriesPerDay === 72, `Professional: Alarm tags sum to 72 events/day, got ${proAlarms.alarmEntriesPerDay}`);
+assert(proAlarms.isa18AlarmAssessment !== undefined, 'Professional: ISA-18.2 assessment generated for alarms');
+assert(proAlarms.isa18AlarmAssessment?.alarmsPerHour === 3, `Professional: 72 events/day is 3 alarms/hr, got ${proAlarms.isa18AlarmAssessment?.alarmsPerHour}`);
+assert(proAlarms.isa18AlarmAssessment?.status === 'acceptable', 'Professional: 3 alarms/hr is acceptable load under ISA-18.2');
+assert(proAlarms.alarmDatabaseSizeGb > 0, 'Professional: Alarm Logging MDF has non-zero size');
+
+// 3.9 Professional IOPS & Disk Sizing
+assert(proReal.requiredIops > 0, 'Professional: computes non-zero required IOPS');
+const proHddBottleneck = calculateProfessional([
+  { id: '1', description: 'FastTraffic', cycleSec: 0.1, count: 300, archiveType: 'fast' } // 3000 rec/s
+], {
+  sqlEdition: 'standard_enterprise',
+  retentionDays: 30,
+  segmentPeriod: 'month',
+  includeAlarmLogging: false,
+  alarmsPerHour: 0,
+  databaseHeadroomPct: 25,
+  storageDiskType: 'hdd_raid1',
+});
+assert(proHddBottleneck.warnings.some(w => w.includes('HDD') || w.includes('IOPS')), 'Professional: warns about HDD IOPS bottleneck on high write rates');
+
+// 3.10 Professional TIA Portal SQL Archive Items (Fast, Slow, Alarm)
+const proArchiveItemsConfig = calculateProfessional([
+  { id: '1', description: 'FastVar', cycleSec: 1, count: 10, archiveType: 'fast' },
+  { id: '2', description: 'SlowVar', cycleSec: 60, count: 10, archiveType: 'slow' },
+], {
+  sqlEdition: 'standard_enterprise',
+  retentionDays: 60,
+  segmentPeriod: 'month',
+  includeAlarmLogging: true,
+  alarmsPerHour: 10,
+  databaseHeadroomPct: 25,
+  archivePath: 'D:\\SCADA_Archives',
+});
+assert(proArchiveItemsConfig.archiveItems.length === 3, `Professional: generates 3 archive items, got ${proArchiveItemsConfig.archiveItems.length}`);
+assert(proArchiveItemsConfig.archiveItems[0].name === 'TagLoggingFast', 'Professional: first archive is TagLoggingFast');
+assert(proArchiveItemsConfig.archiveItems[1].name === 'TagLoggingSlow', 'Professional: second archive is TagLoggingSlow');
+assert(proArchiveItemsConfig.archiveItems[2].name === 'AlarmLogging', 'Professional: third archive is AlarmLogging');
+assert(proArchiveItemsConfig.archiveItems[0].path.startsWith('D:\\SCADA_Archives'), 'Professional: uses custom archivePath');
+assert(proArchiveItemsConfig.archiveItems[0].retentionDays === 60, 'Professional: archive items inherit 60 days retention');
+
+// 3.11 Professional Traffic Status Thresholds (500 and 2000 rec/s)
+const proTrafficSafe = calculateProfessional([
+  { id: '1', description: 'SafeRate', cycleSec: 1, count: 200, archiveType: 'fast' } // 200 rec/s < 500
+], {
+  sqlEdition: 'standard_enterprise',
+  retentionDays: 30,
+  segmentPeriod: 'month',
+  includeAlarmLogging: false,
+  alarmsPerHour: 0,
+  databaseHeadroomPct: 25,
+});
+assert(proTrafficSafe.trafficStatus === 'safe', 'Professional: 200 rec/s is safe (< 500)');
+
+const proTrafficWarn = calculateProfessional([
+  { id: '1', description: 'WarnRate', cycleSec: 1, count: 800, archiveType: 'fast' } // 800 rec/s in (500, 2000)
+], {
+  sqlEdition: 'standard_enterprise',
+  retentionDays: 30,
+  segmentPeriod: 'month',
+  includeAlarmLogging: false,
+  alarmsPerHour: 0,
+  databaseHeadroomPct: 25,
+});
+assert(proTrafficWarn.trafficStatus === 'warning', 'Professional: 800 rec/s is warning (500..2000)');
+
+const proTrafficCrit = calculateProfessional([
+  { id: '1', description: 'CritRate', cycleSec: 0.1, count: 250, archiveType: 'fast' } // 2500 rec/s > 2000
+], {
+  sqlEdition: 'standard_enterprise',
+  retentionDays: 30,
+  segmentPeriod: 'month',
+  includeAlarmLogging: false,
+  alarmsPerHour: 0,
+  databaseHeadroomPct: 25,
+});
+assert(proTrafficCrit.trafficStatus === 'critical', 'Professional: 2500 rec/s is critical (> 2000)');
+
 console.log('\n=== [4] INDUSTRY PRESETS VERIFICATION ===');
 assert(INDUSTRY_PRESETS.length === 4, 'Presets: exactly 4 industry presets exist');
 const presetIds = INDUSTRY_PRESETS.map(p => p.id);
