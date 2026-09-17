@@ -2,7 +2,7 @@
 import React from 'react';
 import { ActiveTab, Language } from '../lib/types';
 import { translations } from '../lib/i18n';
-import { Layers, HardDrive, Database } from 'lucide-react';
+import { Layers, HardDrive, Database, Tags } from 'lucide-react';
 
 interface NavigationTabsProps {
   activeTab: ActiveTab;
@@ -42,6 +42,13 @@ export const NavigationTabs: React.FC<NavigationTabsProps> = ({ activeTab, setAc
       icon: Database,
       color: '#2563EB',
       hasWarning: warnings?.professional,
+    },
+    {
+      id: 'master_tags' as ActiveTab,
+      label: t.tabMasterTags,
+      badge: t.tabMasterTagsBadge,
+      icon: Tags,
+      color: '#8B5CF6',
     },
   ];
 

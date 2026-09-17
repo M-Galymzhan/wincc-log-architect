@@ -1,15 +1,17 @@
 'use client';
 import React, { useState, useEffect, useCallback, useRef } from 'react';
-import { ActiveTab, Language, Theme, UnifiedTag, UnifiedConfig, ComfortTag, ComfortConfig, ProfessionalTag, ProfessionalConfig, ToastMessage } from '../lib/types';
+import { ActiveTab, Language, Theme, UnifiedTag, UnifiedConfig, ComfortTag, ComfortConfig, ProfessionalTag, ProfessionalConfig, ToastMessage, MasterLoggingTag } from '../lib/types';
 import { calculateUnified } from '../lib/calculator/unifiedEngine';
 import { calculateComfort } from '../lib/calculator/comfortEngine';
 import { calculateProfessional } from '../lib/calculator/professionalEngine';
+import { adaptMasterTagToUnified, adaptMasterTagToComfort, adaptMasterTagToProfessional } from '../lib/calculator/smoothingEngine';
 import { translations } from '../lib/i18n';
 import { Header } from '../components/Header';
 import { NavigationTabs } from '../components/NavigationTabs';
 import { UnifiedTab } from '../components/tabs/UnifiedTab';
 import { ComfortTab } from '../components/tabs/ComfortTab';
 import { ProfessionalTab } from '../components/tabs/ProfessionalTab';
+import { MasterTagsTab } from '../components/tabs/MasterTagsTab';
 import { TiaCheatSheetModal } from '../components/TiaCheatSheetModal';
 import { ReportModal } from '../components/ReportModal';
 import { IndustryPresetsModal } from '../components/IndustryPresetsModal';
@@ -136,6 +138,257 @@ export default function Home() {
     ],
   });
 
+  // 4. Master Tags State (TIA Portal V19 Inspector Hub)
+  const [masterTags, setMasterTags] = useState<MasterLoggingTag[]>([
+    {
+      id: 'mt_1',
+      name: 'BearingDE',
+      processTag: 'PLC1_BearingDE_AI_DB_ai.status.scaledValue',
+      description: 'Drive-End Bearing Temp',
+      dataType: 'Real',
+      loggingMode: 'cyclic',
+      cycleSec: 1,
+      cycleFactor: 1,
+      limitScope: 'no_limits',
+      smoothingMode: 'no_smoothing',
+      compressionMode: 'no_compression',
+      count: 1,
+      targetLogName: 'Trend_Logs',
+    },
+    {
+      id: 'mt_2',
+      name: 'BearingNDE',
+      processTag: 'PLC1_BearingNDE_AI_DB_ai.status.scaledValue',
+      description: 'Non-Drive-End Bearing Temp',
+      dataType: 'Real',
+      loggingMode: 'cyclic',
+      cycleSec: 1,
+      cycleFactor: 1,
+      limitScope: 'no_limits',
+      smoothingMode: 'no_smoothing',
+      compressionMode: 'no_compression',
+      count: 1,
+      targetLogName: 'Trend_Logs',
+    },
+    {
+      id: 'mt_3',
+      name: 'Current',
+      processTag: 'PLC1_Current_AI_DB_ai.status.scaledValue',
+      description: 'Motor Stator Current (0-500A)',
+      dataType: 'Real',
+      loggingMode: 'cyclic',
+      cycleSec: 1,
+      cycleFactor: 1,
+      limitScope: 'no_limits',
+      smoothingMode: 'no_smoothing',
+      compressionMode: 'no_compression',
+      count: 1,
+      targetLogName: 'Trend_Logs',
+    },
+    {
+      id: 'mt_4',
+      name: 'Frequency',
+      processTag: 'PLC1_Frequency_AI_DB_ai.status.scaledValue',
+      description: 'VFD Output Frequency (0-50Hz)',
+      dataType: 'Real',
+      loggingMode: 'cyclic',
+      cycleSec: 1,
+      cycleFactor: 1,
+      limitScope: 'no_limits',
+      smoothingMode: 'no_smoothing',
+      compressionMode: 'no_compression',
+      count: 1,
+      targetLogName: 'Trend_Logs',
+    },
+    {
+      id: 'mt_5',
+      name: 'MainBearing1',
+      processTag: 'PLC1_MainBearing1_AI_DB_ai.status.scaledValue',
+      description: 'Primary Thrust Bearing Temp',
+      dataType: 'Real',
+      loggingMode: 'cyclic',
+      cycleSec: 1,
+      cycleFactor: 1,
+      limitScope: 'greater_or_equal',
+      highLimit: 85,
+      useTagLimits: true,
+      smoothingMode: 'value',
+      smoothingDelta: 0.5,
+      count: 1,
+      targetLogName: 'Trend_Logs',
+    },
+    {
+      id: 'mt_6',
+      name: 'MotorWindingsU1',
+      processTag: 'PLC1_MotorWindingsU1_AI_DB_ai.status.scaledValue',
+      description: 'Motor Winding Phase U1',
+      dataType: 'Real',
+      loggingMode: 'cyclic',
+      cycleSec: 2,
+      cycleFactor: 1,
+      limitScope: 'no_limits',
+      smoothingMode: 'value',
+      smoothingDelta: 1.0,
+      count: 6,
+      targetLogName: 'Trend_Logs',
+    },
+    {
+      id: 'mt_7',
+      name: 'moisture',
+      processTag: 'PLC1_OWEN_PVE110-RS_DB_owen.status.moisture:moisture',
+      description: 'Chamber Relative Moisture',
+      dataType: 'Real',
+      loggingMode: 'onchange',
+      cycleSec: 10,
+      cycleFactor: 1,
+      limitScope: 'no_limits',
+      smoothingMode: 'value',
+      smoothingDelta: 0.5,
+      maxTimeSec: 600,
+      minTimeSec: 2,
+      count: 1,
+      targetLogName: 'Trend_Logs',
+    },
+    {
+      id: 'mt_8',
+      name: 'temperature',
+      processTag: 'PLC1_OWEN_PVE110-RS_DB_owen.status.temperature:temperature',
+      description: 'Process Ambient Temperature',
+      dataType: 'Real',
+      loggingMode: 'onchange',
+      cycleSec: 10,
+      cycleFactor: 1,
+      limitScope: 'no_limits',
+      smoothingMode: 'value',
+      smoothingDelta: 0.5,
+      maxTimeSec: 600,
+      minTimeSec: 2,
+      count: 1,
+      targetLogName: 'Trend_Logs',
+    },
+    {
+      id: 'mt_9',
+      name: 'Pressure',
+      processTag: 'PLC1_Pressure_AI_DB_ai.status.scaledValue:Pressure',
+      description: 'Discharge Pipeline Pressure',
+      dataType: 'Real',
+      loggingMode: 'ondemand',
+      triggerMode: 'rising_edge',
+      triggerTag: 'selMode',
+      triggerBit: 0,
+      cycleSec: 1,
+      cycleFactor: 1,
+      limitScope: 'no_limits',
+      smoothingMode: 'no_smoothing',
+      compressionMode: 'no_compression',
+      count: 1,
+      targetLogName: 'Trend_Logs',
+    },
+    {
+      id: 'mt_10',
+      name: 'VolumeAirFlow',
+      processTag: 'PLC1_VolumeAirFlow_AI_DB_ai.status.scaledValue',
+      description: 'Ventilation Air Flow Rate (m3/h)',
+      dataType: 'Real',
+      loggingMode: 'cyclic',
+      cycleSec: 1,
+      cycleFactor: 1,
+      limitScope: 'no_limits',
+      smoothingMode: 'swinging_door',
+      smoothingDelta: 2.0,
+      maxTimeSec: 300,
+      count: 1,
+      targetLogName: 'Trend_Logs',
+    },
+  ]);
+
+  // Master Tag Sync Handlers
+  const handlePushToUnified = useCallback((tags: MasterLoggingTag[]) => {
+    const converted = tags.map(adaptMasterTagToUnified);
+    setUnifiedTags(converted);
+  }, []);
+
+  const handlePushToComfort = useCallback((tags: MasterLoggingTag[]) => {
+    const converted = tags.map((t) => adaptMasterTagToComfort(t).tag);
+    setComfortTags(converted);
+  }, []);
+
+  const handlePushToProfessional = useCallback((tags: MasterLoggingTag[]) => {
+    const converted = tags.map((t) => adaptMasterTagToProfessional(t).tag);
+    setProTags(converted);
+  }, []);
+
+  const handlePullFromActive = useCallback(() => {
+    let sourceTags: MasterLoggingTag[] = [];
+    if (activeTab === 'unified' || (activeTab === 'master_tags' && unifiedTags.length > 0)) {
+      sourceTags = unifiedTags.map((ut, idx) => ({
+        id: ut.id || `mt_pulled_${idx}`,
+        name: ut.name || ut.description || `Tag_${idx + 1}`,
+        processTag: ut.processTag || ut.description || `ProcessTag_${idx + 1}`,
+        description: ut.description,
+        dataType: ut.dataType || 'Real',
+        loggingMode: ut.mode || 'cyclic',
+        cycleSec: ut.cycleSec || 1,
+        cycleFactor: ut.cycleFactor || 1,
+        count: ut.count || 1,
+        targetLogName: ut.dataLogId || 'Trend_Logs',
+        triggerMode: ut.triggerMode || 'none',
+        triggerTag: ut.triggerTag,
+        triggerBit: ut.triggerBit,
+        limitScope: ut.limitScope || 'no_limits',
+        highLimit: ut.highLimit,
+        lowLimit: ut.lowLimit,
+        useTagLimits: ut.useTagLimits,
+        smoothingMode: ut.smoothingMode || 'no_smoothing',
+        smoothingDelta: ut.smoothingDelta,
+        maxTimeSec: ut.maxTimeSec,
+        minTimeSec: ut.minTimeSec,
+        compressionMode: ut.compressionMode || 'no_compression',
+        compressionDelaySec: ut.compressionDelaySec,
+        sourceLog: ut.sourceLog,
+      }));
+    } else if (activeTab === 'comfort') {
+      sourceTags = comfortTags.map((ct, idx) => ({
+        id: ct.id || `mt_pulled_c_${idx}`,
+        name: ct.name || ct.description || `Tag_${idx + 1}`,
+        processTag: ct.processTag || ct.description || `ProcessTag_${idx + 1}`,
+        description: ct.description,
+        dataType: ct.dataType || 'Real',
+        loggingMode: ct.mode,
+        cycleSec: ct.cycleSec || 1,
+        cycleFactor: 1,
+        count: ct.count || 1,
+        limitScope: 'no_limits',
+        smoothingMode: 'no_smoothing',
+        compressionMode: 'no_compression',
+        targetLogName: ct.dataLogId || 'default_data_log',
+      }));
+    } else if (activeTab === 'professional') {
+      sourceTags = proTags.map((pt, idx) => ({
+        id: pt.id || `mt_pulled_p_${idx}`,
+        name: pt.name || pt.description || `Tag_${idx + 1}`,
+        processTag: pt.processTag || pt.description || `ProcessTag_${idx + 1}`,
+        description: pt.description,
+        dataType: pt.dataType || 'Real',
+        loggingMode: 'cyclic',
+        cycleSec: pt.cycleSec || 1,
+        cycleFactor: 1,
+        count: pt.count || 1,
+        limitScope: 'no_limits',
+        smoothingMode: 'no_smoothing',
+        compressionMode: 'no_compression',
+        targetLogName: pt.archiveType === 'fast' ? 'TagLoggingFast' : 'TagLoggingSlow',
+      }));
+    }
+
+    if (sourceTags.length > 0) {
+      setMasterTags(sourceTags);
+      addToast(t.pullSuccess, 'success');
+    } else {
+      addToast(lang === 'ru' ? 'Нет тегов для загрузки' : 'No tags to pull', 'warning');
+    }
+  }, [activeTab, unifiedTags, comfortTags, proTags, addToast, t.pullSuccess, lang]);
+
   // Load from LocalStorage
   useEffect(() => {
     /* eslint-disable react-hooks/set-state-in-effect */
@@ -158,6 +411,7 @@ export default function Home() {
         if (parsed.comfortConfig && typeof parsed.comfortConfig === 'object') setComfortConfig(parsed.comfortConfig);
         if (Array.isArray(parsed.proTags)) setProTags(parsed.proTags);
         if (parsed.proConfig && typeof parsed.proConfig === 'object') setProConfig(parsed.proConfig);
+        if (Array.isArray(parsed.masterTags)) setMasterTags(parsed.masterTags);
       }
     } catch (e) {
       console.error('LocalStorage load error:', e);
@@ -180,21 +434,23 @@ export default function Home() {
         comfortConfig,
         proTags,
         proConfig,
+        masterTags,
       };
       localStorage.setItem('wincc_project_data', JSON.stringify(payload));
     } catch (e) {
       console.error('LocalStorage save error:', e);
     }
-  }, [lang, theme, unifiedTags, unifiedConfig, comfortTags, comfortConfig, proTags, proConfig]);
+  }, [lang, theme, unifiedTags, unifiedConfig, comfortTags, comfortConfig, proTags, proConfig, masterTags]);
 
   // Export Project JSON
   const handleExportJson = () => {
     const payload = {
-      version: '1.0.0',
+      version: '2.0.0',
       timestamp: new Date().toISOString(),
       unified: { tags: unifiedTags, config: unifiedConfig },
       comfort: { tags: comfortTags, config: comfortConfig },
       professional: { tags: proTags, config: proConfig },
+      masterTags,
     };
     const blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' });
     const url = URL.createObjectURL(blob);
@@ -253,6 +509,13 @@ export default function Home() {
           const pConfig = parsed.professional?.config || parsed.proConfig;
           if (pConfig && typeof pConfig === 'object') {
             setProConfig(prev => ({ ...prev, ...pConfig }));
+            loaded = true;
+          }
+
+          // Master tags
+          const mTags = parsed.masterTags;
+          if (Array.isArray(mTags)) {
+            setMasterTags(mTags);
             loaded = true;
           }
 
@@ -369,6 +632,20 @@ export default function Home() {
               result={proResult}
               lang={lang}
               onShowToast={addToast}
+            />
+          )}
+
+          {/* Tab 4: Master Tags (TIA Portal V19 Inspector Hub) */}
+          {activeTab === 'master_tags' && (
+            <MasterTagsTab
+              masterTags={masterTags}
+              setMasterTags={setMasterTags}
+              onPushToUnified={handlePushToUnified}
+              onPushToComfort={handlePushToComfort}
+              onPushToProfessional={handlePushToProfessional}
+              onPullFromActive={handlePullFromActive}
+              lang={lang}
+              addToast={addToast}
             />
           )}
 

@@ -7,7 +7,8 @@
 import { calculateUnified, getDataTypeBytes, getMediumPeCycles } from '../src/lib/calculator/unifiedEngine';
 import { calculateComfort } from '../src/lib/calculator/comfortEngine';
 import { calculateProfessional } from '../src/lib/calculator/professionalEngine';
-import { UnifiedTag, UnifiedAlarmTag, UnifiedConfig, ComfortTag, ComfortConfig, ProfessionalTag, ProfessionalConfig } from '../src/lib/types';
+import { UnifiedTag, UnifiedAlarmTag, UnifiedConfig, ComfortTag, ComfortConfig, ProfessionalTag, ProfessionalConfig, MasterLoggingTag } from '../src/lib/types';
+import { calculateDataReductionFactor, checkTagCompatibility, adaptMasterTagToUnified, adaptMasterTagToComfort, adaptMasterTagToProfessional } from '../src/lib/calculator/smoothingEngine';
 import { INDUSTRY_PRESETS } from '../src/lib/presets';
 import * as XLSX from 'xlsx';
 import { 
@@ -1717,6 +1718,87 @@ async function runAsyncTests() {
     const resPcRt = calculateUnified(testTagsForFlash, configPcRt);
     assert(resPcRt.flashLifeApplicable === false, 'Flash: flash life is not applicable for PC RT');
     assert(resPcRt.flashLifeReason === 'pc_rt', `Flash: reason is pc_rt, got ${resPcRt.flashLifeReason}`);
+  console.log(`\n=== [17] TIA PORTAL V19 LOGGING PARAMETERS & MASTER TAG HUB SUITE ===`);
+  const rawCyclicTag: MasterLoggingTag = {
+    id: 't1',
+    name: 'Raw_Tag',
+    processTag: 'PLC_Val',
+    description: 'Raw',
+    dataType: 'Real',
+    loggingMode: 'cyclic',
+    cycleSec: 1,
+    cycleFactor: 1,
+    limitScope: 'no_limits',
+    smoothingMode: 'no_smoothing',
+    compressionMode: 'no_compression',
+    count: 1,
+  };
+  assert(calculateDataReductionFactor(rawCyclicTag) === 1.0, 'Smoothing: raw cyclic gives 1.0 factor');
+
+  const deadbandTag: MasterLoggingTag = {
+    ...rawCyclicTag,
+    smoothingMode: 'value',
+    smoothingDelta: 1.0,
+  };
+  const deadbandFactor = calculateDataReductionFactor(deadbandTag);
+  assert(deadbandFactor < 0.6 && deadbandFactor > 0.3, `Smoothing: deadband reduces factor, got ${deadbandFactor}`);
+
+  const swingingDoorTag: MasterLoggingTag = {
+    ...rawCyclicTag,
+    smoothingMode: 'swinging_door',
+    smoothingDelta: 2.0,
+  };
+  const swingingFactor = calculateDataReductionFactor(swingingDoorTag);
+  assert(swingingFactor === 0.12, `Smoothing: swinging door cuts to 0.12, got ${swingingFactor}`);
+
+  const ondemandTag: MasterLoggingTag = {
+    ...rawCyclicTag,
+    loggingMode: 'ondemand',
+  };
+  assert(calculateDataReductionFactor(ondemandTag) === 0.02, 'Mode: ondemand gives 0.02 factor');
+
+  const limitsTag: MasterLoggingTag = {
+    ...rawCyclicTag,
+    limitScope: 'outside_limits',
+    highLimit: 90,
+    lowLimit: 10,
+  };
+  const limitsFactor = calculateDataReductionFactor(limitsTag);
+  assert(limitsFactor === 0.08, `Limits: outside_limits gives 0.08 factor, got ${limitsFactor}`);
+
+  // 17.2 Cross-Platform Compatibility Checks
+  const compatUnified = checkTagCompatibility(swingingDoorTag, 'unified');
+  assert(compatUnified.status === 'full', 'Compat: Unified has full native support for swinging door');
+
+  const compatComfort = checkTagCompatibility(swingingDoorTag, 'comfort');
+  assert(compatComfort.status === 'partial', 'Compat: Comfort detects unsupported swinging door');
+  assert(compatComfort.reasonsRu.length > 0, 'Compat: Comfort provides explanation reasons');
+
+  const compatComfortOndemand = checkTagCompatibility(ondemandTag, 'comfort');
+  assert(compatComfortOndemand.status === 'partial', 'Compat: Comfort detects ondemand mode requires scripting');
+
+  const compatProFast = checkTagCompatibility(rawCyclicTag, 'professional');
+  assert(compatProFast.status === 'full', 'Compat: Professional supports raw cyclic');
+  assert(compatProFast.effectiveModeRu.includes('Tag Logging Fast'), 'Compat: 1s tag routed to Fast archive in Professional');
+
+  const slowTag: MasterLoggingTag = {
+    ...rawCyclicTag,
+    cycleSec: 120,
+  };
+  const compatProSlow = checkTagCompatibility(slowTag, 'professional');
+  assert(compatProSlow.effectiveModeRu.includes('Tag Logging Slow'), 'Compat: 120s tag routed to Slow archive in Professional');
+
+  // 17.3 Adapters
+  const uTag = adaptMasterTagToUnified(swingingDoorTag);
+  assert(uTag.smoothingMode === 'swinging_door', 'Adapter Unified: preserves swinging_door');
+  assert(uTag.entriesPerSec === 0.12, `Adapter Unified: calculates entriesPerSec with reduction, got ${uTag.entriesPerSec}`);
+
+  const cTagRes = adaptMasterTagToComfort(ondemandTag);
+  assert(cTagRes.tag.mode === 'onchange', 'Adapter Comfort: adapts ondemand to onchange');
+  assert(cTagRes.warnings.length > 0, 'Adapter Comfort: generates warnings on adaptation');
+
+  const pTagRes = adaptMasterTagToProfessional(slowTag);
+  assert(pTagRes.archiveType === 'slow', 'Adapter Professional: correctly assigns slow archive');
   }
 
   console.log(`\n========================================`);

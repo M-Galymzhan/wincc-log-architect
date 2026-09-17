@@ -1,19 +1,104 @@
 export type Language = 'ru' | 'en';
 export type Theme = 'dark' | 'light';
-export type ActiveTab = 'unified' | 'comfort' | 'professional';
+export type ActiveTab = 'unified' | 'comfort' | 'professional' | 'master_tags';
+
+// TIA PORTAL V19 LOGGING TYPES
+export type LoggingMode = 'cyclic' | 'onchange' | 'ondemand';
+
+export type TriggerMode = 'none' | 'rising_edge' | 'falling_edge' | 'change';
+
+export type LimitScope =
+  | 'no_limits'
+  | 'greater'
+  | 'less'
+  | 'greater_or_equal'
+  | 'less_or_equal'
+  | 'within_limits'
+  | 'within_or_equal'
+  | 'outside_limits'
+  | 'outside_or_equal';
+
+export type SmoothingMode =
+  | 'no_smoothing'
+  | 'compare_values'
+  | 'value'
+  | 'relative_value'
+  | 'swinging_door';
+
+export type CompressionMode =
+  | 'no_compression'
+  | 'minimum'
+  | 'maximum'
+  | 'min_with_timestamp'
+  | 'max_with_timestamp'
+  | 'sum'
+  | 'average'
+  | 'time_average_stepped'
+  | 'end';
+
+export interface MasterLoggingTag {
+  id: string;
+  name: string;
+  processTag: string;
+  description: string;
+  dataType: 'Real' | 'LReal' | 'DInt' | 'Int' | 'Bool' | 'String';
+  loggingMode: LoggingMode;
+  // Trigger
+  triggerMode?: TriggerMode;
+  triggerTag?: string;
+  triggerBit?: number;
+  // Cycle
+  cycleSec: number;
+  cycleFactor?: number;
+  // Limits
+  limitScope?: LimitScope;
+  highLimit?: number;
+  lowLimit?: number;
+  useTagLimits?: boolean;
+  // Smoothing
+  smoothingMode?: SmoothingMode;
+  smoothingDelta?: number;
+  maxTimeSec?: number; // Heartbeat
+  minTimeSec?: number; // Anti-chatter
+  // Compression
+  compressionMode?: CompressionMode;
+  compressionDelaySec?: number;
+  sourceLog?: string;
+  // Quantities & Destination
+  count: number;
+  targetLogName?: string;
+}
 
 // WINCC UNIFIED
 export type UnifiedDeviceType = 'ucp' | 'pc_rt';
 
 export interface UnifiedTag {
   id: string;
+  name?: string;
+  processTag?: string;
   description: string;
-  mode: 'cyclic' | 'onchange';
+  mode: 'cyclic' | 'onchange' | 'ondemand';
   cycleSec: number;
+  cycleFactor?: number;
   entriesPerSec: number;
   count: number;
   dataType: 'Real' | 'LReal' | 'DInt' | 'Int' | 'Bool' | 'String';
   dataLogId?: string;
+  // Advanced TIA Inspector Properties
+  triggerMode?: TriggerMode;
+  triggerTag?: string;
+  triggerBit?: number;
+  limitScope?: LimitScope;
+  highLimit?: number;
+  lowLimit?: number;
+  useTagLimits?: boolean;
+  smoothingMode?: SmoothingMode;
+  smoothingDelta?: number;
+  maxTimeSec?: number;
+  minTimeSec?: number;
+  compressionMode?: CompressionMode;
+  compressionDelaySec?: number;
+  sourceLog?: string;
 }
 
 export interface UnifiedDataLogConfig {
@@ -188,6 +273,8 @@ export interface CalculatedComfortLogItem {
 
 export interface ComfortTag {
   id: string;
+  name?: string;
+  processTag?: string;
   description: string;
   mode: 'cyclic' | 'onchange';
   cycleSec: number;
@@ -245,6 +332,8 @@ export type SqlServerEdition = 'express' | 'standard_enterprise';
 
 export interface ProfessionalTag {
   id: string;
+  name?: string;
+  processTag?: string;
   description: string;
   cycleSec: number;
   count: number;

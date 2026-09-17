@@ -1,5 +1,6 @@
 import { UnifiedTag, UnifiedConfig, UnifiedResult, Language, Isa18AlarmAssessment, NandClass } from '../types';
 import { calculateUnifiedNetwork } from './networkEngine';
+import { calculateDataReductionFactor } from './smoothingEngine';
 
 export function getMediumPeCycles(storageMedium: string, nandClass?: NandClass): { peCycles: number; maxYears: number } {
   // Siemens SIMATIC SD Cards (SLC NAND - 60 000 P/E cycles per Siemens SIOS / Swissbit)
@@ -116,11 +117,37 @@ export function calculateUnified(
         if (count === 0) return;
 
         let rate = 0;
+        const effectiveCycle = Math.max(0.01, (tag.cycleSec || 1) * (tag.cycleFactor || 1));
         if (tag.mode === 'cyclic') {
-          const cycle = Math.max(0.01, tag.cycleSec || 1);
-          rate = 1 / cycle;
+          rate = 1 / effectiveCycle;
+        } else if (tag.mode === 'ondemand') {
+          rate = 0.02 * (1 / effectiveCycle);
         } else {
           rate = Math.max(0, tag.entriesPerSec || 0.0167);
+        }
+
+        if (tag.smoothingMode || tag.limitScope) {
+          const reduction = calculateDataReductionFactor({
+            id: tag.id,
+            name: tag.name || tag.description,
+            processTag: tag.processTag || tag.description,
+            description: tag.description,
+            dataType: tag.dataType,
+            loggingMode: tag.mode,
+            cycleSec: tag.cycleSec,
+            cycleFactor: tag.cycleFactor,
+            limitScope: tag.limitScope || 'no_limits',
+            highLimit: tag.highLimit,
+            lowLimit: tag.lowLimit,
+            useTagLimits: tag.useTagLimits,
+            smoothingMode: tag.smoothingMode || 'no_smoothing',
+            smoothingDelta: tag.smoothingDelta,
+            maxTimeSec: tag.maxTimeSec,
+            minTimeSec: tag.minTimeSec,
+            compressionMode: tag.compressionMode || 'no_compression',
+            count: tag.count,
+          });
+          rate = rate * reduction;
         }
 
         const entryBytes = getDataTypeBytes(tag.dataType, perEntryBytes);
