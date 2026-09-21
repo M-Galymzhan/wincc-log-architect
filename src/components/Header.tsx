@@ -39,7 +39,7 @@ export const Header: React.FC<HeaderProps> = ({
   }, []);
 
   return (
-    <header className="glass-header sticky top-0 z-30 px-3 sm:px-4 py-2.5 sm:py-3 transition-colors">
+    <header className="glass-header sticky top-0 z-30 py-2.5 sm:py-3 transition-colors">
       <div className="w-full max-w-[1560px] mx-auto px-4 sm:px-6 lg:px-8 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2.5 sm:gap-3">
         {/* Row 1 on mobile, Left side on desktop */}
         <div className="flex items-center justify-between sm:justify-start gap-2 sm:gap-3 min-w-0 flex-1">
@@ -61,11 +61,11 @@ export const Header: React.FC<HeaderProps> = ({
                   href="https://github.com/M-Galymzhan/wincc-log-architect/commits/main"
                   target="_blank"
                   rel="noopener noreferrer"
-                  title={lang === 'ru' ? 'Релиз v2.15.1 (кликните для просмотра коммитов на GitHub)' : 'Release v2.15.1 (click to view GitHub commits)'}
+                  title={lang === 'ru' ? 'Релиз v2.15.2 (кликните для просмотра коммитов на GitHub)' : 'Release v2.15.2 (click to view GitHub commits)'}
                   className="hidden xl:flex text-xs font-mono font-bold tracking-tight px-2 py-0.5 rounded-full bg-emerald-500/15 hover:bg-emerald-500/25 text-emerald-700 dark:text-emerald-300 border border-emerald-500/30 items-center gap-1 sm:gap-1.5 shadow-sm transition-all cursor-pointer active:scale-95 whitespace-nowrap shrink-0"
                 >
                   <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse shrink-0" />
-                  <span>v2.15.1</span>
+                  <span>v2.15.2</span>
                 </a>
                 <a
                   href="https://ko-fi.com/glmm1"
@@ -216,35 +216,35 @@ export const Header: React.FC<HeaderProps> = ({
         </div>
 
         {/* Row 2 on mobile: Quick Action Toolbar (visible strictly on < sm) */}
-        <div className="flex sm:hidden items-center justify-between gap-1.5 w-full pt-2 border-t border-slate-200/60 dark:border-slate-800/80 overflow-x-auto no-scrollbar">
+        <div className="flex sm:hidden items-center gap-1.5 w-full pt-2 border-t border-slate-200/60 dark:border-slate-800/80 overflow-x-auto no-scrollbar">
           {/* Industry Presets Library */}
           <button
             onClick={onOpenPresets}
             title={t.btnIndustryPresets}
-            className="flex-1 py-1.5 px-2 rounded-lg text-xs font-semibold flex items-center justify-center gap-1 bg-gradient-to-r from-cyan-600 to-teal-600 hover:from-cyan-500 hover:to-teal-500 text-white shadow-xs transition-all active:scale-95 cursor-pointer truncate shrink-0"
+            className="flex-1 min-w-fit py-1.5 px-2.5 rounded-lg text-xs font-semibold flex items-center justify-center gap-1.5 bg-gradient-to-r from-cyan-600 to-teal-600 hover:from-cyan-500 hover:to-teal-500 text-white shadow-xs transition-all active:scale-95 cursor-pointer shrink-0"
           >
             <Sparkles className="w-3.5 h-3.5 shrink-0" />
-            <span>{lang === 'ru' ? 'Шаблоны' : 'Presets'}</span>
+            <span className="whitespace-nowrap">{lang === 'ru' ? 'Шаблоны' : 'Presets'}</span>
           </button>
 
           {/* TIA Portal Cheat Sheet */}
           <button
             onClick={onOpenCheatSheet}
             title={t.btnTiaCheatSheet}
-            className="flex-1 py-1.5 px-2 rounded-lg text-xs font-medium flex items-center justify-center gap-1 bg-[#00646E] hover:bg-[#004D54] text-white shadow-xs transition-all active:scale-95 cursor-pointer truncate shrink-0"
+            className="flex-1 min-w-fit py-1.5 px-2.5 rounded-lg text-xs font-medium flex items-center justify-center gap-1.5 bg-[#00646E] hover:bg-[#004D54] text-white shadow-xs transition-all active:scale-95 cursor-pointer shrink-0"
           >
             <Copy className="w-3.5 h-3.5 shrink-0" />
-            <span>{lang === 'ru' ? 'Шпаргалка' : 'Cheat Sheet'}</span>
+            <span className="whitespace-nowrap">{lang === 'ru' ? 'Шпаргалка' : 'Cheat Sheet'}</span>
           </button>
 
           {/* Project Report Button */}
           <button
             onClick={onOpenReport}
             title={t.btnReport}
-            className="flex-1 py-1.5 px-2 rounded-lg text-xs font-medium flex items-center justify-center gap-1 bg-slate-200/80 dark:bg-slate-800 hover:bg-slate-300 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 border border-slate-300/60 dark:border-slate-700 transition-all active:scale-95 cursor-pointer truncate shrink-0"
+            className="flex-1 min-w-fit py-1.5 px-2.5 rounded-lg text-xs font-medium flex items-center justify-center gap-1.5 bg-slate-200/80 dark:bg-slate-800 hover:bg-slate-300 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 border border-slate-300/60 dark:border-slate-700 transition-all active:scale-95 cursor-pointer shrink-0"
           >
             <FileText className="w-3.5 h-3.5 text-[#00A3B5] shrink-0" />
-            <span>{lang === 'ru' ? 'Отчет' : 'Report'}</span>
+            <span className="whitespace-nowrap">{lang === 'ru' ? 'Отчет' : 'Report'}</span>
           </button>
 
           {/* Export JSON */}
@@ -254,7 +254,7 @@ export const Header: React.FC<HeaderProps> = ({
             aria-label={t.btnExportJson}
             className="p-1.5 rounded-lg text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-800 border border-slate-300/60 dark:border-slate-700 transition-all active:scale-95 cursor-pointer shrink-0"
           >
-            <Download className="w-3.5 h-3.5" />
+            <Download className="w-3.5 h-3.5 shrink-0" />
           </button>
 
           {/* Import JSON */}
@@ -264,7 +264,7 @@ export const Header: React.FC<HeaderProps> = ({
             aria-label={t.btnImportJson}
             className="p-1.5 rounded-lg text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-800 border border-slate-300/60 dark:border-slate-700 transition-all active:scale-95 cursor-pointer shrink-0"
           >
-            <Upload className="w-3.5 h-3.5" />
+            <Upload className="w-3.5 h-3.5 shrink-0" />
           </button>
         </div>
       </div>

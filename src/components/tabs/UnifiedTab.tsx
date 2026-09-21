@@ -793,7 +793,7 @@ export const UnifiedTab: React.FC<UnifiedTabProps> = ({
                             placeholder={t.logNamePlaceholder}
                             className="p-1 px-2.5 text-sm font-mono font-bold rounded-lg border border-slate-200 dark:border-slate-700 bg-transparent text-slate-900 dark:text-white focus:border-[#00646E] outline-none flex-1 min-w-[120px] max-w-[220px]"
                           />
-                          <span className="text-xs px-2.5 py-0.5 rounded-full bg-[#00646E]/10 text-[#00646E] dark:text-[#00A3B5] font-mono font-semibold">
+                          <span className="text-xs px-2.5 py-0.5 rounded-full bg-[#00646E]/10 text-[#00646E] dark:text-[#00A3B5] font-mono font-semibold shrink-0">
                             {tagCountForDl} {lang === 'ru' ? 'тегов' : 'tags'}
                           </span>
                         </div>
@@ -818,7 +818,7 @@ export const UnifiedTab: React.FC<UnifiedTabProps> = ({
                       </div>
 
                       {/* Individual Parameters Row: Retention Days & Segment Hours */}
-                      <div className="grid grid-cols-2 gap-2 pt-1.5 border-t border-slate-100 dark:border-slate-800/80 text-xs">
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 pt-1.5 border-t border-slate-100 dark:border-slate-800/80 text-xs">
                         <div className="flex items-center gap-1.5 bg-slate-50/80 dark:bg-slate-800/50 p-1.5 rounded-lg border border-slate-200/50 dark:border-slate-700/50">
                           <span className="text-xs font-medium text-slate-500 dark:text-slate-400 shrink-0">
                             {t.cardRetentionLabel}
@@ -841,9 +841,9 @@ export const UnifiedTab: React.FC<UnifiedTabProps> = ({
                               const clampedSeg = Math.min(currentSeg, maxSeg);
                               handleUpdateDataLog(dl.id, { retentionDays: ret, segmentHours: clampedSeg });
                             }}
-                            className="w-16 p-1 px-1.5 text-sm font-mono font-bold rounded border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-900 dark:text-white outline-none focus:ring-1 focus:ring-[#00646E]"
+                            className="w-16 p-1 px-1.5 text-sm font-mono font-bold rounded border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-900 dark:text-white outline-none focus:ring-1 focus:ring-[#00646E] shrink-0"
                           />
-                          <span className="text-xs text-slate-400 font-mono">{t.unitDays}</span>
+                          <span className="text-xs text-slate-400 font-mono shrink-0">{t.unitDays}</span>
                           {(curRetention !== config.retentionDays || curSegment !== config.segmentHours) && (
                             <button
                               type="button"
@@ -853,7 +853,7 @@ export const UnifiedTab: React.FC<UnifiedTabProps> = ({
                                 handleUpdateDataLog(dl.id, { retentionDays: defRet, segmentHours: defSeg });
                               }}
                               title={`${t.btnResetToDefaults} (${config.retentionDays} ${t.unitDays}, ${config.segmentHours} ${t.unitHours})`}
-                              className="ml-auto p-0.5 text-slate-400 hover:text-[#00646E] dark:hover:text-[#00A3B5] transition-colors cursor-pointer"
+                              className="ml-auto p-0.5 text-slate-400 hover:text-[#00646E] dark:hover:text-[#00A3B5] transition-colors cursor-pointer shrink-0"
                             >
                               <RefreshCw className="w-3 h-3" />
                             </button>
@@ -883,11 +883,11 @@ export const UnifiedTab: React.FC<UnifiedTabProps> = ({
                                 handleUpdateDataLog(dl.id, { segmentHours: maxSeg });
                               }
                             }}
-                            className="w-16 p-1 px-1.5 text-sm font-mono font-bold rounded border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-900 dark:text-white outline-none focus:ring-1 focus:ring-[#00646E]"
+                            className="w-16 p-1 px-1.5 text-sm font-mono font-bold rounded border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-900 dark:text-white outline-none focus:ring-1 focus:ring-[#00646E] shrink-0"
                           />
-                          <span className="text-xs text-slate-400 font-mono">{t.unitHours}</span>
+                          <span className="text-xs text-slate-400 font-mono shrink-0">{t.unitHours}</span>
                           {curSegment > 0 && curRetention > 0 && ((curRetention * 24) / curSegment < 3) && (
-                            <span className="text-xs text-amber-500 font-semibold" title={lang === 'ru' ? 'Менее 3 сегментов в периоде' : 'Less than 3 segments'}>
+                            <span className="text-xs text-amber-500 font-semibold shrink-0" title={lang === 'ru' ? 'Менее 3 сегментов в периоде' : 'Less than 3 segments'}>
                               &lt;3
                             </span>
                           )}
@@ -900,7 +900,7 @@ export const UnifiedTab: React.FC<UnifiedTabProps> = ({
                                 handleUpdateDataLog(dl.id, { segmentHours: Math.min(selectedH, maxSeg) });
                               }
                             }}
-                            className="p-1 text-xs rounded border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-600 dark:text-slate-300 outline-none ml-auto cursor-pointer"
+                            className="p-1 text-xs rounded border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-600 dark:text-slate-300 outline-none ml-auto cursor-pointer shrink-0"
                             title={lang === 'ru' ? 'Быстрый выбор сегмента' : 'Quick segment preset'}
                           >
                             <option value="custom">⚡</option>
@@ -974,7 +974,7 @@ export const UnifiedTab: React.FC<UnifiedTabProps> = ({
                               className="p-1 px-2.5 text-sm font-mono font-bold rounded-lg border border-slate-200 dark:border-slate-700 bg-transparent text-slate-900 dark:text-white focus:border-[#00646E] outline-none flex-1 min-w-[120px] max-w-[200px] disabled:opacity-40"
                             />
                             {tagsCount > 0 && (
-                              <span className="text-xs px-2.5 py-0.5 rounded-full bg-amber-500/10 text-amber-700 dark:text-amber-400 font-mono font-semibold" title={`${tagsEvents} ${t.eventsPerDayShort} ${t.fromAlarmTags}`}>
+                              <span className="text-xs px-2.5 py-0.5 rounded-full bg-amber-500/10 text-amber-700 dark:text-amber-400 font-mono font-semibold shrink-0" title={`${tagsEvents} ${t.eventsPerDayShort} ${t.fromAlarmTags}`}>
                                 {tagsCount} {lang === 'ru' ? 'сигн.' : 'sigs'} ({tagsEvents} {t.eventsPerDayShort})
                               </span>
                             )}
@@ -1006,7 +1006,7 @@ export const UnifiedTab: React.FC<UnifiedTabProps> = ({
                         </div>
 
                         {/* Individual Parameters Row: Retention Days & Segment Hours */}
-                        <div className="grid grid-cols-2 gap-2 pt-1.5 border-t border-slate-100 dark:border-slate-800/80 text-xs">
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 pt-1.5 border-t border-slate-100 dark:border-slate-800/80 text-xs">
                           <div className="flex items-center gap-1.5 bg-slate-50/80 dark:bg-slate-800/50 p-1.5 rounded-lg border border-slate-200/50 dark:border-slate-700/50">
                             <span className="text-xs font-medium text-slate-500 dark:text-slate-400 shrink-0">
                               {t.cardRetentionLabel}
@@ -1030,9 +1030,9 @@ export const UnifiedTab: React.FC<UnifiedTabProps> = ({
                                 const clampedSeg = Math.min(currentSeg, maxSeg);
                                 handleUpdateAlarmLog(al.id, { retentionDays: ret, segmentHours: clampedSeg });
                               }}
-                              className="w-16 p-1 px-1.5 text-sm font-mono font-bold rounded border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-900 dark:text-white outline-none focus:ring-1 focus:ring-amber-500 disabled:opacity-40"
+                              className="w-16 p-1 px-1.5 text-sm font-mono font-bold rounded border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-900 dark:text-white outline-none focus:ring-1 focus:ring-amber-500 disabled:opacity-40 shrink-0"
                             />
-                            <span className="text-xs text-slate-400 font-mono">{t.unitDays}</span>
+                            <span className="text-xs text-slate-400 font-mono shrink-0">{t.unitDays}</span>
                             {al.enabled && (curRetention !== config.retentionDays || curSegment !== config.segmentHours) && (
                               <button
                                 type="button"
@@ -1042,7 +1042,7 @@ export const UnifiedTab: React.FC<UnifiedTabProps> = ({
                                   handleUpdateAlarmLog(al.id, { retentionDays: defRet, segmentHours: defSeg });
                                 }}
                                 title={`${t.btnResetToDefaults} (${config.retentionDays} ${t.unitDays}, ${config.segmentHours} ${t.unitHours})`}
-                                className="ml-auto p-0.5 text-slate-400 hover:text-amber-600 dark:hover:text-amber-400 transition-colors cursor-pointer"
+                                className="ml-auto p-0.5 text-slate-400 hover:text-amber-600 dark:hover:text-amber-400 transition-colors cursor-pointer shrink-0"
                               >
                                 <RefreshCw className="w-3 h-3" />
                               </button>
@@ -1073,11 +1073,11 @@ export const UnifiedTab: React.FC<UnifiedTabProps> = ({
                                   handleUpdateAlarmLog(al.id, { segmentHours: maxSeg });
                                 }
                               }}
-                              className="w-16 p-1 px-1.5 text-sm font-mono font-bold rounded border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-900 dark:text-white outline-none focus:ring-1 focus:ring-amber-500 disabled:opacity-40"
+                              className="w-16 p-1 px-1.5 text-sm font-mono font-bold rounded border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-900 dark:text-white outline-none focus:ring-1 focus:ring-amber-500 disabled:opacity-40 shrink-0"
                             />
-                            <span className="text-xs text-slate-400 font-mono">{t.unitHours}</span>
+                            <span className="text-xs text-slate-400 font-mono shrink-0">{t.unitHours}</span>
                             {curSegment > 0 && curRetention > 0 && ((curRetention * 24) / curSegment < 3) && (
-                              <span className="text-xs text-amber-500 font-semibold" title={lang === 'ru' ? 'Менее 3 сегментов в периоде' : 'Less than 3 segments'}>
+                              <span className="text-xs text-amber-500 font-semibold shrink-0" title={lang === 'ru' ? 'Менее 3 сегментов в периоде' : 'Less than 3 segments'}>
                                 &lt;3
                               </span>
                             )}
@@ -1091,7 +1091,7 @@ export const UnifiedTab: React.FC<UnifiedTabProps> = ({
                                   handleUpdateAlarmLog(al.id, { segmentHours: Math.min(selectedH, maxSeg) });
                                 }
                               }}
-                              className="p-1 text-xs rounded border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-600 dark:text-slate-300 outline-none ml-auto cursor-pointer disabled:opacity-40"
+                              className="p-1 text-xs rounded border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-600 dark:text-slate-300 outline-none ml-auto cursor-pointer disabled:opacity-40 shrink-0"
                               title={lang === 'ru' ? 'Быстрый выбор сегмента' : 'Quick segment preset'}
                             >
                               <option value="custom">⚡</option>

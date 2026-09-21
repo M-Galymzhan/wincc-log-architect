@@ -766,7 +766,7 @@ export const ComfortTab: React.FC<ComfortTabProps> = ({
                         </div>
 
                         {/* Parameters Row */}
-                        <div className="grid grid-cols-2 gap-2 pt-1.5 border-t border-slate-100 dark:border-slate-800/80 text-xs">
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 pt-1.5 border-t border-slate-100 dark:border-slate-800/80 text-xs">
                           <div className="flex items-center gap-1.5 bg-slate-50/80 dark:bg-slate-800/50 p-1.5 rounded-lg border border-slate-200/50 dark:border-slate-700/50">
                             <span className="text-xs font-medium text-slate-500 dark:text-slate-400 shrink-0">
                               {t.cardRetentionLabel}
@@ -874,7 +874,7 @@ export const ComfortTab: React.FC<ComfortTabProps> = ({
                         </div>
 
                         {/* Parameters Row */}
-                        <div className="grid grid-cols-2 gap-2 pt-1.5 border-t border-slate-100 dark:border-slate-800/80 text-xs">
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 pt-1.5 border-t border-slate-100 dark:border-slate-800/80 text-xs">
                           <div className="flex items-center gap-1.5 bg-slate-50/80 dark:bg-slate-800/50 p-1.5 rounded-lg border border-slate-200/50 dark:border-slate-700/50">
                             <span className="text-xs font-medium text-slate-500 dark:text-slate-400 shrink-0">
                               {t.cardRetentionLabel}

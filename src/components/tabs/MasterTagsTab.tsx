@@ -535,7 +535,7 @@ export const MasterTagsTab: React.FC<MasterTagsTabProps> = ({
                       />
                     </div>
 
-                    <div className="grid grid-cols-2 gap-3">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                       <div>
                         <label className="block text-sm font-medium text-slate-700 dark:text-slate-400 mb-1">
                           {t.colType}:
@@ -578,7 +578,7 @@ export const MasterTagsTab: React.FC<MasterTagsTabProps> = ({
                       </div>
                     </div>
 
-                    <div className="grid grid-cols-2 gap-3">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                       <div>
                         <label className="block text-sm font-medium text-slate-700 dark:text-slate-400 mb-1">
                           {t.propDataLog}:
@@ -892,7 +892,7 @@ export const MasterTagsTab: React.FC<MasterTagsTabProps> = ({
                     </div>
 
                     {selectedTag.limitScope && selectedTag.limitScope !== 'no_limits' && (
-                      <div className="grid grid-cols-2 gap-3 pt-1">
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1">
                         <div>
                           <label className="block text-sm font-medium text-slate-700 dark:text-slate-400 mb-1">
                             {t.highLimitLabel}:
@@ -1012,7 +1012,7 @@ export const MasterTagsTab: React.FC<MasterTagsTabProps> = ({
                       </div>
                     )}
 
-                    <div className="grid grid-cols-2 gap-3">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                       <div>
                         <label className="block text-sm font-medium text-slate-700 dark:text-slate-400 mb-1">
                           {t.smoothingMaxTimeLabel}:
@@ -1136,7 +1136,7 @@ export const MasterTagsTab: React.FC<MasterTagsTabProps> = ({
                     </div>
 
                     {!isCompressionDisabled && selectedTag.compressionMode && selectedTag.compressionMode !== 'no_compression' && (
-                      <div className="grid grid-cols-2 gap-3">
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                         <div>
                           <label className="block text-sm font-medium text-slate-700 dark:text-slate-400 mb-1">
                             {t.compressionDelayLabel}:

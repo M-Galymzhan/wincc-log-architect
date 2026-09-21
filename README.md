@@ -6,7 +6,7 @@
 </p>
 
 <p align="center">
-  <img src="https://img.shields.io/badge/Версия-2.15.1-emerald?style=for-the-badge" alt="Version 2.15.1" />
+  <img src="https://img.shields.io/badge/Версия-2.15.2-emerald?style=for-the-badge" alt="Version 2.15.2" />
   <img src="https://img.shields.io/badge/Next.js-16.3.4-black?style=for-the-badge&logo=next.js" alt="Next.js" />
   <img src="https://img.shields.io/badge/React-19.2.8-blue?style=for-the-badge&logo=react" alt="React" />
   <img src="https://img.shields.io/badge/Tailwind_CSS-4.3.3-38B2AC?style=for-the-badge&logo=tailwind-css" alt="Tailwind" />
@@ -146,6 +146,16 @@ flowchart TD
   - 461 автоматизированный тест математических ядер (`npx tsx scripts/testEngines.ts`).
   - 0 уязвимостей зависимостей (`npm audit`).
 * **PWA & Offline**: Web App Manifest + Service Worker с сетевой политикой Network-First.
+
+---
+
+## ⚡ Что нового в версии 2.15.2
+
+* **Адаптивная верстка и устранение графических недочетов мобильных экранов**:
+  - **Карточки Data Logs & Alarm Logs**: параметры срока хранения и сегментов переведены на адаптивную сетку `grid-cols-1 sm:grid-cols-2`. Выпадающие списки быстрых пресетов (`[ 24ч v ]`) больше не выталкиваются за пределы карточек на смартфонах.
+  - **Мобильный тулбар шапки**: исправлен баг обрезки текста («Шпаргалк») за счет применения `whitespace-nowrap` и `min-w-fit`.
+  - **Выравнивание контейнеров**: удален лишний горизонтальный отступ `px-3` с корневого `<header>`, благодаря чему сетки шапки и основного контента теперь строго совпадают по левому и правому краю (`px-4 sm:px-6 lg:px-8`).
+  - **Инспектор тегов и Comfort**: поля свойств архивов и сигналов защищены от переполнения на узких дисплеях (320–390px).
 
 ---
 
