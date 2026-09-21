@@ -48,10 +48,10 @@ export const NetworkBandwidthCard: React.FC<NetworkBandwidthCardProps> = ({ netw
             <Activity className="w-5 h-5 shrink-0" />
           </div>
           <div>
-            <h3 className="font-bold text-sm text-slate-900 dark:text-white leading-tight">
+            <h3 className="font-bold text-base text-slate-900 dark:text-white leading-tight">
               {t.networkCardTitle}
             </h3>
-            <span className="text-[11px] text-slate-500 dark:text-slate-400">
+            <span className="text-xs text-slate-500 dark:text-slate-400">
               {lang === 'ru' ? 'Опрос тегов S7comm / OMS+ / OPC UA' : 'S7comm / OMS+ / OPC UA Tag Polling'}
             </span>
           </div>
@@ -75,7 +75,7 @@ export const NetworkBandwidthCard: React.FC<NetworkBandwidthCardProps> = ({ netw
           <div className="text-right">
             <span className="text-xs text-slate-500 dark:text-slate-400 font-medium">{t.networkSaturation}</span>
             <div className="text-sm font-bold font-mono text-slate-700 dark:text-slate-300">
-              {network.fastEthernetSaturationPct}% <span className="text-[10px] text-slate-600 dark:text-slate-300 font-normal">/ 100 Mbps</span>
+              {network.fastEthernetSaturationPct}% <span className="text-xs text-slate-600 dark:text-slate-300 font-normal">/ 100 Mbps</span>
             </div>
           </div>
         </div>
@@ -92,29 +92,29 @@ export const NetworkBandwidthCard: React.FC<NetworkBandwidthCardProps> = ({ netw
       {/* Detail Metrics Grid */}
       <div className="grid grid-cols-2 sm:grid-cols-3 gap-2.5 text-xs">
         <div className="p-2.5 rounded-xl bg-slate-100/60 dark:bg-slate-800/40 border border-slate-200/40 dark:border-slate-800/50">
-          <span className="text-slate-500 dark:text-slate-400 block text-[11px] mb-0.5">{t.networkDailyVolume}</span>
-          <span className="font-mono font-bold text-slate-800 dark:text-slate-200">
+          <span className="text-slate-500 dark:text-slate-400 block text-xs mb-0.5">{t.networkDailyVolume}</span>
+          <span className="text-sm font-mono font-bold text-slate-800 dark:text-slate-200">
             {network.dailyTrafficMb} {lang === 'ru' ? 'МБ/день' : 'MB/day'}
           </span>
         </div>
 
         <div className="p-2.5 rounded-xl bg-slate-100/60 dark:bg-slate-800/40 border border-slate-200/40 dark:border-slate-800/50">
-          <span className="text-slate-500 dark:text-slate-400 block text-[11px] mb-0.5">{t.networkMonthlyVolume}</span>
-          <span className="font-mono font-bold text-slate-800 dark:text-slate-200">
+          <span className="text-slate-500 dark:text-slate-400 block text-xs mb-0.5">{t.networkMonthlyVolume}</span>
+          <span className="text-sm font-mono font-bold text-slate-800 dark:text-slate-200">
             {network.monthlyTrafficGb} {lang === 'ru' ? 'ГБ/мес' : 'GB/mo'}
           </span>
         </div>
 
         <div className="col-span-2 sm:col-span-1 p-2.5 rounded-xl bg-slate-100/60 dark:bg-slate-800/40 border border-slate-200/40 dark:border-slate-800/50">
-          <span className="text-slate-500 dark:text-slate-400 block text-[11px] mb-0.5">{t.networkPacketsPerSec}</span>
-          <span className="font-mono font-bold text-slate-800 dark:text-slate-200">
+          <span className="text-slate-500 dark:text-slate-400 block text-xs mb-0.5">{t.networkPacketsPerSec}</span>
+          <span className="text-sm font-mono font-bold text-slate-800 dark:text-slate-200">
             ~{network.telegramsPerSec} {lang === 'ru' ? 'пак/сек' : 'pkt/s'}
           </span>
         </div>
       </div>
 
       {/* Engineering Topology Recommendation */}
-      <div className="flex items-start gap-2.5 p-3 rounded-xl bg-sky-500/5 dark:bg-sky-500/10 border border-sky-500/20 text-xs text-sky-900 dark:text-sky-200">
+      <div className="flex items-start gap-2.5 p-3 rounded-xl bg-sky-500/5 dark:bg-sky-500/10 border border-sky-500/20 text-xs sm:text-sm text-sky-900 dark:text-sky-200">
         <Info className="w-4 h-4 text-sky-500 shrink-0 mt-0.5" />
         <div>
           <span className="font-semibold block mb-0.5">{t.networkRecommendationTitle}:</span>

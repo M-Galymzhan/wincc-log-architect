@@ -1793,6 +1793,52 @@ async function runAsyncTests() {
   assert(uTag.smoothingMode === 'swinging_door', 'Adapter Unified: preserves swinging_door');
   assert(uTag.entriesPerSec === 0.12, `Adapter Unified: calculates entriesPerSec with reduction, got ${uTag.entriesPerSec}`);
 
+  // 17.4 Mode Mutual Exclusivity Assertions (Siemens TIA Portal V19 Rules)
+  // 17.4.1 Cyclic mode must ignore and reset trigger
+  const cyclicWithTriggerTag: MasterLoggingTag = {
+    ...rawCyclicTag,
+    triggerMode: 'rising_edge',
+    triggerTag: 'Trigger_Bit_Should_Be_Ignored',
+    triggerBit: 3,
+  };
+  const uCyclicAdapted = adaptMasterTagToUnified(cyclicWithTriggerTag);
+  assert(uCyclicAdapted.triggerMode === 'none', 'Exclusivity: Cyclic mode sets triggerMode to none');
+  assert(uCyclicAdapted.triggerTag === undefined, 'Exclusivity: Cyclic mode strips triggerTag');
+  assert(uCyclicAdapted.triggerBit === undefined, 'Exclusivity: Cyclic mode strips triggerBit');
+
+  // 17.4.2 On demand mode: disables cycle and compression, preserves trigger and smoothing
+  const onDemandWithExcessiveProps: MasterLoggingTag = {
+    ...rawCyclicTag,
+    loggingMode: 'ondemand',
+    triggerMode: 'falling_edge',
+    triggerTag: 'Batch_End_Pulse',
+    triggerBit: 1,
+    smoothingMode: 'swinging_door',
+    smoothingDelta: 2,
+    compressionMode: 'maximum',
+    cycleSec: 5,
+  };
+  const uOnDemandAdapted = adaptMasterTagToUnified(onDemandWithExcessiveProps);
+  assert(uOnDemandAdapted.triggerMode === 'falling_edge', 'Exclusivity: On demand preserves triggerMode');
+  assert(uOnDemandAdapted.triggerTag === 'Batch_End_Pulse', 'Exclusivity: On demand preserves triggerTag');
+  assert(uOnDemandAdapted.cycleSec === 0, 'Exclusivity: On demand sets cycleSec to 0');
+  assert(uOnDemandAdapted.smoothingMode === 'swinging_door', 'Exclusivity: On demand preserves smoothingMode');
+  assert(uOnDemandAdapted.compressionMode === 'no_compression', 'Exclusivity: On demand resets compressionMode to no_compression');
+
+  // 17.4.3 On change mode: trigger is allowed and preserved, compression is disabled
+  const onChangeWithExcessiveProps: MasterLoggingTag = {
+    ...rawCyclicTag,
+    loggingMode: 'onchange',
+    triggerMode: 'change',
+    triggerTag: 'Trigger_Tag_Allowed',
+    triggerBit: 2,
+    compressionMode: 'average',
+  };
+  const uOnChangeAdapted = adaptMasterTagToUnified(onChangeWithExcessiveProps);
+  assert(uOnChangeAdapted.triggerMode === 'change', 'Exclusivity: On change preserves triggerMode');
+  assert(uOnChangeAdapted.triggerTag === 'Trigger_Tag_Allowed', 'Exclusivity: On change preserves triggerTag');
+  assert(uOnChangeAdapted.compressionMode === 'no_compression', 'Exclusivity: On change sets compressionMode to no_compression');
+
   const cTagRes = adaptMasterTagToComfort(ondemandTag);
   assert(cTagRes.tag.mode === 'onchange', 'Adapter Comfort: adapts ondemand to onchange');
   assert(cTagRes.warnings.length > 0, 'Adapter Comfort: generates warnings on adaptation');

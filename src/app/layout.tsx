@@ -122,14 +122,14 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="ru" className={`${geistSans.variable} ${geistMono.variable} antialiased dark`}>
+    <html lang="ru" className={`${geistSans.variable} ${geistMono.variable} antialiased dark`} suppressHydrationWarning>
       <head>
         <script
           type="application/ld+json"
           dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
         />
       </head>
-      <body className="min-h-screen">
+      <body className="min-h-screen" suppressHydrationWarning>
         {children}
         <script
           dangerouslySetInnerHTML={{

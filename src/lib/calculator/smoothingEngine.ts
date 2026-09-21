@@ -39,44 +39,42 @@ export function calculateDataReductionFactor(tag: MasterLoggingTag): number {
       break;
   }
 
-  // 2. Smoothing Mode reduction
-  if (tag.loggingMode !== 'ondemand') {
-    switch (tag.smoothingMode) {
-      case 'swinging_door':
-        // Swinging door algorithm removes collinear trend points within tolerance corridor.
-        // Industrial compression benchmark: 75% to 92% reduction of raw points.
-        baseFactor *= 0.12;
-        break;
+  // 2. Smoothing Mode reduction (available in all logging modes per TIA Portal)
+  switch (tag.smoothingMode) {
+    case 'swinging_door':
+      // Swinging door algorithm removes collinear trend points within tolerance corridor.
+      // Industrial compression benchmark: 75% to 92% reduction of raw points.
+      baseFactor *= 0.12;
+      break;
 
-      case 'relative_value': {
-        // Relative deadband (% of span)
-        const relDelta = Math.max(0.1, tag.smoothingDelta || 1); // default 1%
-        const reduction = Math.min(0.85, 0.30 + (relDelta * 0.08));
-        baseFactor *= (1.0 - reduction);
-        break;
-      }
-
-      case 'value': {
-        // Absolute deadband
-        const delta = Math.max(0.01, tag.smoothingDelta || 0.5);
-        // Typical deadband cuts sensor noise fluctuations by 50-75%
-        const reduction = Math.min(0.80, 0.40 + (Math.min(delta, 5) * 0.08));
-        baseFactor *= (1.0 - reduction);
-        break;
-      }
-
-      case 'compare_values':
-        // Bitwise comparison (removes identical back-to-back samples in cyclic mode)
-        if (tag.loggingMode === 'cyclic') {
-          baseFactor *= 0.65;
-        }
-        break;
-
-      case 'no_smoothing':
-      default:
-        // No smoothing applied
-        break;
+    case 'relative_value': {
+      // Relative deadband (% of span)
+      const relDelta = Math.max(0.1, tag.smoothingDelta || 1); // default 1%
+      const reduction = Math.min(0.85, 0.30 + (relDelta * 0.08));
+      baseFactor *= (1.0 - reduction);
+      break;
     }
+
+    case 'value': {
+      // Absolute deadband
+      const delta = Math.max(0.01, tag.smoothingDelta || 0.5);
+      // Typical deadband cuts sensor noise fluctuations by 50-75%
+      const reduction = Math.min(0.80, 0.40 + (Math.min(delta, 5) * 0.08));
+      baseFactor *= (1.0 - reduction);
+      break;
+    }
+
+    case 'compare_values':
+      // Bitwise comparison (removes identical back-to-back samples in cyclic mode)
+      if (tag.loggingMode === 'cyclic') {
+        baseFactor *= 0.65;
+      }
+      break;
+
+    case 'no_smoothing':
+    default:
+      // No smoothing applied
+      break;
   }
 
   // 3. Limits Scope filter adjustment
@@ -105,16 +103,14 @@ export function calculateDataReductionFactor(tag: MasterLoggingTag): number {
     }
   }
 
-  // 4. Heartbeat (Maximum time) boundary check
-  // If maxTimeSec is set, points must be recorded at least once every maxTimeSec
-  if (tag.maxTimeSec && tag.maxTimeSec > 0) {
+  // 4. Heartbeat (Maximum time) boundary check (only for cyclic and onchange)
+  if (tag.loggingMode !== 'ondemand' && tag.maxTimeSec && tag.maxTimeSec > 0) {
     const minHeartbeatFactor = effectiveCycleSec / tag.maxTimeSec;
     baseFactor = Math.max(baseFactor, minHeartbeatFactor);
   }
 
-  // 5. Anti-chatter (Minimum time) boundary check
-  // Caps peak frequency to 1 / minTimeSec
-  if (tag.minTimeSec && tag.minTimeSec > 0 && tag.minTimeSec > effectiveCycleSec) {
+  // 5. Anti-chatter (Minimum time) boundary check (only for cyclic and onchange)
+  if (tag.loggingMode !== 'ondemand' && tag.minTimeSec && tag.minTimeSec > 0 && tag.minTimeSec > effectiveCycleSec) {
     const maxAllowedRateFactor = effectiveCycleSec / tag.minTimeSec;
     baseFactor = Math.min(baseFactor, maxAllowedRateFactor);
   }
@@ -229,10 +225,26 @@ export function checkTagCompatibility(
  * Converts a MasterLoggingTag to a UnifiedTag for WinCC Unified.
  */
 export function adaptMasterTagToUnified(tag: MasterLoggingTag): UnifiedTag {
+  const isCyclic = tag.loggingMode === 'cyclic';
+  const isOnDemand = tag.loggingMode === 'ondemand';
+
   const reductionFactor = calculateDataReductionFactor(tag);
-  const effectiveCycleSec = Math.max(0.1, (tag.cycleSec || 1) * (tag.cycleFactor || 1));
-  const rawRatePerSec = 1 / effectiveCycleSec;
-  const effectiveEntriesPerSec = +(rawRatePerSec * reductionFactor).toFixed(4);
+  
+  let rawRatePerSec: number;
+  let effectiveCycleSec = Math.max(0.1, (tag.cycleSec || 1) * (tag.cycleFactor || 1));
+
+  if (isOnDemand) {
+    // Event-driven: continuous cycle does not apply; baseline event frequency ~0.02 Hz
+    rawRatePerSec = 0.02;
+    effectiveCycleSec = 50;
+  } else {
+    rawRatePerSec = 1 / effectiveCycleSec;
+  }
+
+  // When on demand, reductionFactor already accounts for base factor and limit filters
+  const effectiveEntriesPerSec = isOnDemand
+    ? +(reductionFactor).toFixed(4)
+    : +(rawRatePerSec * reductionFactor).toFixed(4);
 
   return {
     id: tag.id || Math.random().toString(36).substring(2, 9),
@@ -240,26 +252,34 @@ export function adaptMasterTagToUnified(tag: MasterLoggingTag): UnifiedTag {
     processTag: tag.processTag || tag.name,
     description: tag.description || tag.name,
     mode: tag.loggingMode,
-    cycleSec: tag.cycleSec || 1,
-    cycleFactor: tag.cycleFactor || 1,
+    cycleSec: isOnDemand ? 0 : (tag.cycleSec || 1),
+    cycleFactor: isOnDemand ? 1 : (tag.cycleFactor || 1),
     entriesPerSec: effectiveEntriesPerSec,
     count: tag.count || 1,
     dataType: tag.dataType || 'Real',
     dataLogId: tag.targetLogName || 'Trend_Logs',
-    triggerMode: tag.triggerMode,
-    triggerTag: tag.triggerTag,
-    triggerBit: tag.triggerBit,
+    // Trigger is active in ondemand (mandatory) and onchange (optional) modes; disabled in cyclic
+    triggerMode: isOnDemand
+      ? (tag.triggerMode && tag.triggerMode !== 'none' ? tag.triggerMode : 'rising_edge')
+      : tag.loggingMode === 'onchange'
+      ? (tag.triggerMode || 'none')
+      : 'none',
+    triggerTag: (isOnDemand || (tag.loggingMode === 'onchange' && tag.triggerMode && tag.triggerMode !== 'none')) ? tag.triggerTag : undefined,
+    triggerBit: (isOnDemand || (tag.loggingMode === 'onchange' && tag.triggerMode && tag.triggerMode !== 'none')) ? tag.triggerBit : undefined,
+    // Limits apply to all modes
     limitScope: tag.limitScope,
     highLimit: tag.highLimit,
     lowLimit: tag.lowLimit,
     useTagLimits: tag.useTagLimits,
-    smoothingMode: tag.smoothingMode,
+    // Smoothing applies to all modes
+    smoothingMode: tag.smoothingMode || 'no_smoothing',
     smoothingDelta: tag.smoothingDelta,
     maxTimeSec: tag.maxTimeSec,
     minTimeSec: tag.minTimeSec,
-    compressionMode: tag.compressionMode,
-    compressionDelaySec: tag.compressionDelaySec,
-    sourceLog: tag.sourceLog,
+    // Compression is only active in cyclic mode
+    compressionMode: isCyclic ? (tag.compressionMode || 'no_compression') : 'no_compression',
+    compressionDelaySec: isCyclic ? tag.compressionDelaySec : undefined,
+    sourceLog: isCyclic ? tag.sourceLog : undefined,
   };
 }
 

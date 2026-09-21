@@ -1,5 +1,5 @@
 'use client';
-import React, { useState, useMemo, useCallback } from 'react';
+import React, { useState, useMemo, useCallback, useEffect, useDeferredValue } from 'react';
 import {
   MasterLoggingTag,
   Language,
@@ -29,6 +29,10 @@ import {
   FileSpreadsheet,
   Search,
   Sparkles,
+  HelpCircle,
+  ChevronLeft,
+  ChevronRight,
+  X,
 } from 'lucide-react';
 
 const generateMasterTagId = (): string => {
@@ -67,6 +71,7 @@ export const MasterTagsTab: React.FC<MasterTagsTabProps> = ({
   const [searchQuery, setSearchQuery] = useState('');
   const [modeFilter, setModeFilter] = useState<string>('all');
   const [showComfortWarningModal, setShowComfortWarningModal] = useState(false);
+  const [isDrawerOpen, setIsDrawerOpen] = useState(false);
 
   // Selected tag object
   const selectedTag = useMemo(() => {
@@ -82,10 +87,18 @@ export const MasterTagsTab: React.FC<MasterTagsTabProps> = ({
     masterTags.forEach((tag) => {
       const count = tag.count || 1;
       totalTagsCount += count;
-      const effectiveCycle = Math.max(0.1, (tag.cycleSec || 1) * (tag.cycleFactor || 1));
-      const rawRate = 1 / effectiveCycle;
+      
+      let rawRate = 0;
+      if (tag.loggingMode === 'ondemand') {
+        // On demand is triggered by external events, baseline ~0.02 Hz
+        rawRate = 0.02;
+      } else {
+        const effectiveCycle = Math.max(0.1, (tag.cycleSec || 1) * (tag.cycleFactor || 1));
+        rawRate = 1 / effectiveCycle;
+      }
+
       const reduction = calculateDataReductionFactor(tag);
-      const effectiveRate = rawRate * reduction;
+      const effectiveRate = tag.loggingMode === 'ondemand' ? reduction : rawRate * reduction;
 
       rawDailyRecords += rawRate * 86400 * count;
       effectiveDailyRecords += effectiveRate * 86400 * count;
@@ -110,22 +123,67 @@ export const MasterTagsTab: React.FC<MasterTagsTabProps> = ({
     };
   }, [masterTags]);
 
-  // Filtered tags for the table
+  const deferredSearchQuery = useDeferredValue(searchQuery);
+
+  // Filtered tags for the table (deferred search query ensures smooth, non-blocking typing)
   const filteredTags = useMemo(() => {
+    const q = deferredSearchQuery.trim().toLowerCase();
     return masterTags.filter((tag) => {
       const matchesSearch =
-        tag.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        tag.processTag.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        tag.description.toLowerCase().includes(searchQuery.toLowerCase());
+        !q ||
+        tag.name.toLowerCase().includes(q) ||
+        tag.processTag.toLowerCase().includes(q) ||
+        tag.description.toLowerCase().includes(q);
       const matchesMode = modeFilter === 'all' || tag.loggingMode === modeFilter;
       return matchesSearch && matchesMode;
     });
-  }, [masterTags, searchQuery, modeFilter]);
+  }, [masterTags, deferredSearchQuery, modeFilter]);
 
-  // Tag mutation helpers
+  // Tag navigation within drawer
+  const currentTagIndex = useMemo(() => {
+    return filteredTags.findIndex((t) => t.id === selectedTagId);
+  }, [filteredTags, selectedTagId]);
+
+  const prevTag = currentTagIndex > 0 ? filteredTags[currentTagIndex - 1] : null;
+  const nextTag = currentTagIndex >= 0 && currentTagIndex < filteredTags.length - 1 ? filteredTags[currentTagIndex + 1] : null;
+
+  // Keyboard accessibility: Close drawer on Escape
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape' && isDrawerOpen) {
+        setIsDrawerOpen(false);
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [isDrawerOpen]);
+
+  // Tag mutation helpers with Siemens TIA Portal parameter dependency rules
   const handleUpdateTag = (id: string, updates: Partial<MasterLoggingTag>) => {
     setMasterTags((prev) =>
-      prev.map((item) => (item.id === id ? { ...item, ...updates } : item))
+      prev.map((item) => {
+        if (item.id !== id) return item;
+        const updated = { ...item, ...updates };
+
+        // Enforce mode dependencies when loggingMode changes
+        if (updates.loggingMode && updates.loggingMode !== item.loggingMode) {
+          if (updates.loggingMode === 'cyclic') {
+            // Cyclic: trigger is None, cycle is active, compression can be active
+            updated.triggerMode = 'none';
+          } else if (updates.loggingMode === 'onchange') {
+            // On change: trigger is allowed (optional), cycle is inactive, compression is No compression
+            updated.compressionMode = 'no_compression';
+          } else if (updates.loggingMode === 'ondemand') {
+            // On demand: trigger is mandatory (default to rising_edge), compression is No compression
+            // Limit Scope and Smoothing mode are allowed in all logging modes!
+            if (!updated.triggerMode || updated.triggerMode === 'none') {
+              updated.triggerMode = 'rising_edge';
+            }
+            updated.compressionMode = 'no_compression';
+          }
+        }
+        return updated;
+      })
     );
   };
 
@@ -193,21 +251,21 @@ export const MasterTagsTab: React.FC<MasterTagsTabProps> = ({
   return (
     <div className="space-y-6">
       {/* 1. Header & Statistical KPI Banner */}
-      <div className="p-6 rounded-3xl glass-panel shadow-xl border border-white/20 dark:border-slate-800 relative overflow-hidden bg-gradient-to-br from-slate-900/60 via-slate-900/40 to-purple-950/30">
+      <div className="p-6 rounded-3xl glass-panel shadow-xl border border-slate-200 dark:border-slate-800 relative overflow-hidden bg-white/80 dark:bg-gradient-to-br dark:from-slate-900/60 dark:via-slate-900/40 dark:to-amber-950/30">
         <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-6">
           <div className="space-y-1.5">
             <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-2xl bg-purple-500/20 border border-purple-500/40 flex items-center justify-center text-purple-400">
+              <div className="w-10 h-10 rounded-2xl bg-amber-500/20 border border-amber-500/40 flex items-center justify-center text-amber-500 dark:text-amber-400">
                 <SlidersHorizontal className="w-5 h-5" />
               </div>
               <div>
-                <h2 className="text-xl sm:text-2xl font-bold text-slate-100 flex items-center gap-2.5">
+                <h2 className="text-xl sm:text-2xl font-bold text-slate-900 dark:text-slate-100 flex items-center gap-2.5">
                   {t.masterTagsTitle}
-                  <span className="text-xs px-2.5 py-0.5 rounded-full bg-purple-500/20 border border-purple-500/30 text-purple-300 font-mono">
-                    TIA Portal V19 Inspector
+                  <span className="text-xs px-2.5 py-0.5 rounded-full bg-amber-500/15 border border-amber-500/30 text-amber-600 dark:text-amber-300 font-mono font-medium">
+                    Unified • Comfort • Professional
                   </span>
                 </h2>
-                <p className="text-xs sm:text-sm text-slate-400">
+                <p className="text-xs sm:text-sm text-slate-600 dark:text-slate-400">
                   {t.masterTagsSubtitle}
                 </p>
               </div>
@@ -216,50 +274,50 @@ export const MasterTagsTab: React.FC<MasterTagsTabProps> = ({
 
           {/* Quick Metrics Bar */}
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-            <div className="p-3 rounded-xl bg-slate-800/60 border border-slate-700/50">
-              <span className="text-[11px] text-slate-400 uppercase font-medium">
+            <div className="p-3 rounded-xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700/50">
+              <span className="text-xs text-slate-500 dark:text-slate-400 uppercase font-medium">
                 {t.masterTagCount}
               </span>
-              <p className="text-lg font-bold font-mono text-purple-300 mt-0.5">
+              <p className="text-lg font-bold font-mono text-amber-600 dark:text-amber-300 mt-0.5">
                 {stats.totalTagsCount}
               </p>
             </div>
 
-            <div className="p-3 rounded-xl bg-slate-800/60 border border-slate-700/50">
-              <span className="text-[11px] text-slate-400 uppercase font-medium">
+            <div className="p-3 rounded-xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700/50">
+              <span className="text-xs text-slate-500 dark:text-slate-400 uppercase font-medium">
                 {t.masterTotalEffectiveRate}
               </span>
-              <p className="text-lg font-bold font-mono text-emerald-400 mt-0.5">
-                {stats.effectiveEntriesPerSec} <span className="text-xs font-normal text-slate-400">зап/с</span>
+              <p className="text-lg font-bold font-mono text-emerald-600 dark:text-emerald-400 mt-0.5">
+                {stats.effectiveEntriesPerSec} <span className="text-xs font-normal text-slate-500 dark:text-slate-400">зап/с</span>
               </p>
             </div>
 
-            <div className="p-3 rounded-xl bg-slate-800/60 border border-slate-700/50">
-              <span className="text-[11px] text-slate-400 uppercase font-medium">
+            <div className="p-3 rounded-xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700/50">
+              <span className="text-xs text-slate-500 dark:text-slate-400 uppercase font-medium">
                 {t.reductionEstLabel}
               </span>
-              <p className="text-lg font-bold font-mono text-cyan-400 mt-0.5 flex items-center gap-1">
-                <Sparkles className="w-4 h-4 text-cyan-400" />
+              <p className="text-lg font-bold font-mono text-cyan-600 dark:text-cyan-400 mt-0.5 flex items-center gap-1">
+                <Sparkles className="w-4 h-4 text-cyan-500 dark:text-cyan-400" />
                 -{stats.overallReductionPct}%
               </p>
             </div>
 
-            <div className="p-3 rounded-xl bg-slate-800/60 border border-slate-700/50">
-              <span className="text-[11px] text-slate-400 uppercase font-medium">
+            <div className="p-3 rounded-xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700/50">
+              <span className="text-xs text-slate-500 dark:text-slate-400 uppercase font-medium">
                 Экономия объема:
               </span>
-              <p className="text-lg font-bold font-mono text-amber-300 mt-0.5">
-                ~{stats.savedMbPerDay} <span className="text-xs font-normal text-slate-400">МБ/день</span>
+              <p className="text-lg font-bold font-mono text-amber-600 dark:text-amber-300 mt-0.5">
+                ~{stats.savedMbPerDay} <span className="text-xs font-normal text-slate-500 dark:text-slate-400">МБ/день</span>
               </p>
             </div>
           </div>
         </div>
 
         {/* Action Buttons: Cross-Platform Sync */}
-        <div className="mt-6 pt-5 border-t border-slate-800/80 flex flex-wrap items-center justify-between gap-3">
+        <div className="mt-6 pt-5 border-t border-slate-200 dark:border-slate-800/80 flex flex-wrap items-center justify-between gap-3">
           <div className="flex flex-wrap items-center gap-2">
-            <span className="text-xs font-semibold text-slate-300 mr-1 flex items-center gap-1.5">
-              <ArrowRightLeft className="w-3.5 h-3.5 text-purple-400" />
+            <span className="text-xs font-semibold text-slate-700 dark:text-slate-300 mr-1 flex items-center gap-1.5">
+              <ArrowRightLeft className="w-3.5 h-3.5 text-amber-500 dark:text-amber-400" />
               Синхронизация:
             </span>
 
@@ -268,7 +326,7 @@ export const MasterTagsTab: React.FC<MasterTagsTabProps> = ({
                 onPushToUnified(masterTags);
                 addToast(t.pushSuccessUnified, 'success');
               }}
-              className="px-3.5 py-2 rounded-xl text-xs font-semibold bg-[#00A3B5]/20 hover:bg-[#00A3B5]/30 text-[#00E5FF] border border-[#00A3B5]/40 transition-all flex items-center gap-2 shadow-sm"
+              className="px-3.5 py-2 rounded-xl text-xs font-semibold bg-[#00A3B5]/15 hover:bg-[#00A3B5]/25 text-[#008394] dark:text-[#00E5FF] border border-[#00A3B5]/40 transition-all flex items-center gap-2 shadow-xs cursor-pointer"
               title="Перенести теги с сохранением всех свойств TIA Inspector в WinCC Unified"
             >
               <Layers className="w-3.5 h-3.5" />
@@ -277,13 +335,13 @@ export const MasterTagsTab: React.FC<MasterTagsTabProps> = ({
 
             <button
               onClick={handlePushComfortClick}
-              className="px-3.5 py-2 rounded-xl text-xs font-semibold bg-emerald-500/20 hover:bg-emerald-500/30 text-emerald-300 border border-emerald-500/40 transition-all flex items-center gap-2 shadow-sm relative"
+              className="px-3.5 py-2 rounded-xl text-xs font-semibold bg-emerald-500/15 hover:bg-emerald-500/25 text-emerald-700 dark:text-emerald-300 border border-emerald-500/40 transition-all flex items-center gap-2 shadow-xs relative cursor-pointer"
               title="Адаптировать и перенести теги в WinCC Comfort / Advanced"
             >
               <HardDrive className="w-3.5 h-3.5" />
               {t.btnPushComfort}
               {comfortUnsupportedCount > 0 && (
-                <span className="w-2 h-2 rounded-full bg-amber-400 animate-ping absolute -top-0.5 -right-0.5" />
+                <span className="w-2 h-2 rounded-full bg-amber-500 animate-ping absolute -top-0.5 -right-0.5" />
               )}
             </button>
 
@@ -292,7 +350,7 @@ export const MasterTagsTab: React.FC<MasterTagsTabProps> = ({
                 onPushToProfessional(masterTags);
                 addToast(t.pushSuccessProfessional, 'success');
               }}
-              className="px-3.5 py-2 rounded-xl text-xs font-semibold bg-blue-500/20 hover:bg-blue-500/30 text-blue-300 border border-blue-500/40 transition-all flex items-center gap-2 shadow-sm"
+              className="px-3.5 py-2 rounded-xl text-xs font-semibold bg-blue-500/15 hover:bg-blue-500/25 text-blue-700 dark:text-blue-300 border border-blue-500/40 transition-all flex items-center gap-2 shadow-xs cursor-pointer"
               title="Автоматически распределить по Tag Logging Fast (<1 мин) и Slow (>=1 мин) в WinCC Professional"
             >
               <Database className="w-3.5 h-3.5" />
@@ -303,7 +361,7 @@ export const MasterTagsTab: React.FC<MasterTagsTabProps> = ({
           <div className="flex items-center gap-2">
             <button
               onClick={onPullFromActive}
-              className="px-3 py-2 rounded-xl text-xs font-semibold bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-700 transition-all flex items-center gap-1.5"
+              className="px-3 py-2 rounded-xl text-xs font-semibold bg-slate-100 hover:bg-slate-200 text-slate-700 border border-slate-300 dark:bg-slate-800 dark:hover:bg-slate-700 dark:text-slate-300 dark:border-slate-700 transition-all flex items-center gap-1.5 cursor-pointer"
             >
               <FileSpreadsheet className="w-3.5 h-3.5" />
               {t.btnPullActive}
@@ -311,7 +369,7 @@ export const MasterTagsTab: React.FC<MasterTagsTabProps> = ({
 
             <button
               onClick={handleAddTag}
-              className="px-3.5 py-2 rounded-xl text-xs font-semibold bg-purple-600 hover:bg-purple-500 text-white shadow-lg shadow-purple-600/30 transition-all flex items-center gap-1.5"
+              className="px-3.5 py-2 rounded-xl text-xs font-semibold bg-amber-600 hover:bg-amber-500 text-white shadow-md shadow-amber-600/30 transition-all flex items-center gap-1.5 cursor-pointer"
             >
               <Plus className="w-4 h-4" />
               {t.btnAddTag}
@@ -320,303 +378,166 @@ export const MasterTagsTab: React.FC<MasterTagsTabProps> = ({
         </div>
       </div>
 
-      {/* 2. Main Work Area: Table (Left/Top) + TIA Portal Inspector (Right/Bottom) */}
-      <div className="grid grid-cols-1 xl:grid-cols-12 gap-6 items-start">
-        {/* Left / Upper Column: Tags List (Table) */}
-        <div className="xl:col-span-7 space-y-4">
-          {/* Table Toolbar */}
-          <div className="flex flex-wrap items-center justify-between gap-3 p-3 rounded-2xl glass-panel border border-slate-800">
-            <div className="flex items-center gap-2 flex-1 min-w-[200px]">
-              <Search className="w-4 h-4 text-slate-400 shrink-0" />
-              <input
-                type="text"
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                placeholder="Поиск по имени, тегу процесса или описанию..."
-                className="w-full bg-transparent text-xs text-slate-200 focus:outline-none placeholder:text-slate-500"
-              />
-            </div>
+      {/* 2. Main Work Area: Logging Properties Inspector (Top) + Tags List Table (Bottom) */}
+      {/* 2. Slide-over Drawer: TIA Portal Logging Properties Inspector */}
+      {isDrawerOpen && selectedTag && (() => {
+        const isTriggerDisabled = selectedTag.loggingMode === 'cyclic';
+        const isCycleDisabled = selectedTag.loggingMode !== 'cyclic';
+        const isSmoothingDisabled = false;
+        const isCompressionDisabled = selectedTag.loggingMode !== 'cyclic';
 
-            <div className="flex items-center gap-2">
-              <span className="text-xs text-slate-400">Режим:</span>
-              <select
-                value={modeFilter}
-                onChange={(e) => setModeFilter(e.target.value)}
-                className="bg-slate-800 text-slate-200 text-xs px-2.5 py-1 rounded-lg border border-slate-700 focus:outline-none"
-              >
-                <option value="all">Все режимы</option>
-                <option value="cyclic">Cyclic</option>
-                <option value="onchange">On change</option>
-                <option value="ondemand">On demand</option>
-              </select>
-            </div>
-          </div>
+        return (
+          <div className="fixed inset-0 z-50 overflow-hidden flex justify-end">
+            {/* Backdrop */}
+            <div
+              className="fixed inset-0 bg-black/60 backdrop-blur-xs transition-opacity animate-fadeIn cursor-pointer"
+              onClick={() => setIsDrawerOpen(false)}
+            />
 
-          {/* Tags Table */}
-          <div className="rounded-2xl glass-panel border border-slate-800 overflow-hidden shadow-lg">
-            <div className="overflow-x-auto max-h-[620px] overflow-y-auto">
-              <table className="w-full text-left border-collapse text-xs">
-                <thead className="bg-slate-900/80 sticky top-0 z-10 border-b border-slate-800 text-[11px] font-semibold text-slate-400 uppercase tracking-wider">
-                  <tr>
-                    <th className="py-2.5 px-3">Имя / Process Tag</th>
-                    <th className="py-2.5 px-2.5">Тип</th>
-                    <th className="py-2.5 px-2.5">Режим</th>
-                    <th className="py-2.5 px-2.5">Цикл</th>
-                    <th className="py-2.5 px-2.5">Сглаживание</th>
-                    <th className="py-2.5 px-2.5 text-center">Сжатие</th>
-                    <th className="py-2.5 px-2.5 text-center">Совместимость</th>
-                    <th className="py-2.5 px-2.5 text-right">Действия</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-slate-800/60 text-slate-300">
-                  {filteredTags.length === 0 ? (
-                    <tr>
-                      <td colSpan={8} className="py-8 text-center text-slate-500">
-                        Теги не найдены. Нажмите «Добавить тег» или «Загрузить из активной вкладки».
-                      </td>
-                    </tr>
-                  ) : (
-                    filteredTags.map((tag) => {
-                      const isSelected = tag.id === selectedTagId;
-                      const reduction = calculateDataReductionFactor(tag);
-                      const reductionPct = Math.round((1 - reduction) * 100);
-                      const compatComfort = checkTagCompatibility(tag, 'comfort');
-                      const compatPro = checkTagCompatibility(tag, 'professional');
-
-                      return (
-                        <tr
-                          key={tag.id}
-                          onClick={() => setSelectedTagId(tag.id)}
-                          className={`cursor-pointer transition-colors ${
-                            isSelected
-                              ? 'bg-purple-950/40 border-l-4 border-l-purple-500'
-                              : 'hover:bg-slate-800/40'
-                          }`}
-                        >
-                          <td className="py-2.5 px-3">
-                            <div className="font-semibold text-slate-100 flex items-center gap-1.5">
-                              {tag.name}
-                              {tag.count > 1 && (
-                                <span className="text-[10px] px-1.5 py-0.2 rounded bg-slate-800 text-slate-300 font-mono">
-                                  ×{tag.count}
-                                </span>
-                              )}
-                            </div>
-                            <div className="text-[11px] font-mono text-slate-400 truncate max-w-[170px]" title={tag.processTag}>
-                              {tag.processTag}
-                            </div>
-                          </td>
-
-                          <td className="py-2.5 px-2.5">
-                            <span className="px-1.5 py-0.5 rounded bg-slate-800/80 text-[11px] font-mono text-slate-300 border border-slate-700/50">
-                              {tag.dataType}
-                            </span>
-                          </td>
-
-                          <td className="py-2.5 px-2.5">
-                            <span
-                              className={`px-2 py-0.5 rounded-full text-[10px] font-medium ${
-                                tag.loggingMode === 'cyclic'
-                                  ? 'bg-cyan-500/10 text-cyan-400 border border-cyan-500/20'
-                                  : tag.loggingMode === 'onchange'
-                                  ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20'
-                                  : 'bg-amber-500/10 text-amber-400 border border-amber-500/20'
-                              }`}
-                            >
-                              {tag.loggingMode}
-                            </span>
-                          </td>
-
-                          <td className="py-2.5 px-2.5 font-mono text-slate-300">
-                            {tag.cycleSec * (tag.cycleFactor || 1)}s
-                          </td>
-
-                          <td className="py-2.5 px-2.5">
-                            <span className="text-[11px] text-slate-300 truncate block max-w-[110px]" title={tag.smoothingMode}>
-                              {tag.smoothingMode === 'swinging_door'
-                                ? 'Swinging Door'
-                                : tag.smoothingMode === 'value'
-                                ? `Deadband (${tag.smoothingDelta || 0.5})`
-                                : tag.smoothingMode === 'relative_value'
-                                ? `Rel (${tag.smoothingDelta || 1}%)`
-                                : tag.smoothingMode === 'compare_values'
-                                ? 'Compare'
-                                : 'None'}
-                            </span>
-                            {tag.limitScope && tag.limitScope !== 'no_limits' && (
-                              <span className="text-[10px] text-amber-400 font-mono block">
-                                Limits active
-                              </span>
-                            )}
-                          </td>
-
-                          <td className="py-2.5 px-2.5 text-center">
-                            <span
-                              className={`text-[11px] font-mono px-2 py-0.5 rounded ${
-                                reductionPct > 70
-                                  ? 'bg-emerald-500/20 text-emerald-300 font-bold'
-                                  : reductionPct > 30
-                                  ? 'bg-cyan-500/20 text-cyan-300'
-                                  : 'bg-slate-800 text-slate-400'
-                              }`}
-                            >
-                              -{reductionPct}%
-                            </span>
-                          </td>
-
-                          {/* Compatibility Badges */}
-                          <td className="py-2.5 px-2.5 text-center">
-                            <div className="flex items-center justify-center gap-1.5">
-                              {/* Unified */}
-                              <span
-                                title="Unified: Полная поддержка"
-                                className="w-2.5 h-2.5 rounded-full bg-[#00E5FF] shadow-sm shadow-[#00E5FF]/40 inline-block"
-                              />
-                              {/* Comfort */}
-                              <span
-                                title={`Comfort: ${compatComfort.status === 'full' ? 'Полная поддержка' : compatComfort.reasonsRu.join('; ')}`}
-                                className={`w-2.5 h-2.5 rounded-full inline-block ${
-                                  compatComfort.status === 'full'
-                                    ? 'bg-emerald-400'
-                                    : 'bg-amber-400 ring-2 ring-amber-500/30'
-                                }`}
-                              />
-                              {/* Professional */}
-                              <span
-                                title={`Professional: ${compatPro.effectiveModeRu}`}
-                                className="w-2.5 h-2.5 rounded-full bg-blue-500 inline-block"
-                              />
-                            </div>
-                          </td>
-
-                          <td className="py-2.5 px-2.5 text-right">
-                            <div className="flex items-center justify-end gap-1">
-                              <button
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  handleDuplicateTag(tag);
-                                }}
-                                title="Дублировать тег"
-                                className="p-1 rounded hover:bg-slate-700 text-slate-400 hover:text-slate-200"
-                              >
-                                <Copy className="w-3.5 h-3.5" />
-                              </button>
-                              <button
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  handleDeleteTag(tag.id);
-                                }}
-                                title="Удалить тег"
-                                className="p-1 rounded hover:bg-rose-900/40 text-slate-400 hover:text-rose-400"
-                              >
-                                <Trash2 className="w-3.5 h-3.5" />
-                              </button>
-                            </div>
-                          </td>
-                        </tr>
-                      );
-                    })
-                  )}
-                </tbody>
-              </table>
-            </div>
-          </div>
-        </div>
-
-        {/* Right / Lower Column: TIA Portal V19 Inspector Panel */}
-        <div className="xl:col-span-5 space-y-4">
-          {selectedTag ? (
-            <div className="rounded-3xl glass-panel border border-purple-500/30 bg-slate-900/90 shadow-2xl overflow-hidden">
-              {/* Inspector Header */}
-              <div className="p-4 bg-slate-950/80 border-b border-slate-800 flex items-center justify-between">
-                <div className="flex items-center gap-2.5">
-                  <div className="w-8 h-8 rounded-xl bg-purple-500/20 border border-purple-500/30 flex items-center justify-center text-purple-400">
+            {/* Slide-in Panel */}
+            <div className="relative w-full max-w-2xl bg-white dark:bg-slate-900 border-l border-slate-200 dark:border-slate-800 shadow-2xl flex flex-col h-full z-10 animate-in slide-in-from-right duration-200">
+              {/* Drawer Header */}
+              <div className="p-4 bg-slate-50 dark:bg-slate-950 border-b border-slate-200 dark:border-slate-800 flex items-center justify-between">
+                <div className="flex items-center gap-2.5 min-w-0">
+                  <div className="w-8 h-8 rounded-xl bg-amber-500/15 border border-amber-500/30 flex items-center justify-center text-amber-600 dark:text-amber-400 shrink-0">
                     <Sliders className="w-4 h-4" />
                   </div>
-                  <div>
-                    <h3 className="text-sm font-bold text-slate-100 flex items-center gap-2">
-                      Inspector: {selectedTag.name}
+                  <div className="min-w-0">
+                    <h3 className="text-base font-bold text-slate-900 dark:text-slate-100 flex items-center gap-2 truncate">
+                      {lang === 'ru' ? 'Свойства:' : 'Properties:'} {selectedTag.name}
                     </h3>
-                    <span className="text-[11px] font-mono text-slate-400">
-                      [{selectedTag.processTag}]
-                    </span>
+                    <div className="flex items-center gap-2">
+                      <span className="text-xs font-mono text-slate-500 dark:text-slate-400 truncate max-w-[200px]">
+                        [{selectedTag.processTag}]
+                      </span>
+                      <span className="text-xs text-amber-600 dark:text-amber-300 font-medium shrink-0">
+                        (Unified • Comfort • Pro)
+                      </span>
+                    </div>
                   </div>
                 </div>
 
-                {/* Reduction Badge */}
-                <div className="px-2.5 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 text-xs font-mono font-semibold">
-                  Сжатие: -{Math.round((1 - calculateDataReductionFactor(selectedTag)) * 100)}%
+                {/* Right controls: Reduction badge, tag navigation, close */}
+                <div className="flex items-center gap-2 shrink-0">
+                  <div className="hidden sm:inline-flex px-2 py-0.5 rounded-full bg-emerald-500/15 border border-emerald-500/30 text-emerald-700 dark:text-emerald-300 text-xs font-mono font-semibold">
+                    -{Math.round((1 - calculateDataReductionFactor(selectedTag)) * 100)}%
+                  </div>
+
+                  {/* Navigation between tags */}
+                  <div className="flex items-center gap-1 border border-slate-200 dark:border-slate-700 rounded-lg p-0.5 bg-white dark:bg-slate-800">
+                    <span className="text-[11px] font-mono text-slate-500 dark:text-slate-400 px-1">
+                      {currentTagIndex + 1}/{filteredTags.length}
+                    </span>
+                    <button
+                      type="button"
+                      disabled={!prevTag}
+                      onClick={() => prevTag && setSelectedTagId(prevTag.id)}
+                      className="p-1 rounded text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 disabled:opacity-30 cursor-pointer"
+                      title="Предыдущий тег"
+                    >
+                      <ChevronLeft className="w-3.5 h-3.5" />
+                    </button>
+                    <button
+                      type="button"
+                      disabled={!nextTag}
+                      onClick={() => nextTag && setSelectedTagId(nextTag.id)}
+                      className="p-1 rounded text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 disabled:opacity-30 cursor-pointer"
+                      title="Следующий тег"
+                    >
+                      <ChevronRight className="w-3.5 h-3.5" />
+                    </button>
+                  </div>
+
+                  {/* Close button */}
+                  <button
+                    type="button"
+                    onClick={() => setIsDrawerOpen(false)}
+                    className="p-1.5 rounded-lg border border-slate-200 dark:border-slate-700 hover:bg-rose-50 hover:text-rose-600 dark:hover:bg-rose-950/40 dark:hover:text-rose-400 text-slate-500 transition-colors cursor-pointer"
+                    title="Закрыть (Esc)"
+                  >
+                    <X className="w-4 h-4" />
+                  </button>
                 </div>
               </div>
 
-              {/* Inspector Tabstrip (matching TIA Portal V19 screens) */}
-              <div className="flex border-b border-slate-800 bg-slate-950/40 overflow-x-auto no-scrollbar">
+              {/* Inspector Tabstrip (matching TIA Portal parameters) */}
+              <div className="flex border-b border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-950/40 overflow-x-auto no-scrollbar shrink-0">
                 {[
-                  { id: 'general' as InspectorTab, label: 'General' },
-                  { id: 'trigger' as InspectorTab, label: 'Tag trigger' },
-                  { id: 'cycle' as InspectorTab, label: 'Cycle' },
-                  { id: 'limits' as InspectorTab, label: 'Limits' },
-                  { id: 'smoothing' as InspectorTab, label: 'Smoothing' },
-                  { id: 'compression' as InspectorTab, label: 'Compression' },
+                  { id: 'general' as InspectorTab, label: 'General', disabled: false },
+                  { id: 'trigger' as InspectorTab, label: 'Tag trigger', disabled: isTriggerDisabled },
+                  { id: 'cycle' as InspectorTab, label: 'Cycle', disabled: isCycleDisabled },
+                  { id: 'limits' as InspectorTab, label: 'Limits', disabled: false },
+                  { id: 'smoothing' as InspectorTab, label: 'Smoothing', disabled: isSmoothingDisabled },
+                  { id: 'compression' as InspectorTab, label: 'Compression', disabled: isCompressionDisabled },
                 ].map((tab) => (
                   <button
                     key={tab.id}
                     onClick={() => setActiveInspectorTab(tab.id)}
-                    className={`px-3 py-2 text-xs font-medium whitespace-nowrap transition-colors border-b-2 ${
+                    className={`px-3 py-2 text-xs sm:text-sm font-medium whitespace-nowrap transition-colors border-b-2 flex items-center gap-1.5 cursor-pointer ${
                       activeInspectorTab === tab.id
-                        ? 'border-purple-500 text-purple-400 bg-purple-500/10 font-semibold'
-                        : 'border-transparent text-slate-400 hover:text-slate-200 hover:bg-slate-800/30'
+                        ? 'border-amber-500 text-amber-600 dark:text-amber-400 bg-amber-500/10 font-semibold'
+                        : tab.disabled
+                        ? 'border-transparent text-slate-400 dark:text-slate-500 opacity-60 hover:text-slate-600 dark:hover:text-slate-300'
+                        : 'border-transparent text-slate-600 hover:text-slate-900 dark:text-slate-400 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800/30'
                     }`}
                   >
-                    {tab.label}
+                    <span>{tab.label}</span>
+                    {tab.disabled && (
+                      <span className="text-[10px] px-1.5 py-0.5 rounded bg-slate-200 dark:bg-slate-800 text-slate-500 dark:text-slate-400 border border-slate-300 dark:border-slate-700/60 font-mono">
+                        N/A
+                      </span>
+                    )}
                   </button>
                 ))}
               </div>
 
               {/* Inspector Content Body */}
-              <div className="p-5 space-y-4 max-h-[500px] overflow-y-auto">
+              <div className="p-4 sm:p-5 space-y-4 overflow-y-auto flex-1">
+                {/* 1. GENERAL TAB */}
                 {/* 1. GENERAL TAB */}
                 {activeInspectorTab === 'general' && (
-                  <div className="space-y-4">
-                    <div>
-                      <label className="block text-xs font-medium text-slate-400 mb-1">
-                        Имя архивного тега (Name):
-                      </label>
-                      <input
-                        type="text"
-                        value={selectedTag.name}
-                        onChange={(e) => handleUpdateTag(selectedTag.id, { name: e.target.value })}
-                        className="w-full px-3 py-1.5 rounded-xl bg-slate-800 border border-slate-700 text-xs text-slate-100 focus:outline-none focus:border-purple-500"
-                      />
+                  <div className="space-y-3.5">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                      <div>
+                        <label className="block text-sm font-medium text-slate-700 dark:text-slate-400 mb-1">
+                          Имя архивного тега (Name):
+                        </label>
+                        <input
+                          type="text"
+                          value={selectedTag.name}
+                          onChange={(e) => handleUpdateTag(selectedTag.id, { name: e.target.value })}
+                          className="w-full px-3 py-2 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 text-sm text-slate-900 dark:text-slate-100 focus:outline-none focus:border-amber-500"
+                        />
+                      </div>
+
+                      <div>
+                        <label className="block text-sm font-medium text-slate-700 dark:text-slate-400 mb-1">
+                          {t.propProcessTag}:
+                        </label>
+                        <input
+                          type="text"
+                          value={selectedTag.processTag}
+                          onChange={(e) => handleUpdateTag(selectedTag.id, { processTag: e.target.value })}
+                          className="w-full px-3 py-2 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 text-sm text-slate-900 dark:text-slate-100 font-mono focus:outline-none focus:border-amber-500"
+                        />
+                      </div>
                     </div>
 
                     <div>
-                      <label className="block text-xs font-medium text-slate-400 mb-1">
-                        {t.propProcessTag}:
-                      </label>
-                      <input
-                        type="text"
-                        value={selectedTag.processTag}
-                        onChange={(e) => handleUpdateTag(selectedTag.id, { processTag: e.target.value })}
-                        className="w-full px-3 py-1.5 rounded-xl bg-slate-800 border border-slate-700 text-xs text-slate-100 font-mono focus:outline-none focus:border-purple-500"
-                      />
-                    </div>
-
-                    <div>
-                      <label className="block text-xs font-medium text-slate-400 mb-1">
+                      <label className="block text-sm font-medium text-slate-700 dark:text-slate-400 mb-1">
                         Описание переменной:
                       </label>
                       <input
                         type="text"
                         value={selectedTag.description}
                         onChange={(e) => handleUpdateTag(selectedTag.id, { description: e.target.value })}
-                        className="w-full px-3 py-1.5 rounded-xl bg-slate-800 border border-slate-700 text-xs text-slate-100 focus:outline-none focus:border-purple-500"
+                        className="w-full px-3 py-2 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 text-sm text-slate-900 dark:text-slate-100 focus:outline-none focus:border-amber-500"
                       />
                     </div>
 
                     <div className="grid grid-cols-2 gap-3">
                       <div>
-                        <label className="block text-xs font-medium text-slate-400 mb-1">
+                        <label className="block text-sm font-medium text-slate-700 dark:text-slate-400 mb-1">
                           {t.colType}:
                         </label>
                         <select
@@ -626,7 +547,7 @@ export const MasterTagsTab: React.FC<MasterTagsTabProps> = ({
                               dataType: e.target.value as MasterLoggingTag['dataType'],
                             })
                           }
-                          className="w-full px-3 py-1.5 rounded-xl bg-slate-800 border border-slate-700 text-xs text-slate-100 focus:outline-none"
+                          className="w-full px-3 py-2 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 text-sm text-slate-900 dark:text-slate-100 focus:outline-none focus:border-amber-500"
                         >
                           <option value="Real">Real (Float 32-bit)</option>
                           <option value="LReal">LReal (Double 64-bit)</option>
@@ -638,7 +559,7 @@ export const MasterTagsTab: React.FC<MasterTagsTabProps> = ({
                       </div>
 
                       <div>
-                        <label className="block text-xs font-medium text-slate-400 mb-1">
+                        <label className="block text-sm font-medium text-slate-700 dark:text-slate-400 mb-1">
                           {t.propLoggingMode}:
                         </label>
                         <select
@@ -648,7 +569,7 @@ export const MasterTagsTab: React.FC<MasterTagsTabProps> = ({
                               loggingMode: e.target.value as LoggingMode,
                             })
                           }
-                          className="w-full px-3 py-1.5 rounded-xl bg-slate-800 border border-slate-700 text-xs text-slate-100 focus:outline-none"
+                          className="w-full px-3 py-2 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 text-sm text-slate-900 dark:text-slate-100 focus:outline-none focus:border-amber-500"
                         >
                           <option value="cyclic">{t.modeCyclicLabel}</option>
                           <option value="onchange">{t.modeOnChangeLabel}</option>
@@ -659,19 +580,19 @@ export const MasterTagsTab: React.FC<MasterTagsTabProps> = ({
 
                     <div className="grid grid-cols-2 gap-3">
                       <div>
-                        <label className="block text-xs font-medium text-slate-400 mb-1">
+                        <label className="block text-sm font-medium text-slate-700 dark:text-slate-400 mb-1">
                           {t.propDataLog}:
                         </label>
                         <input
                           type="text"
                           value={selectedTag.targetLogName || 'Trend_Logs'}
                           onChange={(e) => handleUpdateTag(selectedTag.id, { targetLogName: e.target.value })}
-                          className="w-full px-3 py-1.5 rounded-xl bg-slate-800 border border-slate-700 text-xs text-slate-100 focus:outline-none"
+                          className="w-full px-3 py-2 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 text-sm text-slate-900 dark:text-slate-100 focus:outline-none focus:border-amber-500"
                         />
                       </div>
 
                       <div>
-                        <label className="block text-xs font-medium text-slate-400 mb-1">
+                        <label className="block text-sm font-medium text-slate-700 dark:text-slate-400 mb-1">
                           Количество сигналов (множитель):
                         </label>
                         <input
@@ -680,8 +601,27 @@ export const MasterTagsTab: React.FC<MasterTagsTabProps> = ({
                           max="5000"
                           value={selectedTag.count}
                           onChange={(e) => handleUpdateTag(selectedTag.id, { count: Math.max(1, parseInt(e.target.value) || 1) })}
-                          className="w-full px-3 py-1.5 rounded-xl bg-slate-800 border border-slate-700 text-xs text-slate-100 focus:outline-none"
+                          className="w-full px-3 py-2 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 text-sm text-slate-900 dark:text-slate-100 focus:outline-none focus:border-amber-500"
                         />
+                      </div>
+                    </div>
+
+                    {/* General Impact & Compatibility Info */}
+                    <div className="p-3.5 rounded-2xl bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800/40 text-xs space-y-2">
+                      <div className="font-semibold flex items-center gap-1.5 text-amber-800 dark:text-amber-300">
+                        <HelpCircle className="w-3.5 h-3.5 shrink-0" />
+                        {lang === 'ru' ? 'На что влияют параметры General:' : 'General Parameters Impact:'}
+                      </div>
+                      <p className="text-slate-700 dark:text-slate-300 leading-relaxed">
+                        {lang === 'ru'
+                          ? '• Logging mode определяет частоту обращений к памяти: Cyclic пишет непрерывно каждую секунду (большой объем архива). On change экономит до 85–95% объема при стабильном процессе (температуры, уровни), фиксируя только реальные изменения. On demand пишет только по внешнему триггеру.'
+                          : '• Logging mode determines write frequency: Cyclic writes continuously every interval (high storage consumption). On change saves up to 85–95% storage for slow analog signals by writing only on changes. On demand logs solely upon triggers.'}
+                      </p>
+                      <div className="pt-1.5 border-t border-amber-200 dark:border-amber-800/30 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs">
+                        <span className="text-slate-500 dark:text-slate-400">{lang === 'ru' ? 'Поддержка:' : 'Platform Support:'}</span>
+                        <span className="text-cyan-700 dark:text-cyan-300 font-medium">Unified: ✅ Все режимы</span>
+                        <span className="text-emerald-700 dark:text-emerald-300 font-medium">Comfort: ✅ Cyclic, On Change</span>
+                        <span className="text-blue-700 dark:text-blue-300 font-medium">Professional: ✅ Все режимы</span>
                       </div>
                     </div>
                   </div>
@@ -690,24 +630,63 @@ export const MasterTagsTab: React.FC<MasterTagsTabProps> = ({
                 {/* 2. TAG TRIGGER TAB */}
                 {activeInspectorTab === 'trigger' && (
                   <div className="space-y-4">
-                    <div className="p-3 rounded-xl bg-purple-500/10 border border-purple-500/20 text-xs text-purple-300">
-                      Триггер активирует фиксацию значения в базу данных по внешнему булевому условию (фронт/спад бита).
-                    </div>
+                    {isTriggerDisabled ? (
+                      <div className="p-3.5 rounded-2xl bg-amber-500/10 border border-amber-500/30 text-xs text-amber-800 dark:text-amber-300 flex items-start gap-2.5">
+                        <AlertTriangle className="w-4 h-4 shrink-0 mt-0.5 text-amber-600 dark:text-amber-400" />
+                        <div className="space-y-1">
+                          <div className="font-semibold text-amber-900 dark:text-amber-200">
+                            Триггер отключен в циклическом режиме (Cyclic)
+                          </div>
+                          <div className="text-slate-700 dark:text-slate-300 text-xs leading-relaxed">
+                            По стандарту Siemens TIA Portal V19 в циклическом режиме архивация инициируется таймером цикла (Cycle). Параметры Tag trigger деактивированы (None) и не влияют на запись.
+                          </div>
+                        </div>
+                      </div>
+                    ) : selectedTag.loggingMode === 'onchange' ? (
+                      <div className="p-3.5 rounded-2xl bg-emerald-500/10 border border-emerald-500/30 text-xs text-emerald-800 dark:text-emerald-300 flex items-start gap-2.5">
+                        <CheckCircle2 className="w-4 h-4 shrink-0 mt-0.5 text-emerald-600 dark:text-emerald-400" />
+                        <div className="space-y-1">
+                          <div className="font-semibold text-emerald-900 dark:text-emerald-200">
+                            Режим «По изменению» (On change): триггер опционален
+                          </div>
+                          <div className="text-slate-700 dark:text-slate-300 text-xs leading-relaxed">
+                            Архивация инициируется изменением значения тега. При указании тега триггера запись дополнительно стробируется выбранным событием (фронт/спад/изменение).
+                          </div>
+                        </div>
+                      </div>
+                    ) : (
+                      <div className="p-3.5 rounded-2xl bg-amber-500/10 border border-amber-500/30 text-xs text-amber-800 dark:text-amber-300 flex items-start gap-2.5">
+                        <CheckCircle2 className="w-4 h-4 shrink-0 mt-0.5 text-amber-600 dark:text-amber-400" />
+                        <div className="space-y-1">
+                          <div className="font-semibold text-amber-900 dark:text-amber-200">
+                            Режим «По требованию» (On demand): триггер обязателен
+                          </div>
+                          <div className="text-slate-700 dark:text-slate-300 text-xs leading-relaxed">
+                            Архивация производится строго при возникновении триггерного события (передний фронт 0→1, спад 1→0 или изменение). Задайте тег триггера и номер бита.
+                          </div>
+                        </div>
+                      </div>
+                    )}
 
                     <div>
-                      <label className="block text-xs font-medium text-slate-400 mb-1">
+                      <label className="block text-sm font-medium text-slate-700 dark:text-slate-400 mb-1">
                         {t.triggerModeLabel}:
                       </label>
                       <select
-                        value={selectedTag.triggerMode || 'none'}
+                        disabled={isTriggerDisabled}
+                        value={isTriggerDisabled ? 'none' : (selectedTag.triggerMode || (selectedTag.loggingMode === 'ondemand' ? 'rising_edge' : 'none'))}
                         onChange={(e) =>
                           handleUpdateTag(selectedTag.id, {
                             triggerMode: e.target.value as TriggerMode,
                           })
                         }
-                        className="w-full px-3 py-1.5 rounded-xl bg-slate-800 border border-slate-700 text-xs text-slate-100 focus:outline-none"
+                        className={`w-full px-3 py-2 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 text-sm text-slate-900 dark:text-slate-100 ${
+                          isTriggerDisabled ? 'opacity-40 cursor-not-allowed bg-slate-100 dark:bg-slate-800/40' : 'focus:outline-none focus:border-amber-500'
+                        }`}
                       >
-                        <option value="none">{t.triggerNone}</option>
+                        {selectedTag.loggingMode !== 'ondemand' && (
+                          <option value="none">{t.triggerNone}</option>
+                        )}
                         <option value="rising_edge">{t.triggerRisingEdge}</option>
                         <option value="falling_edge">{t.triggerFallingEdge}</option>
                         <option value="change">{t.triggerChange}</option>
@@ -715,34 +694,59 @@ export const MasterTagsTab: React.FC<MasterTagsTabProps> = ({
                     </div>
 
                     <div>
-                      <label className="block text-xs font-medium text-slate-400 mb-1">
+                      <label className="block text-sm font-medium text-slate-700 dark:text-slate-400 mb-1">
                         {t.triggerTagLabel}:
                       </label>
                       <input
                         type="text"
-                        placeholder="например, selMode или Machine_Cycle_End"
-                        value={selectedTag.triggerTag || ''}
+                        disabled={isTriggerDisabled}
+                        placeholder={isTriggerDisabled ? 'Деактивирован в текущем режиме' : 'например, selMode или Machine_Cycle_End'}
+                        value={isTriggerDisabled ? '' : (selectedTag.triggerTag || '')}
                         onChange={(e) => handleUpdateTag(selectedTag.id, { triggerTag: e.target.value })}
-                        className="w-full px-3 py-1.5 rounded-xl bg-slate-800 border border-slate-700 text-xs text-slate-100 font-mono focus:outline-none"
+                        className={`w-full px-3 py-2 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 text-sm text-slate-900 dark:text-slate-100 font-mono ${
+                          isTriggerDisabled ? 'opacity-40 cursor-not-allowed bg-slate-100 dark:bg-slate-800/40' : 'focus:outline-none focus:border-amber-500'
+                        }`}
                       />
                     </div>
 
                     <div>
-                      <label className="block text-xs font-medium text-slate-400 mb-1">
+                      <label className="block text-sm font-medium text-slate-700 dark:text-slate-400 mb-1">
                         {t.triggerBitLabel}:
                       </label>
                       <input
                         type="number"
                         min="0"
                         max="31"
-                        value={selectedTag.triggerBit ?? 0}
+                        disabled={isTriggerDisabled}
+                        value={isTriggerDisabled ? 0 : (selectedTag.triggerBit ?? 0)}
                         onChange={(e) =>
                           handleUpdateTag(selectedTag.id, {
                             triggerBit: Math.max(0, parseInt(e.target.value) || 0),
                           })
                         }
-                        className="w-full px-3 py-1.5 rounded-xl bg-slate-800 border border-slate-700 text-xs text-slate-100 font-mono focus:outline-none"
+                        className={`w-full px-3 py-2 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 text-sm text-slate-900 dark:text-slate-100 font-mono ${
+                          isTriggerDisabled ? 'opacity-40 cursor-not-allowed bg-slate-100 dark:bg-slate-800/40' : 'focus:outline-none focus:border-amber-500'
+                        }`}
                       />
+                    </div>
+
+                    {/* Trigger Impact & Compatibility Info */}
+                    <div className="p-3.5 rounded-2xl bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800/40 text-xs space-y-2">
+                      <div className="font-semibold flex items-center gap-1.5 text-amber-800 dark:text-amber-300">
+                        <HelpCircle className="w-3.5 h-3.5 shrink-0" />
+                        {lang === 'ru' ? 'На что влияет Tag trigger (Логирование по событию):' : 'Tag Trigger Impact:'}
+                      </div>
+                      <p className="text-slate-700 dark:text-slate-300 leading-relaxed">
+                        {lang === 'ru'
+                          ? '• Архивация производится строго по технологическому событию (передний фронт 0→1, задний фронт 1→0 или переключение бита). Идеально для периодических циклов станков, рецептур и пакетов дозирования: данные не пишутся при простое, что экономит память и исключает холостые замеры.'
+                          : '• Logging occurs strictly upon discrete machine events (rising/falling edge or bit toggle). Eliminates idle records during process pauses and batch downtime, dramatically saving storage.'}
+                      </p>
+                      <div className="pt-1.5 border-t border-amber-200 dark:border-amber-800/30 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs">
+                        <span className="text-slate-500 dark:text-slate-400">{lang === 'ru' ? 'Поддержка:' : 'Platform Support:'}</span>
+                        <span className="text-cyan-700 dark:text-cyan-300 font-medium">Unified: ✅ Нативно в свойствах тега</span>
+                        <span className="text-amber-700 dark:text-amber-300 font-medium">Comfort: ⚠️ Через триггеры тегов в TIA</span>
+                        <span className="text-blue-700 dark:text-blue-300 font-medium">Professional: ✅ Нативно</span>
+                      </div>
                     </div>
                   </div>
                 )}
@@ -750,18 +754,47 @@ export const MasterTagsTab: React.FC<MasterTagsTabProps> = ({
                 {/* 3. CYCLE TAB */}
                 {activeInspectorTab === 'cycle' && (
                   <div className="space-y-4">
+                    {isCycleDisabled ? (
+                      <div className="p-3.5 rounded-2xl bg-amber-500/10 border border-amber-500/30 text-xs text-amber-800 dark:text-amber-300 flex items-start gap-2.5">
+                        <AlertTriangle className="w-4 h-4 shrink-0 mt-0.5 text-amber-600 dark:text-amber-400" />
+                        <div className="space-y-1">
+                          <div className="font-semibold text-amber-900 dark:text-amber-200">
+                            Параметры Cycle отключены в режиме «{selectedTag.loggingMode === 'onchange' ? 'По изменению' : 'По требованию'}»
+                          </div>
+                          <div className="text-slate-700 dark:text-slate-300 text-xs leading-relaxed">
+                            По стандарту Siemens TIA Portal V19 период архивации (Logging cycle) активен исключительно при циклической записи (Cyclic). В текущем режиме архивация управляется {selectedTag.loggingMode === 'onchange' ? 'событиями изменения значений' : 'событиями внешнего триггера'}.
+                          </div>
+                        </div>
+                      </div>
+                    ) : (
+                      <div className="p-3.5 rounded-2xl bg-amber-500/10 border border-amber-500/30 text-xs text-amber-800 dark:text-amber-300 flex items-start gap-2.5">
+                        <CheckCircle2 className="w-4 h-4 shrink-0 mt-0.5 text-amber-600 dark:text-amber-400" />
+                        <div className="space-y-1">
+                          <div className="font-semibold text-amber-900 dark:text-amber-200">
+                            Циклический режим (Cyclic) активен
+                          </div>
+                          <div className="text-slate-700 dark:text-slate-300 text-xs leading-relaxed">
+                            Тег архивируется непрерывно с интервалом: Базовый цикл × Множитель.
+                          </div>
+                        </div>
+                      </div>
+                    )}
+
                     <div>
-                      <label className="block text-xs font-medium text-slate-400 mb-1">
+                      <label className="block text-sm font-medium text-slate-700 dark:text-slate-400 mb-1">
                         {t.cycleLabel}:
                       </label>
                       <select
+                        disabled={isCycleDisabled}
                         value={selectedTag.cycleSec}
                         onChange={(e) =>
                           handleUpdateTag(selectedTag.id, {
                             cycleSec: parseFloat(e.target.value),
                           })
                         }
-                        className="w-full px-3 py-1.5 rounded-xl bg-slate-800 border border-slate-700 text-xs text-slate-100 focus:outline-none"
+                        className={`w-full px-3 py-2 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 text-sm text-slate-900 dark:text-slate-100 ${
+                          isCycleDisabled ? 'opacity-40 cursor-not-allowed bg-slate-100 dark:bg-slate-800/40' : 'focus:outline-none focus:border-amber-500'
+                        }`}
                       >
                         <option value="0.1">100 ms (Высокоскоростной)</option>
                         <option value="0.2">200 ms</option>
@@ -780,24 +813,48 @@ export const MasterTagsTab: React.FC<MasterTagsTabProps> = ({
                     </div>
 
                     <div>
-                      <label className="block text-xs font-medium text-slate-400 mb-1">
+                      <label className="block text-sm font-medium text-slate-700 dark:text-slate-400 mb-1">
                         {t.cycleFactorLabel}:
                       </label>
                       <input
                         type="number"
                         min="1"
                         max="1000"
+                        disabled={isCycleDisabled}
                         value={selectedTag.cycleFactor || 1}
                         onChange={(e) =>
                           handleUpdateTag(selectedTag.id, {
                             cycleFactor: Math.max(1, parseInt(e.target.value) || 1),
                           })
                         }
-                        className="w-full px-3 py-1.5 rounded-xl bg-slate-800 border border-slate-700 text-xs text-slate-100 font-mono focus:outline-none"
+                        className={`w-full px-3 py-2 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 text-sm text-slate-900 dark:text-slate-100 font-mono ${
+                          isCycleDisabled ? 'opacity-40 cursor-not-allowed bg-slate-100 dark:bg-slate-800/40' : 'focus:outline-none focus:border-amber-500'
+                        }`}
                       />
-                      <p className="text-[11px] text-slate-500 mt-1">
-                        Итоговый период: {(selectedTag.cycleSec * (selectedTag.cycleFactor || 1)).toFixed(2)} с
+                      <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
+                        {isCycleDisabled
+                          ? 'Итоговый период: — (деактивирован в текущем режиме)'
+                          : `Итоговый период: ${(selectedTag.cycleSec * (selectedTag.cycleFactor || 1)).toFixed(2)} с`}
                       </p>
+                    </div>
+
+                    {/* Cycle Impact & Compatibility Info */}
+                    <div className="p-3.5 rounded-2xl bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800/40 text-xs space-y-2">
+                      <div className="font-semibold flex items-center gap-1.5 text-amber-800 dark:text-amber-300">
+                        <HelpCircle className="w-3.5 h-3.5 shrink-0" />
+                        {lang === 'ru' ? 'На что влияет Cycle (Базовый интервал и множитель):' : 'Logging Cycle Impact:'}
+                      </div>
+                      <p className="text-slate-700 dark:text-slate-300 leading-relaxed">
+                        {lang === 'ru'
+                          ? '• Базовый период × Множитель определяет суммарный интервал дискретизации. Сокращение интервала с 10 с до 1 с увеличивает нагрузку на ПЛК и размер базы данных в 10 раз! В WinCC Professional этот параметр критичен: теги с циклом < 60 с идут в Fast Tag Logging (бинарный кольцевой архив), а ≥ 60 с — в Slow Tag Logging (таблицы SQL Server).'
+                          : '• Base interval × Factor determines acquisition period. Shortening cycle from 10s to 1s increases PLC load and database size tenfold. In WinCC Professional, cycles < 60s route to Fast Tag Logging (binary ring buffer), and >= 60s route to Slow Tag Logging (SQL Server tables).'}
+                      </p>
+                      <div className="pt-1.5 border-t border-amber-200 dark:border-amber-800/30 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs">
+                        <span className="text-slate-500 dark:text-slate-400">{lang === 'ru' ? 'Поддержка:' : 'Platform Support:'}</span>
+                        <span className="text-cyan-700 dark:text-cyan-300 font-medium">Unified: ✅ от 100 мс</span>
+                        <span className="text-emerald-700 dark:text-emerald-300 font-medium">Comfort: ✅ от 100 мс</span>
+                        <span className="text-blue-700 dark:text-blue-300 font-medium">Professional: ✅ Fast/Slow разделение</span>
+                      </div>
                     </div>
                   </div>
                 )}
@@ -805,12 +862,12 @@ export const MasterTagsTab: React.FC<MasterTagsTabProps> = ({
                 {/* 4. LIMITS TAB */}
                 {activeInspectorTab === 'limits' && (
                   <div className="space-y-4">
-                    <div className="p-3 rounded-xl bg-amber-500/10 border border-amber-500/20 text-xs text-amber-300">
+                    <div className="p-3 rounded-xl bg-amber-500/10 border border-amber-500/20 text-xs text-amber-800 dark:text-amber-300">
                       Фильтрация по пределам записывает тег только при выходе за технологические границы, снижая объем архива на 90–95%.
                     </div>
 
                     <div>
-                      <label className="block text-xs font-medium text-slate-400 mb-1">
+                      <label className="block text-sm font-medium text-slate-700 dark:text-slate-400 mb-1">
                         {t.limitScopeLabel}:
                       </label>
                       <select
@@ -820,7 +877,7 @@ export const MasterTagsTab: React.FC<MasterTagsTabProps> = ({
                             limitScope: e.target.value as LimitScope,
                           })
                         }
-                        className="w-full px-3 py-1.5 rounded-xl bg-slate-800 border border-slate-700 text-xs text-slate-100 focus:outline-none"
+                        className="w-full px-3 py-2 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 text-sm text-slate-900 dark:text-slate-100 focus:outline-none focus:border-amber-500"
                       >
                         <option value="no_limits">{t.limitNoLimits}</option>
                         <option value="greater">{t.limitGreater}</option>
@@ -837,7 +894,7 @@ export const MasterTagsTab: React.FC<MasterTagsTabProps> = ({
                     {selectedTag.limitScope && selectedTag.limitScope !== 'no_limits' && (
                       <div className="grid grid-cols-2 gap-3 pt-1">
                         <div>
-                          <label className="block text-xs font-medium text-slate-400 mb-1">
+                          <label className="block text-sm font-medium text-slate-700 dark:text-slate-400 mb-1">
                             {t.highLimitLabel}:
                           </label>
                           <input
@@ -848,12 +905,12 @@ export const MasterTagsTab: React.FC<MasterTagsTabProps> = ({
                                 highLimit: parseFloat(e.target.value) || 0,
                               })
                             }
-                            className="w-full px-3 py-1.5 rounded-xl bg-slate-800 border border-slate-700 text-xs text-slate-100 font-mono focus:outline-none"
+                            className="w-full px-3 py-2 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 text-sm text-slate-900 dark:text-slate-100 font-mono focus:outline-none focus:border-amber-500"
                           />
                         </div>
 
                         <div>
-                          <label className="block text-xs font-medium text-slate-400 mb-1">
+                          <label className="block text-sm font-medium text-slate-700 dark:text-slate-400 mb-1">
                             {t.lowLimitLabel}:
                           </label>
                           <input
@@ -864,7 +921,7 @@ export const MasterTagsTab: React.FC<MasterTagsTabProps> = ({
                                 lowLimit: parseFloat(e.target.value) || 0,
                               })
                             }
-                            className="w-full px-3 py-1.5 rounded-xl bg-slate-800 border border-slate-700 text-xs text-slate-100 font-mono focus:outline-none"
+                            className="w-full px-3 py-2 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 text-sm text-slate-900 dark:text-slate-100 font-mono focus:outline-none focus:border-amber-500"
                           />
                         </div>
                       </div>
@@ -880,11 +937,30 @@ export const MasterTagsTab: React.FC<MasterTagsTabProps> = ({
                             useTagLimits: e.target.checked,
                           })
                         }
-                        className="rounded bg-slate-800 border-slate-700 text-purple-600 focus:ring-purple-500"
+                        className="rounded bg-slate-100 dark:bg-slate-800 border-slate-300 dark:border-slate-700 text-amber-600 focus:ring-amber-500"
                       />
-                      <label htmlFor="useTagLimitsCheck" className="text-xs text-slate-300">
+                      <label htmlFor="useTagLimitsCheck" className="text-xs text-slate-700 dark:text-slate-300">
                         {t.useTagLimitsLabel}
                       </label>
+                    </div>
+
+                    {/* Limits Impact & Compatibility Info */}
+                    <div className="p-3.5 rounded-2xl bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800/40 text-xs space-y-2">
+                      <div className="font-semibold flex items-center gap-1.5 text-amber-800 dark:text-amber-300">
+                        <HelpCircle className="w-3.5 h-3.5 shrink-0" />
+                        {lang === 'ru' ? 'На что влияет Limits (Фильтрация по диапазону):' : 'Limit Scope Impact:'}
+                      </div>
+                      <p className="text-slate-700 dark:text-slate-300 leading-relaxed">
+                        {lang === 'ru'
+                          ? '• Позволяет отсекать запись штатных рабочих значений и архивировать точку только при выходе за пределы (например, Greater: только если T > 85°C) или, наоборот, строго в рабочем диапазоне (Within limits). Для контрольных сигналов это снижает объем базы данных на 90–98%!'
+                          : '• Filters out nominal operating values, logging samples only when exceeding thresholds (e.g. Greater: only when T > 85°C) or strictly within normal band. Can reduce logging volume by 90–98% for anomaly-tracking variables.'}
+                      </p>
+                      <div className="pt-1.5 border-t border-amber-200 dark:border-amber-800/30 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs">
+                        <span className="text-slate-500 dark:text-slate-400">{lang === 'ru' ? 'Поддержка:' : 'Platform Support:'}</span>
+                        <span className="text-cyan-700 dark:text-cyan-300 font-medium">Unified: ✅ 9 режимов нативно</span>
+                        <span className="text-amber-700 dark:text-amber-300 font-medium">Comfort: ⚠️ Только через фильтр в ПЛК</span>
+                        <span className="text-blue-700 dark:text-blue-300 font-medium">Professional: ✅ Нативно</span>
+                      </div>
                     </div>
                   </div>
                 )}
@@ -892,12 +968,12 @@ export const MasterTagsTab: React.FC<MasterTagsTabProps> = ({
                 {/* 5. SMOOTHING TAB */}
                 {activeInspectorTab === 'smoothing' && (
                   <div className="space-y-4">
-                    <div className="p-3 rounded-xl bg-cyan-500/10 border border-cyan-500/20 text-xs text-cyan-300">
-                      Сглаживание (Deadband и Swinging door) устраняет шум датчиков 4–20 мА и продлевает ресурс SD-карт в 5–15 раз.
+                    <div className="p-3 rounded-xl bg-cyan-500/10 border border-cyan-500/20 text-xs text-cyan-800 dark:text-cyan-300">
+                      Сглаживание (Deadband и Swinging door) устраняет шум датчиков 4–20 мА и продлевает ресурс SD-карт в 5–15 раз. Доступно для всех режимов архивации (Cyclic, On change, On demand).
                     </div>
 
                     <div>
-                      <label className="block text-xs font-medium text-slate-400 mb-1">
+                      <label className="block text-sm font-medium text-slate-700 dark:text-slate-400 mb-1">
                         {t.smoothingModeLabel}:
                       </label>
                       <select
@@ -907,7 +983,7 @@ export const MasterTagsTab: React.FC<MasterTagsTabProps> = ({
                             smoothingMode: e.target.value as SmoothingMode,
                           })
                         }
-                        className="w-full px-3 py-1.5 rounded-xl bg-slate-800 border border-slate-700 text-xs text-slate-100 focus:outline-none"
+                        className="w-full px-3 py-2 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 text-sm text-slate-900 dark:text-slate-100 focus:outline-none focus:border-amber-500"
                       >
                         <option value="no_smoothing">{t.smoothingNoSmoothing}</option>
                         <option value="compare_values">{t.smoothingCompareValues}</option>
@@ -919,7 +995,7 @@ export const MasterTagsTab: React.FC<MasterTagsTabProps> = ({
 
                     {selectedTag.smoothingMode && selectedTag.smoothingMode !== 'no_smoothing' && (
                       <div>
-                        <label className="block text-xs font-medium text-slate-400 mb-1">
+                        <label className="block text-sm font-medium text-slate-700 dark:text-slate-400 mb-1">
                           {t.smoothingDeltaLabel}:
                         </label>
                         <input
@@ -931,14 +1007,14 @@ export const MasterTagsTab: React.FC<MasterTagsTabProps> = ({
                               smoothingDelta: parseFloat(e.target.value) || 0,
                             })
                           }
-                          className="w-full px-3 py-1.5 rounded-xl bg-slate-800 border border-slate-700 text-xs text-slate-100 font-mono focus:outline-none"
+                          className="w-full px-3 py-2 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 text-sm text-slate-900 dark:text-slate-100 font-mono focus:outline-none focus:border-amber-500"
                         />
                       </div>
                     )}
 
                     <div className="grid grid-cols-2 gap-3">
                       <div>
-                        <label className="block text-xs font-medium text-slate-400 mb-1">
+                        <label className="block text-sm font-medium text-slate-700 dark:text-slate-400 mb-1">
                           {t.smoothingMaxTimeLabel}:
                         </label>
                         <input
@@ -950,12 +1026,12 @@ export const MasterTagsTab: React.FC<MasterTagsTabProps> = ({
                               maxTimeSec: e.target.value ? parseInt(e.target.value) : undefined,
                             })
                           }
-                          className="w-full px-3 py-1.5 rounded-xl bg-slate-800 border border-slate-700 text-xs text-slate-100 font-mono focus:outline-none"
+                          className="w-full px-3 py-2 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 text-sm text-slate-900 dark:text-slate-100 font-mono focus:outline-none focus:border-amber-500"
                         />
                       </div>
 
                       <div>
-                        <label className="block text-xs font-medium text-slate-400 mb-1">
+                        <label className="block text-sm font-medium text-slate-700 dark:text-slate-400 mb-1">
                           {t.smoothingMinTimeLabel}:
                         </label>
                         <input
@@ -967,8 +1043,44 @@ export const MasterTagsTab: React.FC<MasterTagsTabProps> = ({
                               minTimeSec: e.target.value ? parseInt(e.target.value) : undefined,
                             })
                           }
-                          className="w-full px-3 py-1.5 rounded-xl bg-slate-800 border border-slate-700 text-xs text-slate-100 font-mono focus:outline-none"
+                          className="w-full px-3 py-2 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 text-sm text-slate-900 dark:text-slate-100 font-mono focus:outline-none focus:border-amber-500"
                         />
+                      </div>
+                    </div>
+
+                    {/* Smoothing Impact & Compatibility Info */}
+                    <div className="p-3.5 rounded-2xl bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800/40 text-xs space-y-2">
+                      <div className="font-semibold flex items-center gap-1.5 text-amber-800 dark:text-amber-300">
+                        <HelpCircle className="w-3.5 h-3.5 shrink-0" />
+                        {lang === 'ru' ? 'На что влияет Smoothing (Сглаживание и сжатие трендов):' : 'Smoothing & Trend Compression Impact:'}
+                      </div>
+                      <div className="text-slate-700 dark:text-slate-300 leading-relaxed space-y-1">
+                        <p>
+                          {lang === 'ru'
+                            ? '• Value Deadband (Δ): отсекает электрический шум и вибрации КИПиА, сокращая поток на 50–80%.'
+                            : '• Value Deadband (Δ): rejects analog sensor noise, cutting sample flow by 50–80%.'}
+                        </p>
+                        <p>
+                          {lang === 'ru'
+                            ? '• Swinging Door: продвинутый алгоритм динамического коридора наклона тренда — сжатие до 90–95% без потери визуальной формы кривой!'
+                            : '• Swinging Door: dynamic parallelogram slope compression algorithm — up to 90–95% storage reduction preserving exact trend curve!'}
+                        </p>
+                        <p>
+                          {lang === 'ru'
+                            ? '• Maximum time (Heartbeat): принудительно сохраняет контрольную точку каждые N секунд даже при неподвижном сигнале, подтверждая исправность датчика.'
+                            : '• Maximum time (Heartbeat): forces a heartbeat sample every N seconds even during static conditions.'}
+                        </p>
+                        <p>
+                          {lang === 'ru'
+                            ? '• Minimum time (Anti-chatter): защищает ячейки памяти от лавины записей при дребезге контактов.'
+                            : '• Minimum time (Anti-chatter): prevents flash wear from chattering sensor oscillation.'}
+                        </p>
+                      </div>
+                      <div className="pt-1.5 border-t border-amber-200 dark:border-amber-800/30 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs">
+                        <span className="text-slate-500 dark:text-slate-400">{lang === 'ru' ? 'Поддержка:' : 'Platform Support:'}</span>
+                        <span className="text-cyan-700 dark:text-cyan-300 font-medium">Unified: ✅ Все алгоритмы (вкл. Swinging Door)</span>
+                        <span className="text-amber-700 dark:text-amber-300 font-medium">Comfort: ⚠️ Только базовый Deadband</span>
+                        <span className="text-blue-700 dark:text-blue-300 font-medium">Professional: ✅ Deadband</span>
                       </div>
                     </div>
                   </div>
@@ -977,22 +1089,39 @@ export const MasterTagsTab: React.FC<MasterTagsTabProps> = ({
                 {/* 6. COMPRESSION TAB */}
                 {activeInspectorTab === 'compression' && (
                   <div className="space-y-4">
-                    <div className="p-3 rounded-xl bg-blue-500/10 border border-blue-500/20 text-xs text-blue-300">
-                      Вторичное сжатие (Compression) агрегирует сырые данные в часовые/суточные архивы (Min, Max, Avg, Sum).
-                    </div>
+                    {isCompressionDisabled ? (
+                      <div className="p-3.5 rounded-2xl bg-amber-500/10 border border-amber-500/30 text-xs text-amber-800 dark:text-amber-300 flex items-start gap-2.5">
+                        <AlertTriangle className="w-4 h-4 shrink-0 mt-0.5 text-amber-600 dark:text-amber-400" />
+                        <div className="space-y-1">
+                          <div className="font-semibold text-amber-900 dark:text-amber-200">
+                            Вторичное сжатие отключено в режиме «{selectedTag.loggingMode === 'onchange' ? 'По изменению' : 'По требованию'}»
+                          </div>
+                          <div className="text-slate-700 dark:text-slate-300 text-xs leading-relaxed">
+                            По стандарту Siemens TIA Portal V19 вторичное сжатие (Compression / агрегированные архивы Min/Max/Avg) поддерживается исключительно для циклического режима архивации (Cyclic).
+                          </div>
+                        </div>
+                      </div>
+                    ) : (
+                      <div className="p-3 rounded-xl bg-blue-500/10 border border-blue-500/20 text-xs text-blue-800 dark:text-blue-300">
+                        Вторичное сжатие (Compression) агрегирует сырые данные в часовые/суточные архивы (Min, Max, Avg, Sum).
+                      </div>
+                    )}
 
                     <div>
-                      <label className="block text-xs font-medium text-slate-400 mb-1">
+                      <label className="block text-sm font-medium text-slate-700 dark:text-slate-400 mb-1">
                         {t.compressionModeLabel}:
                       </label>
                       <select
-                        value={selectedTag.compressionMode || 'no_compression'}
+                        disabled={isCompressionDisabled}
+                        value={isCompressionDisabled ? 'no_compression' : (selectedTag.compressionMode || 'no_compression')}
                         onChange={(e) =>
                           handleUpdateTag(selectedTag.id, {
                             compressionMode: e.target.value as CompressionMode,
                           })
                         }
-                        className="w-full px-3 py-1.5 rounded-xl bg-slate-800 border border-slate-700 text-xs text-slate-100 focus:outline-none"
+                        className={`w-full px-3 py-2 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 text-sm text-slate-900 dark:text-slate-100 ${
+                          isCompressionDisabled ? 'opacity-40 cursor-not-allowed bg-slate-100 dark:bg-slate-800/40' : 'focus:outline-none focus:border-amber-500'
+                        }`}
                       >
                         <option value="no_compression">{t.compressionNoCompression}</option>
                         <option value="minimum">{t.compressionMinimum}</option>
@@ -1006,10 +1135,10 @@ export const MasterTagsTab: React.FC<MasterTagsTabProps> = ({
                       </select>
                     </div>
 
-                    {selectedTag.compressionMode && selectedTag.compressionMode !== 'no_compression' && (
+                    {!isCompressionDisabled && selectedTag.compressionMode && selectedTag.compressionMode !== 'no_compression' && (
                       <div className="grid grid-cols-2 gap-3">
                         <div>
-                          <label className="block text-xs font-medium text-slate-400 mb-1">
+                          <label className="block text-sm font-medium text-slate-700 dark:text-slate-400 mb-1">
                             {t.compressionDelayLabel}:
                           </label>
                           <input
@@ -1020,12 +1149,12 @@ export const MasterTagsTab: React.FC<MasterTagsTabProps> = ({
                                 compressionDelaySec: parseInt(e.target.value) || 0,
                               })
                             }
-                            className="w-full px-3 py-1.5 rounded-xl bg-slate-800 border border-slate-700 text-xs text-slate-100 font-mono focus:outline-none"
+                            className="w-full px-3 py-2 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 text-sm text-slate-900 dark:text-slate-100 font-mono focus:outline-none focus:border-amber-500"
                           />
                         </div>
 
                         <div>
-                          <label className="block text-xs font-medium text-slate-400 mb-1">
+                          <label className="block text-sm font-medium text-slate-700 dark:text-slate-400 mb-1">
                             {t.compressionSourceLabel}:
                           </label>
                           <input
@@ -1037,29 +1166,57 @@ export const MasterTagsTab: React.FC<MasterTagsTabProps> = ({
                                 sourceLog: e.target.value,
                               })
                             }
-                            className="w-full px-3 py-1.5 rounded-xl bg-slate-800 border border-slate-700 text-xs text-slate-100 font-mono focus:outline-none"
+                            className="w-full px-3 py-2 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 text-sm text-slate-900 dark:text-slate-100 font-mono focus:outline-none focus:border-amber-500"
                           />
                         </div>
                       </div>
                     )}
+
+                    {/* Compression Impact & Compatibility Info */}
+                    <div className="p-3.5 rounded-2xl bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800/40 text-xs space-y-2">
+                      <div className="font-semibold flex items-center gap-1.5 text-amber-800 dark:text-amber-300">
+                        <HelpCircle className="w-3.5 h-3.5 shrink-0" />
+                        {lang === 'ru' ? 'На что влияет Compression (Вторичная агрегация):' : 'Secondary Compression Impact:'}
+                      </div>
+                      <p className="text-slate-700 dark:text-slate-300 leading-relaxed">
+                        {lang === 'ru'
+                          ? '• Рассчитывает укрупненные показатели (среднее за час, максимум за смену, интегральный расход жидкости/электроэнергии). Позволяет строить долгосрочные аналитические отчеты за месяцы и годы с мгновенным временем отклика, не перегружая базу данных миллионами сырых строк.'
+                          : '• Calculates aggregated metrics (hourly average, shift maximum, cumulative consumption). Enables instant analytical reports spanning months and years without scanning millions of raw rows.'}
+                      </p>
+                      <div className="pt-1.5 border-t border-amber-200 dark:border-amber-800/30 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs">
+                        <span className="text-slate-500 dark:text-slate-400">{lang === 'ru' ? 'Поддержка:' : 'Platform Support:'}</span>
+                        <span className="text-cyan-700 dark:text-cyan-300 font-medium">Unified: ✅ Нативно в Data Log</span>
+                        <span className="text-rose-700 dark:text-rose-400 font-medium">Comfort: ❌ Не поддерживается нативно</span>
+                        <span className="text-blue-700 dark:text-blue-300 font-medium">Professional: ✅ Агрегатные таблицы SQL</span>
+                      </div>
+                    </div>
                   </div>
                 )}
               </div>
 
               {/* Inspector Footer: Real-time Platform Compatibility Check */}
-              <div className="p-4 bg-slate-950 border-t border-slate-800 space-y-2">
-                <span className="text-[11px] font-semibold text-slate-400 uppercase tracking-wider block">
-                  {t.compatMatrixTitle}
-                </span>
+              <div className="p-4 bg-slate-50 dark:bg-slate-950 border-t border-slate-200 dark:border-slate-800 space-y-3">
+                <div className="flex items-center justify-between">
+                  <span className="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider block">
+                    {t.compatMatrixTitle}
+                  </span>
+                  <button
+                    type="button"
+                    onClick={() => setIsDrawerOpen(false)}
+                    className="px-4 py-1.5 rounded-xl text-xs font-semibold bg-amber-600 hover:bg-amber-500 text-white shadow-xs cursor-pointer transition-colors"
+                  >
+                    {lang === 'ru' ? 'Готово' : 'Done'}
+                  </button>
+                </div>
 
-                <div className="space-y-1.5">
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
                   {/* Unified Status */}
-                  <div className="flex items-center justify-between text-xs p-2 rounded-lg bg-slate-900 border border-slate-800">
-                    <span className="flex items-center gap-2 font-medium text-[#00E5FF]">
-                      <CheckCircle2 className="w-4 h-4 text-[#00E5FF]" />
+                  <div className="flex items-center justify-between text-xs p-2.5 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-xs">
+                    <span className="flex items-center gap-2 font-medium text-[#008394] dark:text-[#00E5FF]">
+                      <CheckCircle2 className="w-4 h-4 text-[#008394] dark:text-[#00E5FF]" />
                       WinCC Unified (MTP / PC RT)
                     </span>
-                    <span className="text-[11px] text-slate-300 font-mono">
+                    <span className="text-xs text-slate-600 dark:text-slate-300 font-mono">
                       Native SQLite 100%
                     </span>
                   </div>
@@ -1068,28 +1225,28 @@ export const MasterTagsTab: React.FC<MasterTagsTabProps> = ({
                   {(() => {
                     const compat = checkTagCompatibility(selectedTag, 'comfort');
                     return (
-                      <div className="flex flex-col text-xs p-2 rounded-lg bg-slate-900 border border-slate-800">
+                      <div className="flex flex-col text-xs p-2.5 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-xs">
                         <div className="flex items-center justify-between">
-                          <span className="flex items-center gap-2 font-medium text-emerald-400">
+                          <span className="flex items-center gap-2 font-medium text-emerald-600 dark:text-emerald-400">
                             {compat.status === 'full' ? (
-                              <CheckCircle2 className="w-4 h-4 text-emerald-400" />
+                              <CheckCircle2 className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
                             ) : (
-                              <AlertTriangle className="w-4 h-4 text-amber-400" />
+                              <AlertTriangle className="w-4 h-4 text-amber-500 dark:text-amber-400" />
                             )}
                             WinCC Comfort / Adv (RDB/CSV)
                           </span>
                           <span
-                            className={`text-[10px] font-mono px-2 py-0.5 rounded ${
+                            className={`text-xs font-mono px-2 py-0.5 rounded ${
                               compat.status === 'full'
-                                ? 'bg-emerald-500/20 text-emerald-300'
-                                : 'bg-amber-500/20 text-amber-300 font-semibold'
+                                ? 'bg-emerald-500/15 text-emerald-700 dark:text-emerald-300'
+                                : 'bg-amber-500/15 text-amber-700 dark:text-amber-300 font-semibold'
                             }`}
                           >
                             {compat.effectiveModeRu}
                           </span>
                         </div>
                         {compat.status !== 'full' && (
-                          <div className="mt-1.5 text-[11px] text-amber-300/90 pl-6 space-y-0.5">
+                          <div className="mt-1.5 text-xs text-amber-700 dark:text-amber-300/90 pl-6 space-y-0.5">
                             {compat.reasonsRu.map((r, i) => (
                               <div key={i}>• {r}</div>
                             ))}
@@ -1103,12 +1260,12 @@ export const MasterTagsTab: React.FC<MasterTagsTabProps> = ({
                   {(() => {
                     const compat = checkTagCompatibility(selectedTag, 'professional');
                     return (
-                      <div className="flex items-center justify-between text-xs p-2 rounded-lg bg-slate-900 border border-slate-800">
-                        <span className="flex items-center gap-2 font-medium text-blue-400">
-                          <CheckCircle2 className="w-4 h-4 text-blue-400" />
+                      <div className="flex items-center justify-between text-xs p-2.5 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-xs">
+                        <span className="flex items-center gap-2 font-medium text-blue-600 dark:text-blue-400">
+                          <CheckCircle2 className="w-4 h-4 text-blue-600 dark:text-blue-400" />
                           WinCC Professional SCADA
                         </span>
-                        <span className="text-[11px] text-blue-300 font-mono font-medium">
+                        <span className="text-xs text-blue-600 dark:text-blue-300 font-mono font-medium">
                           {compat.effectiveModeRu}
                         </span>
                       </div>
@@ -1117,31 +1274,284 @@ export const MasterTagsTab: React.FC<MasterTagsTabProps> = ({
                 </div>
               </div>
             </div>
-          ) : (
-            <div className="p-8 rounded-3xl glass-panel border border-slate-800 text-center text-slate-500">
-              <Sliders className="w-10 h-10 mx-auto mb-2 opacity-40" />
-              Выберите тег в таблице слева для настройки параметров в Инспекторе TIA Portal.
-            </div>
-          )}
+          </div>
+        );
+      })()}
+
+      {/* Main Work Area: Tags List (Table) */}
+      <div className="w-full space-y-4">
+        {/* Table Toolbar */}
+        <div className="flex flex-wrap items-center justify-between gap-3 p-3 rounded-2xl glass-panel border border-slate-200 dark:border-slate-800 bg-white/80 dark:bg-slate-900/60 shadow-xs">
+          <div className="flex items-center gap-2 flex-1 min-w-[200px]">
+            <Search className="w-4 h-4 text-slate-400 shrink-0" />
+            <input
+              type="text"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              placeholder={t.filterSearchPlaceholder}
+              className="w-full bg-transparent text-sm text-slate-900 dark:text-slate-200 focus:outline-none placeholder:text-slate-400 dark:placeholder:text-slate-500"
+            />
+          </div>
+
+          <div className="flex items-center gap-2">
+            <span className="text-xs text-slate-500 dark:text-slate-400 font-medium">{t.colLoggingMode}:</span>
+            <select
+              value={modeFilter}
+              onChange={(e) => setModeFilter(e.target.value)}
+              className="bg-slate-100 dark:bg-slate-800 text-slate-800 dark:text-slate-200 text-sm px-2.5 py-1 rounded-lg border border-slate-200 dark:border-slate-700 focus:outline-none cursor-pointer"
+            >
+              <option value="all">{t.filterAllModes}</option>
+              <option value="cyclic">Cyclic</option>
+              <option value="onchange">On change</option>
+              <option value="ondemand">On demand</option>
+            </select>
+          </div>
+        </div>
+
+        {/* Tags Table */}
+        <div className="rounded-2xl glass-panel border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 overflow-hidden shadow-md">
+          <div className="overflow-x-auto">
+            <table className="w-full text-left border-collapse text-sm">
+              <thead className="bg-slate-50/95 dark:bg-slate-900/90 sticky top-0 z-10 border-b border-slate-200 dark:border-slate-800 text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">
+                <tr>
+                  <th className="py-2.5 pl-3 pr-2">{t.colNameProcessTag}</th>
+                  <th className="py-2.5 px-2">{t.colMasterDataType}</th>
+                  <th className="py-2.5 px-2">{t.colLoggingMode}</th>
+                  <th className="py-2.5 px-2">{t.colMasterCycle}</th>
+                  <th className="py-2.5 px-2">{t.colSmoothing}</th>
+                  <th className="py-2.5 px-2 text-center">{t.colMasterCompression}</th>
+                  <th className="py-2.5 px-2 text-center" title={t.colPlatformsTooltip}>{t.colPlatforms}</th>
+                  <th className="py-2.5 pl-2 pr-3 text-right">{t.colMasterActions}</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-slate-100 dark:divide-slate-800/60 text-slate-700 dark:text-slate-300">
+                {filteredTags.length === 0 ? (
+                  <tr>
+                    <td colSpan={8} className="py-12 px-4 text-center">
+                      <div className="flex flex-col items-center justify-center max-w-md mx-auto space-y-3">
+                        <div className="w-12 h-12 rounded-2xl bg-amber-500/10 border border-amber-500/20 flex items-center justify-center text-amber-500 dark:text-amber-400">
+                          <SlidersHorizontal className="w-6 h-6" />
+                        </div>
+                        <div className="space-y-1">
+                          <h4 className="text-sm sm:text-base font-semibold text-slate-900 dark:text-slate-100">
+                            {t.emptyTagsTitle}
+                          </h4>
+                          <p className="text-xs text-slate-500 dark:text-slate-400 leading-relaxed">
+                            {t.emptyTagsDesc}
+                          </p>
+                        </div>
+                        <div className="flex flex-wrap items-center justify-center gap-2 pt-2">
+                          <button
+                            onClick={handleAddTag}
+                            className="px-3.5 py-1.5 rounded-xl text-xs font-semibold bg-amber-500 hover:bg-amber-600 text-white shadow-sm shadow-amber-500/20 transition-all flex items-center gap-1.5 cursor-pointer"
+                          >
+                            <Plus className="w-3.5 h-3.5" />
+                            {t.btnAddFirstTag}
+                          </button>
+                          <button
+                            onClick={onPullFromActive}
+                            className="px-3.5 py-1.5 rounded-xl text-xs font-medium bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 border border-slate-200 dark:border-slate-700 transition-all flex items-center gap-1.5 cursor-pointer"
+                          >
+                            <ArrowRightLeft className="w-3.5 h-3.5 text-amber-500" />
+                            {t.btnPullTagsAction}
+                          </button>
+                        </div>
+                      </div>
+                    </td>
+                  </tr>
+                ) : (
+                  filteredTags.map((tag) => {
+                    const isSelected = tag.id === selectedTagId;
+                    const reduction = calculateDataReductionFactor(tag);
+                    const reductionPct = Math.round((1 - reduction) * 100);
+                    const compatComfort = checkTagCompatibility(tag, 'comfort');
+                    const compatPro = checkTagCompatibility(tag, 'professional');
+
+                    return (
+                      <tr
+                        key={tag.id}
+                        onClick={() => {
+                          setSelectedTagId(tag.id);
+                          setIsDrawerOpen(true);
+                        }}
+                        className={`cursor-pointer transition-colors ${
+                          isSelected
+                            ? 'bg-amber-500/10 border-l-4 border-l-amber-500'
+                            : 'hover:bg-slate-50 dark:hover:bg-slate-800/40'
+                        }`}
+                      >
+                        <td className="py-2.5 pl-3 pr-2">
+                          <div className="font-semibold text-slate-900 dark:text-slate-100 flex items-center gap-1.5">
+                            {tag.name}
+                            {tag.count > 1 && (
+                              <span className="text-xs px-1.5 py-0.5 rounded bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 font-mono border border-slate-200 dark:border-slate-700">
+                                ×{tag.count}
+                              </span>
+                            )}
+                          </div>
+                          <div className="text-xs font-mono text-slate-500 dark:text-slate-400 truncate max-w-[190px]" title={tag.processTag}>
+                            {tag.processTag}
+                          </div>
+                        </td>
+
+                        <td className="py-2.5 px-2">
+                          <span className="px-1.5 py-0.5 rounded bg-slate-100 dark:bg-slate-800/80 text-xs font-mono text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-700/50">
+                            {tag.dataType}
+                          </span>
+                        </td>
+
+                        <td className="py-2.5 px-2">
+                          <span
+                            className={`px-2 py-0.5 rounded-full text-xs font-medium ${
+                              tag.loggingMode === 'cyclic'
+                                ? 'bg-cyan-500/10 text-cyan-700 dark:text-cyan-400 border border-cyan-500/20'
+                                : tag.loggingMode === 'onchange'
+                                ? 'bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border border-emerald-500/20'
+                                : 'bg-amber-500/10 text-amber-700 dark:text-amber-400 border border-amber-500/20'
+                            }`}
+                          >
+                            {tag.loggingMode}
+                          </span>
+                        </td>
+
+                        <td className="py-2.5 px-2 text-xs">
+                          {tag.loggingMode === 'ondemand' ? (
+                            <span className="text-slate-400 dark:text-slate-500 font-mono italic">
+                              {t.modeTriggerBadge}
+                            </span>
+                          ) : tag.loggingMode === 'onchange' ? (
+                            <span className="text-slate-400 dark:text-slate-500 font-mono italic">
+                              {t.modeOnChangeBadge}
+                            </span>
+                          ) : (
+                            <span className="font-mono text-slate-700 dark:text-slate-300">
+                              {tag.cycleSec * (tag.cycleFactor || 1)}s
+                            </span>
+                          )}
+                        </td>
+
+                        <td className="py-2.5 px-2">
+                          <span className="text-xs text-slate-700 dark:text-slate-300 truncate block max-w-[140px]" title={tag.smoothingMode}>
+                            {tag.smoothingMode === 'swinging_door'
+                              ? 'Swinging Door'
+                              : tag.smoothingMode === 'value'
+                              ? `Deadband (${tag.smoothingDelta || 0.5})`
+                              : tag.smoothingMode === 'relative_value'
+                              ? `Rel (${tag.smoothingDelta || 1}%)`
+                              : tag.smoothingMode === 'compare_values'
+                              ? 'Compare'
+                              : 'None'}
+                          </span>
+                          {tag.limitScope && tag.limitScope !== 'no_limits' && (
+                            <span className="text-xs text-amber-600 dark:text-amber-400 font-mono block">
+                              Limits active
+                            </span>
+                          )}
+                        </td>
+
+                        <td className="py-2.5 px-2 text-center">
+                          <span
+                            className={`text-xs font-mono px-2 py-0.5 rounded ${
+                              reductionPct > 70
+                                ? 'bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 font-bold'
+                                : reductionPct > 30
+                                ? 'bg-cyan-500/15 text-cyan-700 dark:text-cyan-300'
+                                : 'bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400'
+                            }`}
+                          >
+                            -{reductionPct}%
+                          </span>
+                        </td>
+
+                        {/* Compatibility Badges */}
+                        <td className="py-2.5 px-2 text-center">
+                          <div className="flex items-center justify-center gap-1.5">
+                            {/* Unified */}
+                            <span
+                              title="Unified: Full support"
+                              className="w-2.5 h-2.5 rounded-full bg-[#00A3B5] dark:bg-[#00E5FF] shadow-xs inline-block"
+                            />
+                            {/* Comfort */}
+                            <span
+                              title={`Comfort: ${compatComfort.status === 'full' ? (lang === 'ru' ? 'Полная поддержка' : 'Full support') : (lang === 'ru' ? compatComfort.reasonsRu.join('; ') : compatComfort.reasonsEn.join('; '))}`}
+                              className={`w-2.5 h-2.5 rounded-full inline-block ${
+                                compatComfort.status === 'full'
+                                  ? 'bg-emerald-500'
+                                  : 'bg-amber-500 ring-2 ring-amber-500/30'
+                              }`}
+                            />
+                            {/* Professional */}
+                            <span
+                              title={`Professional: ${lang === 'ru' ? compatPro.effectiveModeRu : compatPro.effectiveModeEn}`}
+                              className="w-2.5 h-2.5 rounded-full bg-blue-500 inline-block"
+                            />
+                          </div>
+                        </td>
+
+                        <td className="py-2.5 pl-2 pr-3 text-right">
+                          <div className="flex items-center justify-end gap-1">
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setSelectedTagId(tag.id);
+                                setIsDrawerOpen(true);
+                              }}
+                              title={t.titleConfigureArchive}
+                              aria-label={t.titleConfigureArchive}
+                              className="p-1 rounded hover:bg-amber-500/15 text-slate-400 hover:text-amber-600 dark:hover:text-amber-400 cursor-pointer"
+                            >
+                              <Sliders className="w-3.5 h-3.5" />
+                            </button>
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleDuplicateTag(tag);
+                              }}
+                              title={t.titleDuplicateTag}
+                              aria-label={t.titleDuplicateTag}
+                              className="p-1 rounded hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 cursor-pointer"
+                            >
+                              <Copy className="w-3.5 h-3.5" />
+                            </button>
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleDeleteTag(tag.id);
+                              }}
+                              title={t.titleDeleteTag}
+                              aria-label={t.titleDeleteTag}
+                              className="p-1 rounded hover:bg-rose-50 dark:hover:bg-rose-900/40 text-slate-400 hover:text-rose-600 dark:hover:text-rose-400 cursor-pointer"
+                            >
+                              <Trash2 className="w-3.5 h-3.5" />
+                            </button>
+                          </div>
+                        </td>
+                      </tr>
+                    );
+                  })
+                )}
+              </tbody>
+            </table>
+          </div>
         </div>
       </div>
 
       {/* Comfort Warning Confirmation Modal */}
       {showComfortWarningModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm animate-fadeIn">
-          <div className="bg-slate-900 border border-amber-500/40 rounded-3xl max-w-lg w-full p-6 shadow-2xl space-y-4">
-            <div className="flex items-center gap-3 text-amber-400">
+          <div className="bg-white dark:bg-slate-900 border border-amber-500/40 rounded-3xl max-w-lg w-full p-6 shadow-2xl space-y-4">
+            <div className="flex items-center gap-3 text-amber-600 dark:text-amber-400">
               <AlertTriangle className="w-6 h-6 shrink-0" />
-              <h3 className="text-lg font-bold text-slate-100">
+              <h3 className="text-lg font-bold text-slate-900 dark:text-slate-100">
                 Адаптация тегов для WinCC Comfort
               </h3>
             </div>
 
-            <p className="text-xs sm:text-sm text-slate-300 leading-relaxed">
-              В вашем каталоге обнаружено <strong className="text-amber-400">{comfortUnsupportedCount}</strong> тегов, использующих функции, которые физически <strong>не поддерживаются</strong> в WinCC Comfort / Advanced (алгоритм <em>Swinging Door</em>, фильтрация по уставкам <em>Limits</em> или вторичная компрессия).
+            <p className="text-xs sm:text-sm text-slate-600 dark:text-slate-300 leading-relaxed">
+              В вашем каталоге обнаружено <strong className="text-amber-600 dark:text-amber-400">{comfortUnsupportedCount}</strong> тегов, использующих функции, которые физически <strong>не поддерживаются</strong> в WinCC Comfort / Advanced (алгоритм <em>Swinging Door</em>, фильтрация по уставкам <em>Limits</em> или вторичная компрессия).
             </p>
 
-            <div className="p-3 rounded-xl bg-amber-500/10 border border-amber-500/20 text-xs text-amber-300 space-y-1">
+            <div className="p-3 rounded-xl bg-amber-500/10 border border-amber-500/20 text-xs text-amber-800 dark:text-amber-300 space-y-1">
               <strong>Правила автоматической адаптации:</strong>
               <div>• Алгоритм Swinging Door будет деградирован до сырой записи или базового Deadband.</div>
               <div>• Режим On demand будет преобразован в On change.</div>
@@ -1151,7 +1561,7 @@ export const MasterTagsTab: React.FC<MasterTagsTabProps> = ({
             <div className="flex justify-end gap-3 pt-2">
               <button
                 onClick={() => setShowComfortWarningModal(false)}
-                className="px-4 py-2 rounded-xl text-xs font-medium text-slate-400 hover:text-slate-200 hover:bg-slate-800 transition-colors"
+                className="px-4 py-2 rounded-xl text-xs font-medium text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors cursor-pointer"
               >
                 Отмена
               </button>
@@ -1161,7 +1571,7 @@ export const MasterTagsTab: React.FC<MasterTagsTabProps> = ({
                   onPushToComfort(masterTags);
                   addToast(t.pushSuccessComfort, 'success');
                 }}
-                className="px-4 py-2 rounded-xl text-xs font-semibold bg-amber-600 hover:bg-amber-500 text-white shadow-lg shadow-amber-600/30 transition-all"
+                className="px-4 py-2 rounded-xl text-xs font-semibold bg-amber-600 hover:bg-amber-500 text-white shadow-lg shadow-amber-600/30 transition-all cursor-pointer"
               >
                 Адаптировать и перенести
               </button>

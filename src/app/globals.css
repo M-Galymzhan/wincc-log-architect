@@ -25,6 +25,12 @@
   --card-bg: rgba(15, 23, 42, 0.65);
 }
 
+html {
+  font-size: 17px;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+}
+
 body {
   background-color: var(--bg-color);
   color: var(--text-main);

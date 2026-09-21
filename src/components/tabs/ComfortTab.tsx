@@ -355,9 +355,9 @@ export const ComfortTab: React.FC<ComfortTabProps> = ({
   return (
     <div className="space-y-6">
       {/* Device & Configuration Cards */}
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+      <div className="grid grid-cols-1 xl:grid-cols-12 gap-6">
         {/* Device Profile & Storage */}
-        <div className="lg:col-span-5 glass-panel p-5 rounded-2xl flex flex-col justify-between">
+        <div className="xl:col-span-5 glass-panel p-5 rounded-2xl flex flex-col justify-between">
           <div>
             <h2 className="font-bold text-base text-slate-900 dark:text-white flex items-center gap-2 mb-3">
               <HardDrive className="w-5 h-5 text-emerald-500" />
@@ -383,15 +383,15 @@ export const ComfortTab: React.FC<ComfortTabProps> = ({
                 />
                 <div className="flex-1 min-w-0">
                   <div className="flex flex-wrap items-center justify-between gap-1.5">
-                    <div className="text-sm font-semibold text-slate-900 dark:text-white">{t.comfortPanel}</div>
-                    <span className="text-[10px] font-mono font-bold px-1.5 py-0.5 rounded bg-amber-500/15 text-amber-800 dark:text-amber-200 border border-amber-500/30 shrink-0">
+                    <div className="text-base font-semibold text-slate-900 dark:text-white">{t.comfortPanel}</div>
+                    <span className="text-xs font-mono font-bold px-2 py-0.5 rounded bg-amber-500/15 text-amber-800 dark:text-amber-200 border border-amber-500/30 shrink-0">
                       {t.comfortHardwareLimitBadge}
                     </span>
                   </div>
-                  <div className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">Windows CE 6.0, SIMATIC SD Card (X51 slot)</div>
+                  <div className="text-sm text-slate-500 dark:text-slate-400 mt-0.5">Windows CE 6.0, SIMATIC SD Card (X51 slot)</div>
                   
                   {/* Hardware Limit Alert for Comfort Panels */}
-                  <div className="mt-2 p-2 rounded-lg bg-amber-500/10 dark:bg-amber-500/15 border border-amber-500/30 text-[11px] text-amber-900 dark:text-amber-200 leading-relaxed flex items-start gap-1.5">
+                  <div className="mt-2 p-2 rounded-lg bg-amber-500/10 dark:bg-amber-500/15 border border-amber-500/30 text-xs text-amber-900 dark:text-amber-200 leading-relaxed flex items-start gap-1.5">
                     <AlertTriangle className="w-3.5 h-3.5 text-amber-600 dark:text-amber-400 shrink-0 mt-0.5" />
                     <span>{t.comfortHardwareLimitText}</span>
                   </div>
@@ -415,15 +415,15 @@ export const ComfortTab: React.FC<ComfortTabProps> = ({
                   className="accent-emerald-600 w-4 h-4"
                 />
                 <div>
-                  <div className="text-sm font-semibold text-slate-900 dark:text-white">{t.comfortRtAdv}</div>
-                  <div className="text-xs text-slate-500 dark:text-slate-400">Windows PC, local HDD/SSD or Network share</div>
+                  <div className="text-base font-semibold text-slate-900 dark:text-white">{t.comfortRtAdv}</div>
+                  <div className="text-sm text-slate-500 dark:text-slate-400">Windows PC, local HDD/SSD or Network share</div>
                 </div>
               </label>
             </div>
 
             {/* Storage medium selection */}
             <div className="mt-4 pt-4 border-t border-slate-200/60 dark:border-slate-800">
-              <label className="text-xs font-semibold block mb-1 text-slate-700 dark:text-slate-300">
+              <label className="text-sm font-semibold block mb-1 text-slate-700 dark:text-slate-300">
                 {t.comfortStorageSelect}
               </label>
               <select
@@ -548,7 +548,7 @@ export const ComfortTab: React.FC<ComfortTabProps> = ({
                     <AlertTriangle className="w-4 h-4 text-red-600 dark:text-red-400 shrink-0" />
                     <span>{lang === 'ru' ? 'Аппаратное ограничение Windows CE 6.0 (> 32 GB)' : 'Windows CE 6.0 Hardware Limit (> 32 GB)'}</span>
                   </div>
-                  <p className="text-[11px] text-red-900/90 dark:text-red-200/90 leading-relaxed">
+                  <p className="text-xs text-red-900/90 dark:text-red-200/90 leading-relaxed">
                     {lang === 'ru'
                       ? 'Контроллер панелей SIMATIC Comfort (Windows CE 6.0) аппаратно поддерживает SDHC карты объемом строго до 32 ГБ в файловой системе FAT32. Флешки SDXC (>32 ГБ) и exFAT не распознаются операционной системой панели!'
                       : 'SIMATIC Comfort Panels (Windows CE 6.0) hardware controller strictly supports SDHC cards up to 32 GB in FAT32. SDXC (>32 GB) and exFAT format are not recognized by Windows CE!'}
@@ -563,14 +563,14 @@ export const ComfortTab: React.FC<ComfortTabProps> = ({
                 return (
                   <div className="mt-3 p-2.5 rounded-xl bg-slate-100/90 dark:bg-slate-800/80 border border-slate-200/80 dark:border-slate-700/80 flex flex-col gap-1">
                     <div className="flex items-center justify-between">
-                      <span className="text-[10px] uppercase font-bold tracking-wider text-slate-500 dark:text-slate-400">
+                      <span className="text-xs uppercase font-bold tracking-wider text-slate-500 dark:text-slate-400">
                         {t.mlfbSiemensArticle}
                       </span>
                       <span className="text-xs font-mono font-bold text-emerald-600 dark:text-emerald-400 bg-emerald-600/10 dark:bg-emerald-400/10 px-2 py-0.5 rounded border border-emerald-600/20 dark:border-emerald-400/20">
                         {article.mlfb}
                       </span>
                     </div>
-                    <div className="text-[11px] text-slate-600 dark:text-slate-300">
+                    <div className="text-xs text-slate-600 dark:text-slate-300">
                       {lang === 'ru' ? article.descriptionRu : article.descriptionEn}
                     </div>
                   </div>
@@ -581,41 +581,41 @@ export const ComfortTab: React.FC<ComfortTabProps> = ({
 
           {/* Format selection: RDB vs CSV */}
           <div className="mt-4 pt-4 border-t border-slate-200/60 dark:border-slate-800">
-            <label className="text-xs font-semibold block mb-2 text-slate-700 dark:text-slate-300">
+            <label className="text-sm font-semibold block mb-2 text-slate-700 dark:text-slate-300">
               {lang === 'ru' ? 'Формат архива (Log format):' : 'Log format (Storage type):'}
             </label>
             <div className="grid grid-cols-2 gap-2">
               <button
                 type="button"
                 onClick={() => setConfig({ ...config, format: 'rdb' })}
-                className={`p-2.5 rounded-xl border text-xs text-left transition-all cursor-pointer ${
+                className={`p-2.5 rounded-xl border text-left transition-all cursor-pointer ${
                   config.format === 'rdb'
                     ? 'border-emerald-600 bg-emerald-50 dark:bg-emerald-950/40 font-bold text-emerald-800 dark:text-emerald-200 ring-1 ring-emerald-500/30'
                     : 'border-slate-200 dark:border-slate-800 hover:bg-slate-100 dark:hover:bg-slate-800'
                 }`}
               >
-                <div className="font-semibold">{t.formatRdb}</div>
-                <div className="text-[10px] text-slate-500 font-normal">{t.comfortFormatRdbSub}</div>
+                <div className="text-sm font-semibold">{t.formatRdb}</div>
+                <div className="text-xs text-slate-500 font-normal mt-0.5">{t.comfortFormatRdbSub}</div>
               </button>
 
               <button
                 type="button"
                 onClick={() => setConfig({ ...config, format: 'csv' })}
-                className={`p-2.5 rounded-xl border text-xs text-left transition-all cursor-pointer ${
+                className={`p-2.5 rounded-xl border text-left transition-all cursor-pointer ${
                   config.format === 'csv'
                     ? 'border-emerald-600 bg-emerald-50 dark:bg-emerald-950/40 font-bold text-emerald-800 dark:text-emerald-200 ring-1 ring-emerald-500/30'
                     : 'border-slate-200 dark:border-slate-800 hover:bg-slate-100 dark:hover:bg-slate-800'
                 }`}
               >
-                <div className="font-semibold">{t.formatCsv}</div>
-                <div className="text-[10px] text-slate-500 font-normal">{t.comfortFormatCsvSub}</div>
+                <div className="text-sm font-semibold">{t.formatCsv}</div>
+                <div className="text-xs text-slate-500 font-normal mt-0.5">{t.comfortFormatCsvSub}</div>
               </button>
             </div>
           </div>
         </div>
 
         {/* Comfort Global Parameters & Multi-Log Manager */}
-        <div className="lg:col-span-7 glass-panel p-5 rounded-2xl flex flex-col justify-between">
+        <div className="xl:col-span-7 glass-panel p-5 rounded-2xl flex flex-col justify-between">
           <div>
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-3">
               <div className="flex items-center gap-2">
@@ -624,7 +624,7 @@ export const ComfortTab: React.FC<ComfortTabProps> = ({
                   <h2 className="font-bold text-base text-slate-900 dark:text-white leading-tight">
                     {lang === 'ru' ? 'Параметры ротации и архивы' : 'Archive Rotation & Logs'}
                   </h2>
-                  <p className="text-[10px] text-slate-500 dark:text-slate-400 mt-0.5">
+                  <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
                     {t.globalParamsHint}
                   </p>
                 </div>
@@ -651,7 +651,7 @@ export const ComfortTab: React.FC<ComfortTabProps> = ({
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5 mb-3">
               <div className="flex flex-col gap-1">
-                <label className="text-[11px] font-semibold text-slate-500 dark:text-slate-400">
+                <label className="text-xs sm:text-sm font-semibold text-slate-600 dark:text-slate-300">
                   {t.retentionDays}
                 </label>
                 <input
@@ -667,13 +667,13 @@ export const ComfortTab: React.FC<ComfortTabProps> = ({
                       setConfig({ ...config, retentionDays: 30 });
                     }
                   }}
-                  className="p-2 text-sm font-semibold rounded-lg border border-slate-300 dark:border-slate-700 bg-white/80 dark:bg-slate-900 text-slate-900 dark:text-slate-100 focus:border-emerald-600 focus:ring-2 focus:ring-emerald-500/20 outline-none"
+                  className="p-2.5 text-base font-bold rounded-lg border border-slate-300 dark:border-slate-700 bg-white/80 dark:bg-slate-900 text-slate-900 dark:text-slate-100 focus:border-emerald-600 focus:ring-2 focus:ring-emerald-500/20 outline-none"
                 />
-                <span className="text-[10px] text-slate-500 dark:text-slate-400 leading-tight">{t.retentionHelper}</span>
+                <span className="text-xs text-slate-500 dark:text-slate-400 leading-tight">{t.retentionHelper}</span>
               </div>
 
               <div className="flex flex-col gap-1">
-                <label className="text-[11px] font-semibold text-slate-600 dark:text-slate-300">
+                <label className="text-xs sm:text-sm font-semibold text-slate-600 dark:text-slate-300">
                   {t.recordsPerLogLabel}
                 </label>
                 <input
@@ -691,9 +691,9 @@ export const ComfortTab: React.FC<ComfortTabProps> = ({
                       setConfig({ ...config, recordsPerLog: 50000 });
                     }
                   }}
-                  className="p-2 text-sm font-semibold rounded-lg border border-slate-300 dark:border-slate-700 bg-white/80 dark:bg-slate-900 text-slate-900 dark:text-slate-100 focus:border-emerald-600 focus:ring-2 focus:ring-emerald-500/20 outline-none"
+                  className="p-2.5 text-base font-bold rounded-lg border border-slate-300 dark:border-slate-700 bg-white/80 dark:bg-slate-900 text-slate-900 dark:text-slate-100 focus:border-emerald-600 focus:ring-2 focus:ring-emerald-500/20 outline-none"
                 />
-                <span className="text-[10px] text-slate-500 dark:text-slate-400 leading-tight">{t.recordsPerLogHelper}</span>
+                <span className="text-xs text-slate-500 dark:text-slate-400 leading-tight">{t.recordsPerLogHelper}</span>
               </div>
             </div>
 
@@ -718,53 +718,73 @@ export const ComfortTab: React.FC<ComfortTabProps> = ({
                   </button>
                 </div>
 
-                <div className="space-y-2 max-h-48 overflow-y-auto pr-1">
+                <div className="space-y-2">
                   {dataLogs.map((dl) => {
                     const assignedTagsCount = tags.filter(tItem => (tItem.dataLogId ? tItem.dataLogId === dl.id : dataLogs[0]?.id === dl.id)).length;
                     return (
                       <div
                         key={dl.id}
-                        className={`p-2.5 rounded-lg border text-xs transition-all flex flex-col sm:flex-row sm:items-center justify-between gap-2 ${
+                        className={`p-2.5 rounded-xl border text-xs transition-all space-y-2 shadow-2xs ${
                           dl.enabled
-                            ? 'border-slate-200 dark:border-slate-800 bg-white/80 dark:bg-slate-800/80'
+                            ? 'border-slate-200 dark:border-slate-800 bg-white/90 dark:bg-slate-900/90'
                             : 'border-slate-200/50 dark:border-slate-800/40 bg-slate-100/50 dark:bg-slate-900/40 opacity-60'
                         }`}
                       >
-                        <div className="flex items-center gap-2 flex-1 min-w-0">
-                          <input
-                            type="checkbox"
-                            checked={dl.enabled}
-                            onChange={(e) => handleUpdateDataLog(dl.id, { enabled: e.target.checked })}
-                            className="accent-emerald-600 w-3.5 h-3.5 rounded cursor-pointer shrink-0"
-                            title={dl.enabled ? 'Disable log' : 'Enable log'}
-                          />
-                          <input
-                            type="text"
-                            value={dl.name}
-                            onChange={(e) => handleUpdateDataLog(dl.id, { name: e.target.value })}
-                            placeholder={t.logNamePlaceholder}
-                            className="font-mono font-bold text-xs p-1 rounded border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 flex-1 min-w-[110px] outline-none focus:border-emerald-600"
-                          />
-                          <span className="text-[10px] font-mono px-1.5 py-0.5 rounded bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border border-emerald-500/20 shrink-0">
-                            {assignedTagsCount} {lang === 'ru' ? 'тегов' : 'tags'}
-                          </span>
+                        {/* Header Row */}
+                        <div className="flex flex-wrap items-center justify-between gap-2">
+                          <div className="flex flex-wrap items-center gap-2 flex-1 min-w-0">
+                            <input
+                              type="checkbox"
+                              checked={dl.enabled}
+                              onChange={(e) => handleUpdateDataLog(dl.id, { enabled: e.target.checked })}
+                              className="accent-emerald-600 w-4 h-4 rounded cursor-pointer shrink-0"
+                              title={dl.enabled ? 'Disable log' : 'Enable log'}
+                            />
+                            <input
+                              type="text"
+                              value={dl.name}
+                              onChange={(e) => handleUpdateDataLog(dl.id, { name: e.target.value })}
+                              placeholder={t.logNamePlaceholder}
+                              className="font-mono font-bold text-sm p-1 px-2.5 rounded-lg border border-slate-200 dark:border-slate-700 bg-transparent text-slate-900 dark:text-slate-100 flex-1 min-w-[120px] max-w-[200px] outline-none focus:border-emerald-600"
+                            />
+                            <span className="text-xs font-mono px-2.5 py-0.5 rounded-full bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border border-emerald-500/20 font-semibold">
+                              {assignedTagsCount} {lang === 'ru' ? 'тегов' : 'tags'}
+                            </span>
+                          </div>
+
+                          <div className="flex items-center gap-2 shrink-0 ml-auto">
+                            <button
+                              type="button"
+                              onClick={() => handleRemoveDataLog(dl.id)}
+                              disabled={dataLogs.length <= 1}
+                              className="p-1.5 text-slate-400 hover:text-rose-500 disabled:opacity-30 disabled:cursor-not-allowed cursor-pointer transition-colors"
+                              title="Delete log"
+                            >
+                              <Trash2 className="w-4 h-4" />
+                            </button>
+                          </div>
                         </div>
 
-                        <div className="flex items-center gap-2 shrink-0">
-                          <div className="flex items-center gap-1" title={lang === 'ru' ? 'Срок хранения' : 'Retention days'}>
-                            <span className="text-[10px] text-slate-500 dark:text-slate-400">{t.cardRetentionLabel}</span>
+                        {/* Parameters Row */}
+                        <div className="grid grid-cols-2 gap-2 pt-1.5 border-t border-slate-100 dark:border-slate-800/80 text-xs">
+                          <div className="flex items-center gap-1.5 bg-slate-50/80 dark:bg-slate-800/50 p-1.5 rounded-lg border border-slate-200/50 dark:border-slate-700/50">
+                            <span className="text-xs font-medium text-slate-500 dark:text-slate-400 shrink-0">
+                              {t.cardRetentionLabel}
+                            </span>
                             <input
                               type="number"
                               min="1"
                               value={dl.retentionDays || ''}
                               onChange={(e) => handleUpdateDataLog(dl.id, { retentionDays: Math.max(1, parseInt(e.target.value, 10) || 1) })}
-                              className="w-14 p-1 text-[11px] font-mono rounded border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 outline-none"
+                              className="w-14 p-0.5 px-1 text-xs font-mono font-bold rounded border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 outline-none"
                             />
-                            <span className="text-[10px] text-slate-400">{t.unitDays}</span>
+                            <span className="text-xs text-slate-400 font-mono">{t.unitDays}</span>
                           </div>
 
-                          <div className="flex items-center gap-1" title={lang === 'ru' ? 'Записей на файл' : 'Records per file'}>
-                            <span className="text-[10px] text-slate-500 dark:text-slate-400">{lang === 'ru' ? 'Зап.:' : 'Rec.:'}</span>
+                          <div className="flex items-center gap-1.5 bg-slate-50/80 dark:bg-slate-800/50 p-1.5 rounded-lg border border-slate-200/50 dark:border-slate-700/50">
+                            <span className="text-xs font-medium text-slate-500 dark:text-slate-400 shrink-0">
+                              {lang === 'ru' ? 'Записей:' : 'Records:'}
+                            </span>
                             <input
                               type="number"
                               min="1000"
@@ -772,19 +792,9 @@ export const ComfortTab: React.FC<ComfortTabProps> = ({
                               step="1000"
                               value={dl.recordsPerLog || ''}
                               onChange={(e) => handleUpdateDataLog(dl.id, { recordsPerLog: Math.min(500000, Math.max(1000, parseInt(e.target.value, 10) || 1000)) })}
-                              className="w-18 p-1 text-[11px] font-mono rounded border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 outline-none"
+                              className="w-20 p-0.5 px-1 text-xs font-mono font-bold rounded border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 outline-none"
                             />
                           </div>
-
-                          <button
-                            type="button"
-                            onClick={() => handleRemoveDataLog(dl.id)}
-                            disabled={dataLogs.length <= 1}
-                            className="p-1 text-slate-400 hover:text-rose-500 disabled:opacity-30 disabled:cursor-not-allowed cursor-pointer transition-colors"
-                            title="Delete log"
-                          >
-                            <Trash2 className="w-3.5 h-3.5" />
-                          </button>
                         </div>
                       </div>
                     );
@@ -811,7 +821,7 @@ export const ComfortTab: React.FC<ComfortTabProps> = ({
                   </button>
                 </div>
 
-                <div className="space-y-2 max-h-48 overflow-y-auto pr-1">
+                <div className="space-y-2">
                   {alarmLogs.map((al) => {
                     const tagCount = alarmTags.filter(at => (at.alarmLogId ? at.alarmLogId === al.id : alarmLogs[0]?.id === al.id)).length;
                     const calculatedFromTags = alarmTags
@@ -822,47 +832,67 @@ export const ComfortTab: React.FC<ComfortTabProps> = ({
                     return (
                       <div
                         key={al.id}
-                        className={`p-2.5 rounded-lg border text-xs transition-all flex flex-col sm:flex-row sm:items-center justify-between gap-2 ${
+                        className={`p-2.5 rounded-xl border text-xs transition-all space-y-2 shadow-2xs ${
                           al.enabled
-                            ? 'border-slate-200 dark:border-slate-800 bg-white/80 dark:bg-slate-800/80'
+                            ? 'border-slate-200 dark:border-slate-800 bg-white/90 dark:bg-slate-900/90'
                             : 'border-slate-200/50 dark:border-slate-800/40 bg-slate-100/50 dark:bg-slate-900/40 opacity-60'
                         }`}
                       >
-                        <div className="flex items-center gap-2 flex-1 min-w-0">
-                          <input
-                            type="checkbox"
-                            checked={al.enabled}
-                            onChange={(e) => handleUpdateAlarmLog(al.id, { enabled: e.target.checked })}
-                            className="accent-amber-600 w-3.5 h-3.5 rounded cursor-pointer shrink-0"
-                            title={al.enabled ? 'Disable log' : 'Enable log'}
-                          />
-                          <input
-                            type="text"
-                            value={al.name}
-                            onChange={(e) => handleUpdateAlarmLog(al.id, { name: e.target.value })}
-                            placeholder={t.logNamePlaceholder}
-                            className="font-mono font-bold text-xs p-1 rounded border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 flex-1 min-w-[110px] outline-none focus:border-amber-600"
-                          />
-                          <span className="text-[10px] font-mono px-1.5 py-0.5 rounded bg-amber-500/10 text-amber-700 dark:text-amber-400 border border-amber-500/20 shrink-0">
-                            ~{Math.round(effectiveEvents)} {t.eventsPerDayShort} ({tagCount} {lang === 'ru' ? 'сигн.' : 'sigs'})
-                          </span>
+                        {/* Header Row */}
+                        <div className="flex flex-wrap items-center justify-between gap-2">
+                          <div className="flex flex-wrap items-center gap-2 flex-1 min-w-0">
+                            <input
+                              type="checkbox"
+                              checked={al.enabled}
+                              onChange={(e) => handleUpdateAlarmLog(al.id, { enabled: e.target.checked })}
+                              className="accent-amber-600 w-4 h-4 rounded cursor-pointer shrink-0"
+                              title={al.enabled ? 'Disable log' : 'Enable log'}
+                            />
+                            <input
+                              type="text"
+                              value={al.name}
+                              onChange={(e) => handleUpdateAlarmLog(al.id, { name: e.target.value })}
+                              placeholder={t.logNamePlaceholder}
+                              className="font-mono font-bold text-sm p-1 px-2.5 rounded-lg border border-slate-200 dark:border-slate-700 bg-transparent text-slate-900 dark:text-slate-100 flex-1 min-w-[120px] max-w-[200px] outline-none focus:border-amber-600"
+                            />
+                            <span className="text-xs font-mono px-2.5 py-0.5 rounded-full bg-amber-500/10 text-amber-700 dark:text-amber-400 border border-amber-500/20 font-semibold">
+                              ~{Math.round(effectiveEvents)} {t.eventsPerDayShort} ({tagCount} {lang === 'ru' ? 'сигн.' : 'sigs'})
+                            </span>
+                          </div>
+
+                          <div className="flex items-center gap-2 shrink-0 ml-auto">
+                            <button
+                              type="button"
+                              onClick={() => handleRemoveAlarmLog(al.id)}
+                              disabled={alarmLogs.length <= 1}
+                              className="p-1.5 text-slate-400 hover:text-rose-500 disabled:opacity-30 disabled:cursor-not-allowed cursor-pointer transition-colors"
+                              title={lang === 'ru' ? 'Удалить журнал' : 'Delete log'}
+                            >
+                              <Trash2 className="w-4 h-4" />
+                            </button>
+                          </div>
                         </div>
 
-                        <div className="flex items-center gap-2 shrink-0">
-                          <div className="flex items-center gap-1" title={lang === 'ru' ? 'Срок хранения' : 'Retention days'}>
-                            <span className="text-[10px] text-slate-500 dark:text-slate-400">{t.cardRetentionLabel}</span>
+                        {/* Parameters Row */}
+                        <div className="grid grid-cols-2 gap-2 pt-1.5 border-t border-slate-100 dark:border-slate-800/80 text-xs">
+                          <div className="flex items-center gap-1.5 bg-slate-50/80 dark:bg-slate-800/50 p-1.5 rounded-lg border border-slate-200/50 dark:border-slate-700/50">
+                            <span className="text-xs font-medium text-slate-500 dark:text-slate-400 shrink-0">
+                              {t.cardRetentionLabel}
+                            </span>
                             <input
                               type="number"
                               min="1"
                               value={al.retentionDays || ''}
                               onChange={(e) => handleUpdateAlarmLog(al.id, { retentionDays: Math.max(1, parseInt(e.target.value, 10) || 1) })}
-                              className="w-14 p-1 text-[11px] font-mono rounded border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 outline-none"
+                              className="w-14 p-0.5 px-1 text-xs font-mono font-bold rounded border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 outline-none"
                             />
-                            <span className="text-[10px] text-slate-400">{t.unitDays}</span>
+                            <span className="text-xs text-slate-400 font-mono">{t.unitDays}</span>
                           </div>
 
-                          <div className="flex items-center gap-1" title={lang === 'ru' ? 'Записей на файл' : 'Records per file'}>
-                            <span className="text-[10px] text-slate-500 dark:text-slate-400">{lang === 'ru' ? 'Зап.:' : 'Rec.:'}</span>
+                          <div className="flex items-center gap-1.5 bg-slate-50/80 dark:bg-slate-800/50 p-1.5 rounded-lg border border-slate-200/50 dark:border-slate-700/50">
+                            <span className="text-xs font-medium text-slate-500 dark:text-slate-400 shrink-0">
+                              {lang === 'ru' ? 'Записей:' : 'Records:'}
+                            </span>
                             <input
                               type="number"
                               min="1000"
@@ -870,19 +900,9 @@ export const ComfortTab: React.FC<ComfortTabProps> = ({
                               step="1000"
                               value={al.recordsPerLog || ''}
                               onChange={(e) => handleUpdateAlarmLog(al.id, { recordsPerLog: Math.min(500000, Math.max(1000, parseInt(e.target.value, 10) || 1000)) })}
-                              className="w-18 p-1 text-[11px] font-mono rounded border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 outline-none"
+                              className="w-20 p-0.5 px-1 text-xs font-mono font-bold rounded border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 outline-none"
                             />
                           </div>
-
-                          <button
-                            type="button"
-                            onClick={() => handleRemoveAlarmLog(al.id)}
-                            disabled={alarmLogs.length <= 1}
-                            className="p-1 text-slate-400 hover:text-rose-500 disabled:opacity-30 disabled:cursor-not-allowed cursor-pointer transition-colors"
-                            title="Delete log"
-                          >
-                            <Trash2 className="w-3.5 h-3.5" />
-                          </button>
                         </div>
                       </div>
                     );

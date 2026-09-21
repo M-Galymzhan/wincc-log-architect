@@ -2,7 +2,7 @@
 import React from 'react';
 import { ActiveTab, Language } from '../lib/types';
 import { translations } from '../lib/i18n';
-import { Layers, HardDrive, Database, Tags } from 'lucide-react';
+import { Layers, HardDrive, Database, SlidersHorizontal } from 'lucide-react';
 
 interface NavigationTabsProps {
   activeTab: ActiveTab;
@@ -47,8 +47,8 @@ export const NavigationTabs: React.FC<NavigationTabsProps> = ({ activeTab, setAc
       id: 'master_tags' as ActiveTab,
       label: t.tabMasterTags,
       badge: t.tabMasterTagsBadge,
-      icon: Tags,
-      color: '#8B5CF6',
+      icon: SlidersHorizontal,
+      color: '#F59E0B',
     },
   ];
 
@@ -56,7 +56,7 @@ export const NavigationTabs: React.FC<NavigationTabsProps> = ({ activeTab, setAc
     <div
       role="tablist"
       aria-label="WinCC Systems"
-      className="flex items-stretch gap-2 p-1.5 rounded-2xl glass-panel max-w-4xl mx-auto mb-6 shadow-md overflow-x-auto no-scrollbar"
+      className="grid grid-cols-2 xl:grid-cols-4 gap-2.5 sm:gap-3 p-1.5 sm:p-2 rounded-2xl glass-panel w-full max-w-[1560px] mx-auto mb-6 shadow-md"
     >
       {tabs.map((tab) => {
         const Icon = tab.icon;
@@ -69,23 +69,25 @@ export const NavigationTabs: React.FC<NavigationTabsProps> = ({ activeTab, setAc
             id={`tab-${tab.id}`}
             aria-controls={`tabpanel-${tab.id}`}
             onClick={() => setActiveTab(tab.id)}
-            className={`flex-1 min-w-max shrink-0 flex items-center justify-center gap-2 sm:gap-2.5 py-2.5 px-3.5 sm:px-4 rounded-xl text-sm font-semibold transition-all duration-200 cursor-pointer relative ${
+            className={`flex items-center justify-between gap-1.5 sm:gap-2 py-2.5 px-2.5 sm:px-3.5 rounded-xl text-xs sm:text-sm font-semibold transition-all duration-200 cursor-pointer relative ${
               isActive
                 ? 'bg-gradient-to-r from-[#00646E] to-[#00828F] text-white shadow-lg shadow-[#00646E]/30 ring-1 ring-white/20'
-                : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-100 hover:bg-white/40 dark:hover:bg-slate-800/50'
+                : 'text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-slate-100 hover:bg-white/40 dark:hover:bg-slate-800/50'
             }`}
           >
-            <Icon className="w-4 h-4 shrink-0" />
-            <span className="whitespace-nowrap">{tab.label}</span>
-            {tab.hasWarning && (
-              <span
-                title={t.tabHasWarnings}
-                className="w-2 h-2 rounded-full bg-amber-400 dark:bg-amber-300 ring-2 ring-amber-500/50 animate-pulse shrink-0 inline-block"
-                aria-label={t.tabHasWarnings}
-              />
-            )}
+            <div className="flex items-center gap-1.5 sm:gap-2 min-w-0">
+              <Icon className="w-4 h-4 sm:w-5 sm:h-5 shrink-0" />
+              <span className="whitespace-nowrap">{tab.label}</span>
+              {tab.hasWarning && (
+                <span
+                  title={t.tabHasWarnings}
+                  className="w-2 h-2 rounded-full bg-amber-400 dark:bg-amber-300 ring-2 ring-amber-500/50 animate-pulse shrink-0 inline-block"
+                  aria-label={t.tabHasWarnings}
+                />
+              )}
+            </div>
             <span
-              className={`text-[10px] font-mono px-2 py-0.5 rounded-full border whitespace-nowrap shrink-0 ${
+              className={`text-xs font-mono px-2 py-0.5 rounded-full border whitespace-nowrap shrink-0 hidden sm:inline-block ${
                 isActive
                   ? 'bg-white/20 text-white border-white/30'
                   : 'bg-slate-200 dark:bg-slate-800 text-slate-600 dark:text-slate-400 border-slate-300 dark:border-slate-700'

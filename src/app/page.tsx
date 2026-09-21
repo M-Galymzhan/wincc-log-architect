@@ -1,5 +1,6 @@
 'use client';
-import React, { useState, useEffect, useCallback, useRef } from 'react';
+import React, { useState, useEffect, useCallback, useRef, useMemo } from 'react';
+import dynamic from 'next/dynamic';
 import { ActiveTab, Language, Theme, UnifiedTag, UnifiedConfig, ComfortTag, ComfortConfig, ProfessionalTag, ProfessionalConfig, ToastMessage, MasterLoggingTag } from '../lib/types';
 import { calculateUnified } from '../lib/calculator/unifiedEngine';
 import { calculateComfort } from '../lib/calculator/comfortEngine';
@@ -12,12 +13,22 @@ import { UnifiedTab } from '../components/tabs/UnifiedTab';
 import { ComfortTab } from '../components/tabs/ComfortTab';
 import { ProfessionalTab } from '../components/tabs/ProfessionalTab';
 import { MasterTagsTab } from '../components/tabs/MasterTagsTab';
-import { TiaCheatSheetModal } from '../components/TiaCheatSheetModal';
-import { ReportModal } from '../components/ReportModal';
-import { IndustryPresetsModal } from '../components/IndustryPresetsModal';
 import { IndustryPreset } from '../lib/presets';
 import { Toast } from '../components/Toast';
 import { Coffee, HelpCircle } from 'lucide-react';
+
+const TiaCheatSheetModal = dynamic(
+  () => import('../components/TiaCheatSheetModal').then((m) => m.TiaCheatSheetModal),
+  { ssr: false }
+);
+const ReportModal = dynamic(
+  () => import('../components/ReportModal').then((m) => m.ReportModal),
+  { ssr: false }
+);
+const IndustryPresetsModal = dynamic(
+  () => import('../components/IndustryPresetsModal').then((m) => m.IndustryPresetsModal),
+  { ssr: false }
+);
 
 const emptySubscribe = () => () => {};
 
@@ -544,10 +555,19 @@ export default function Home() {
     addToast(translations[lang].presetAppliedToast, 'success');
   };
 
-  // Calculations with active language for localized warnings
-  const unifiedResult = calculateUnified(unifiedTags, unifiedConfig, lang);
-  const comfortResult = calculateComfort(comfortTags, comfortConfig, lang);
-  const proResult = calculateProfessional(proTags, proConfig, lang);
+  // Calculations with active language for localized warnings (memoized to eliminate redundant recalculation)
+  const unifiedResult = useMemo(
+    () => calculateUnified(unifiedTags, unifiedConfig, lang),
+    [unifiedTags, unifiedConfig, lang]
+  );
+  const comfortResult = useMemo(
+    () => calculateComfort(comfortTags, comfortConfig, lang),
+    [comfortTags, comfortConfig, lang]
+  );
+  const proResult = useMemo(
+    () => calculateProfessional(proTags, proConfig, lang),
+    [proTags, proConfig, lang]
+  );
 
   if (!mounted) return null;
 
@@ -581,7 +601,7 @@ export default function Home() {
       />
 
       {/* Main Content Area */}
-      <main className="max-w-7xl mx-auto px-4 lg:px-8 pt-6 relative z-10">
+      <main className="w-full max-w-[1560px] mx-auto px-4 sm:px-6 lg:px-8 pt-6 relative">
         {/* Navigation Tabs with Warnings Indicator */}
         <NavigationTabs
           activeTab={activeTab}
@@ -723,7 +743,7 @@ export default function Home() {
                   {t.kofiBtn}
                 </a>
               </div>
-              <div className="mt-8 text-[11px] text-slate-400 dark:text-slate-500">
+              <div className="mt-8 text-xs sm:text-sm text-slate-400 dark:text-slate-500">
                 © {new Date().getFullYear()} Siemens WinCC Log & Storage Architect • Open Source Engineering Tool
               </div>
             </div>

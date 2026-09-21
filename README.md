@@ -6,13 +6,13 @@
 </p>
 
 <p align="center">
-  <img src="https://img.shields.io/badge/Версия-2.11.5-emerald?style=for-the-badge" alt="Version 2.11.5" />
+  <img src="https://img.shields.io/badge/Версия-2.15.0-emerald?style=for-the-badge" alt="Version 2.15.0" />
   <img src="https://img.shields.io/badge/Next.js-16.3.4-black?style=for-the-badge&logo=next.js" alt="Next.js" />
   <img src="https://img.shields.io/badge/React-19.2.8-blue?style=for-the-badge&logo=react" alt="React" />
   <img src="https://img.shields.io/badge/Tailwind_CSS-4.3.3-38B2AC?style=for-the-badge&logo=tailwind-css" alt="Tailwind" />
   <img src="https://img.shields.io/badge/TypeScript-5.8-3178C6?style=for-the-badge&logo=typescript" alt="TypeScript" />
   <img src="https://img.shields.io/badge/Siemens_TIA_Portal-V14--V20-00646E?style=for-the-badge&logo=siemens" alt="Siemens" />
-  <img src="https://img.shields.io/badge/Тесты-366%20passed-success?style=for-the-badge" alt="366 tests" />
+  <img src="https://img.shields.io/badge/Тесты-461%20passed-success?style=for-the-badge" alt="461 tests" />
 </p>
 
 ---
@@ -56,6 +56,59 @@
 * Расчет первичных файлов баз данных (**MDF**) и журналов транзакций (**LDF**).
 * Контроль порога **10 GB** бесплатной редакции Microsoft SQL Server Express.
 
+### 4. Конфигуратор тегов (Master Tags Hub / Инспектор TIA Portal V19)
+* **Единый кросс-платформенный реестр**: централизованное хранение и взаимная синхронизация тегов между WinCC Unified, Comfort и Professional в один клик.
+* **Продвинутое трендовое сжатие и фильтрация**:
+  - **Swinging Door** (качающаяся дверь): сокращение первичного потока записей до 85–90% без потери динамики процесса.
+  - **Deadband (Value / Relative)**: абсолютная и относительная зона нечувствительности.
+  - **Limit Scope**: фильтрация записи по технологическим уставкам (внутри, вне или по границам диапазона).
+  - **On Demand / Trigger Mode**: сбор данных по событиям, дискретному триггеру или изменению статуса.
+* **Встроенная матрица совместимости**: мгновенная валидация параметров с рекомендациями и безопасной адаптацией под ограничения целевой платформы.
+* **Эргономичный UI**: непрерывный ввод тегов без навязчивого всплывания модалок; инспектор свойств открывается строго по клику на тег.
+
+---
+
+## 🏗️ Архитектура системы
+
+```mermaid
+flowchart TD
+    subgraph UI ["Интерфейс приложения (Next.js 16 / React 19)"]
+        Header["Header (Язык, Тема, Шаблоны, Отчет, TIA Шпаргалка)"]
+        Nav["NavigationTabs (Unified / Comfort / Professional / Master Tags)"]
+        Drawer["Inspector Drawer (Свойства архивации тега)"]
+    end
+
+    subgraph Hub ["Master Tags Hub"]
+        MasterConfig["Конфигуратор тегов (TIA Portal V19)"]
+        SmoothEngine["Smoothing & Compression Engine\n(Swinging Door, Deadband, Limits)"]
+        CrossSync["Cross-Platform Adapters\n(Unified ↔ Comfort ↔ Professional)"]
+    end
+
+    subgraph Engines ["Вычислительные ядра"]
+        UnifiedEngine["Unified Engine (SQLite WAL 4MB, Multi-log, ISA-18.2)"]
+        ComfortEngine["Comfort Engine (RDB / CSV, 500k limit, SDHC 32GB)"]
+        ProEngine["Professional Engine (MS SQL Server MDF/LDF, Fast/Slow)"]
+        NetEngine["Network Engine (S7comm, OMS+, OPC UA, Bandwidth)"]
+        FlashEngine["Flash Life & TBW Engine (SLC, pSLC, MLC, TLC, P/E)"]
+    end
+
+    subgraph Exporters ["Экспорт и Интеграция"]
+        TiaXlsx["TIA Portal XLSX Exporter (30 официальных столбцов)"]
+        TiaCsv["TIA Portal CSV Exporter (BOM UTF-8)"]
+        PdfReport["PDF Report Generator"]
+    end
+
+    Header --> Nav
+    Nav --> MasterConfig
+    MasterConfig --> SmoothEngine --> CrossSync
+    CrossSync --> UnifiedEngine
+    CrossSync --> ComfortEngine
+    CrossSync --> ProEngine
+    UnifiedEngine --> FlashEngine
+    UnifiedEngine --> NetEngine
+    UnifiedEngine & ComfortEngine & ProEngine --> TiaXlsx & TiaCsv & PdfReport
+```
+
 ---
 
 ## 📊 Инженерные функции и интеграция с TIA Portal
@@ -90,9 +143,29 @@
 * **Работа с таблицами**: SheetJS (`xlsx` 0.20.3 безопасной сборки) + `read-excel-file`
 * **Качество кода**:
   - 0 ошибок и предупреждений ESLint (`npm run lint`).
-  - 366 автоматизированных тестов математических ядер (`npx tsx scripts/testEngines.ts`).
+  - 461 автоматизированный тест математических ядер (`npx tsx scripts/testEngines.ts`).
   - 0 уязвимостей зависимостей (`npm audit`).
 * **PWA & Offline**: Web App Manifest + Service Worker с сетевой политикой Network-First.
+
+---
+
+## ⚡ Что нового в версии 2.15.0
+
+* **Конфигуратор тегов (Master Tags Hub / TIA Portal V19 Inspector)**:
+  - Централизованный реестр тегов с поддержкой алгоритмов сжатия **Swinging Door** (-85...90%), **Deadband**, фильтрации **Limit Scope** и триггерного режима **On Demand**.
+  - Интеллектуальная матрица совместимости и безопасная адаптация тегов для WinCC Comfort и Professional.
+  - Эргономичный **Slide-over Drawer** (выдвижная панель свойств архивации справа) с возможностью непрерывного пакетного добавления тегов без навязчивого открытия шторки.
+* **Оптимизация производительности (Vercel React Best Practices)**:
+  - Мемоизация ядер расчёта (`calculateUnified`, `calculateComfort`, `calculateProfessional`) через `useMemo` с изолированными зависимостями — исключены холостые перерасчёты при внешних событиях.
+  - Динамическое разделение кода (`next/dynamic`) для тяжелых модальных окон (Шпаргалка TIA, Отчеты, Отраслевые шаблоны).
+  - Плавный поиск без задержек ввода благодаря `useDeferredValue`.
+* **Доступность, локализация и UX (Web Interface Guidelines & Taste)**:
+  - Атрибуты `aria-label` для экранных дикторов на всех кнопках без текстовых подписей.
+  - Полная двуязычная локализация (RU / EN) таблицы конфигуратора тегов, фильтров и бейджей.
+  - Стилизованная карточка **Empty State** с быстрыми кнопками действий при пустом списке.
+* **Надежность и верификация**:
+  - Расширение тестового набора до **461 теста** (100% PASS).
+  - 0 ошибок линтинга (`npm run lint`), 0 уязвимостей в зависимостях (`npm audit`).
 
 ---
 
