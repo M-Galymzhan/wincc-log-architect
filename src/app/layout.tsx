@@ -21,24 +21,37 @@ export const viewport: Viewport = {
 export const metadata: Metadata = {
   metadataBase: new URL("https://wincc-log-architect.vercel.app"),
   title: {
-    default: "Siemens WinCC Log & Storage Architect | Калькулятор архивов TIA Portal",
+    default: "Siemens WinCC Log & Storage Architect | Калькулятор архивов и Конфигуратор тегов TIA Portal",
     template: "%s | WinCC Log Architect",
   },
-  description: "Инженерный онлайн-калькулятор и валидатор хранилищ архивов Siemens SIMATIC: WinCC Unified (SQLite WAL), Comfort/Advanced (RDB/CSV), Professional (MS SQL Server). Расчет сегментов, кольцевых буферов, ресурса Flash (TBW), сети 100BASE-TX и сигнализации по ISA-18.2 / EEMUA 191.",
+  description: "Инженерный онлайн-калькулятор архивов и конфигуратор тегов Siemens SIMATIC (TIA Portal V14–V20): WinCC Unified (SQLite WAL), Comfort/Advanced (RDB/CSV), Professional (MS SQL Server). Генерация и 30-колоночный XLSX экспорт таблиц тегов HMI, расчет сегментов, ресурса Flash (TBW), сети 100BASE-TX и сигнализации ISA-18.2.",
   keywords: [
     // Brand & Platforms
-    "Siemens", "SIMATIC", "TIA Portal", "TIA Portal V19", "TIA Portal V20", "TIA Portal V18", "TIA Portal V17",
+    "Siemens", "SIMATIC", "TIA Portal", "TIA Portal V14", "TIA Portal V15", "TIA Portal V16", "TIA Portal V17", "TIA Portal V18", "TIA Portal V19", "TIA Portal V20",
     "WinCC", "WinCC Unified", "WinCC Comfort", "WinCC Advanced", "WinCC Professional", "Unified Comfort Panel", "MTP",
-    // Engine & Technologies
+    // Tag Configurator & Generator (Synonyms & Long-tail)
+    "конфигуратор тегов", "конфигуратор тегов WinCC", "конфигуратор тегов TIA Portal",
+    "мастер тегов WinCC", "мастер тегов TIA Portal", "генератор тегов TIA Portal", "генератор тегов WinCC",
+    "экспорт тегов в Excel", "экспорт тегов TIA Portal", "импорт тегов TIA Portal XLSX", "таблица тегов WinCC",
+    "HMI Tags export", "калькулятор тегов", "TIA Portal tag configurator", "WinCC tag configurator",
+    "PLC tag generator", "bulk tag generator TIA Portal", "30 column XLSX tag export", "Tag Logging Inspector",
+    "Hmi Tags Excel", "Substitute Value Usage", "структура тегов WinCC",
+    // Engineering Calculations & Sizing
+    "калькулятор архивов WinCC", "расчет размера архива", "расчет объема архивов WinCC", "расчет архивации WinCC",
+    "калькулятор памяти WinCC", "расчет размера базы данных WinCC", "кольцевой буфер WinCC", "сегментация архивов",
+    "Log Size Calculator", "Storage Sizing", "WinCC sizing tool", "TIA Portal storage calculator", "SCADA sizing",
+    // Storage Engine Technologies & Hardware Limits
     "SQLite WAL", "SQLite write amplification", "RDB", "MS SQL Server", "SQL Express 10GB limit",
-    "Data Log", "Alarm Log", "Audit Trail", "21 CFR Part 11", "GMP",
-    // Engineering Calculations
-    "калькулятор архивов WinCC", "расчет размера архива", "кольцевой буфер WinCC", "сегментация архивов",
-    "Log Size Calculator", "Storage Sizing", "Flash Life", "TBW", "SIMATIC SD Card", "SD card MLFB",
-    "ISA-18.2", "EEMUA 191", "Alarm flood", "интенсивность аварийных событий",
-    "Industrial Ethernet bandwidth", "100BASE-TX", "S7comm", "OMS+", "OPC UA",
-    // Tags & Automation
-    "АСУ ТП", "SCADA", "HMI Tags export", "калькулятор тегов", "SCADA sizing"
+    "лимит 500000 строк", "WinCC Comfort RDB limit", "Data Log", "Alarm Log", "Audit Trail", "21 CFR Part 11", "GMP",
+    // Flash Memory Endurance & Lifespan
+    "Flash Life", "TBW", "SIMATIC SD Card", "SD card MLFB", "ресурс SD карты Siemens", "калькулятор Flash памяти",
+    "flash endurance", "P/E cycles", "Write Amplification 1.5x",
+    // Alarm Rationalization & Network Bandwidth
+    "ISA-18.2", "EEMUA 191", "Alarm flood", "интенсивность аварийных событий", "расчет алармов WinCC",
+    "alarm rate calculator", "лавина тревог", "Industrial Ethernet bandwidth", "100BASE-TX", "S7comm", "OMS+", "OPC UA",
+    "трафик S7comm", "расчет нагрузки на сеть",
+    // Domain & Automation
+    "АСУ ТП", "SCADA", "автоматизация производства", "инженер АСУ ТП", "PLC programming"
   ],
   authors: [{ name: "M-Galymzhan", url: "https://github.com/M-Galymzhan" }],
   creator: "M-Galymzhan",
@@ -57,8 +70,8 @@ export const metadata: Metadata = {
     },
   },
   openGraph: {
-    title: "Siemens WinCC Log & Storage Architect",
-    description: "Инженерный расчет и валидатор хранилищ архивов Siemens TIA Portal: WinCC Unified (SQLite), Comfort (RDB), Professional (MS SQL). Ресурс Flash-памяти и нормы ISA-18.2.",
+    title: "Siemens WinCC Log & Storage Architect | Калькулятор архивов и Конфигуратор тегов",
+    description: "Инженерный расчет хранилищ архивов и конфигуратор тегов Siemens TIA Portal (V14–V20): WinCC Unified (SQLite), Comfort (RDB), Professional (MS SQL). Экспорт 30-колоночных таблиц тегов в Excel, ресурс Flash-памяти и нормы ISA-18.2.",
     url: "https://wincc-log-architect.vercel.app",
     siteName: "Siemens WinCC Log & Storage Architect",
     locale: "ru_RU",
@@ -75,8 +88,8 @@ export const metadata: Metadata = {
   },
   twitter: {
     card: "summary_large_image",
-    title: "Siemens WinCC Log & Storage Architect",
-    description: "Инженерный калькулятор архивов Siemens WinCC Unified, Comfort и Professional для TIA Portal.",
+    title: "Siemens WinCC Log & Storage Architect | Калькулятор архивов и Конфигуратор тегов",
+    description: "Инженерный калькулятор архивов и генератор тегов Siemens WinCC Unified, Comfort и Professional для TIA Portal V14–V20.",
     images: ["https://wincc-log-architect.vercel.app/opengraph-image"],
   },
   robots: {
@@ -116,9 +129,15 @@ const jsonLd = {
       name: "Siemens WinCC Log & Storage Architect",
       alternateName: [
         "WinCC Log Architect",
+        "Конфигуратор тегов WinCC",
+        "Конфигуратор тегов TIA Portal",
+        "Мастер тегов TIA Portal",
+        "Калькулятор архивов WinCC",
         "Siemens HMI Storage Calculator",
         "TIA Portal Archive Calculator",
-        "Калькулятор архивов WinCC",
+        "TIA Portal Tag Configurator",
+        "WinCC Tag Logging Inspector",
+        "Калькулятор хранилищ и тегов Siemens",
       ],
       url: "https://wincc-log-architect.vercel.app",
       applicationCategory: "EngineeringApplication",
@@ -127,14 +146,14 @@ const jsonLd = {
       description: "Комплексный инженерный калькулятор и валидатор хранилищ архивов Siemens SIMATIC: WinCC Unified (SQLite WAL), Comfort/Advanced (RDB/CSV), Professional (MS SQL Server). Расчет сегментов, кольцевых буферов, ресурса Flash (TBW) и норм ISA-18.2.",
       screenshot: "https://wincc-log-architect.vercel.app/opengraph-image",
       image: "https://wincc-log-architect.vercel.app/opengraph-image",
-      softwareVersion: "2.15.2",
+      softwareVersion: "2.15.3",
       inLanguage: ["ru", "en"],
       license: "https://opensource.org/licenses/MIT",
       featureList: [
         "Расчет размера сегментов и кольцевого буфера SQLite WAL для WinCC Unified (кратность 4 МБ)",
         "Валидация ограничений WinCC Comfort: лимит 500 000 строк на RDB/CSV файл и 32 ГБ FAT32",
         "Разделение тегов на Fast и Slow архивы для WinCC Professional с лимитом 10 ГБ SQL Express",
-        "Мастер тегов (TIA Portal V14–V20 Inspector Hub) с 30-колоночным XLSX экспортом",
+        "Конфигуратор и мастер тегов (TIA Portal V14–V20 Inspector Hub) с 30-колоночным XLSX экспортом и автовалидацией типов данных",
         "Анализ перегрузки оператора и лавины тревог (Alarm Flood) по ISA-18.2 / EEMUA 191",
         "Оценка времени жизни Flash-памяти (TBW, P/E циклы, фактор Write Amplification 1.5x)",
         "Оценка пропускной способности Industrial Ethernet 100BASE-TX для циклов опроса",
@@ -155,6 +174,14 @@ const jsonLd = {
       "@type": "FAQPage",
       "@id": "https://wincc-log-architect.vercel.app/#faq",
       mainEntity: [
+        {
+          "@type": "Question",
+          name: "Как работает конфигуратор тегов для Siemens TIA Portal?",
+          acceptedAnswer: {
+            "@type": "Answer",
+            text: "Конфигуратор тегов (Master Tag Hub) позволяет формировать и валидировать единый реестр переменных для WinCC Unified, Comfort и Professional с последующим экспортом в стандартизированную 30-колоночную таблицу Excel (.xlsx), совместимую с TIA Portal V14–V20 для мгновенного импорта тегов в проект.",
+          },
+        },
         {
           "@type": "Question",
           name: "Почему размер сегмента WinCC Unified кратен 4 МБ?",

@@ -71,9 +71,9 @@ Calculated based on Total Bytes Written (TBW) against card capacity and P/E cycl
 
 ---
 
-## 6. Master Tag Hub & TIA Portal 30-Column Specification
+## 6. Tag Configurator, Master Tag Hub & TIA Portal 30-Column Specification
 
-The Master Tag Hub generates standard 30-column Excel (`.xlsx`) files adhering to Siemens TIA Portal specification:
+The Tag Configurator (also known as Master Tag Hub, Конфигуратор тегов WinCC / TIA Portal, or PLC/HMI Tag Generator) generates standard 30-column Excel (`.xlsx`) files adhering to Siemens TIA Portal specification:
 1. Name
 2. Path
 3. Connection

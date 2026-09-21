@@ -6,7 +6,7 @@
 </p>
 
 <p align="center">
-  <img src="https://img.shields.io/badge/Версия-2.15.2-emerald?style=for-the-badge" alt="Version 2.15.2" />
+  <img src="https://img.shields.io/badge/Версия-2.15.3-emerald?style=for-the-badge" alt="Version 2.15.3" />
   <img src="https://img.shields.io/badge/Next.js-16.3.4-black?style=for-the-badge&logo=next.js" alt="Next.js" />
   <img src="https://img.shields.io/badge/React-19.2.8-blue?style=for-the-badge&logo=react" alt="React" />
   <img src="https://img.shields.io/badge/Tailwind_CSS-4.3.3-38B2AC?style=for-the-badge&logo=tailwind-css" alt="Tailwind" />
@@ -56,7 +56,7 @@
 * Расчет первичных файлов баз данных (**MDF**) и журналов транзакций (**LDF**).
 * Контроль порога **10 GB** бесплатной редакции Microsoft SQL Server Express.
 
-### 4. Конфигуратор тегов (Master Tags Hub / Инспектор TIA Portal V19)
+### 4. Конфигуратор тегов (Master Tags Hub / Инспектор TIA Portal V14–V20)
 * **Единый кросс-платформенный реестр**: централизованное хранение и взаимная синхронизация тегов между WinCC Unified, Comfort и Professional в один клик.
 * **Продвинутое трендовое сжатие и фильтрация**:
   - **Swinging Door** (качающаяся дверь): сокращение первичного потока записей до 85–90% без потери динамики процесса.
