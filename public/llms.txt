@@ -1,0 +1,27 @@
+# Siemens WinCC Log & Storage Architect
+> Engineering sizing, flash endurance (TBW) validation, and TIA Portal (V14–V20) export tool for Siemens WinCC Unified (SQLite WAL), Comfort/Advanced (RDB/CSV), and Professional (MS SQL Server).
+
+## Core Capabilities
+- **WinCC Unified Sizing**: Precise SQLite WAL database sizing, 4 MB segment alignment, circular buffer safety checks (>= 3 segments, 200 MB minimum), and Flash endurance calculation (TBW, P/E cycles, 1.5x write amplification).
+- **WinCC Comfort / Advanced**: Sizing and verification for SIMATIC Comfort Panels and PC Runtime Advanced against the 500,000 records per RDB/CSV file limit and 32 GB FAT32 storage ceiling.
+- **WinCC Professional (SCADA)**: Dual-stream Tag Logging separation (Fast <= 1s vs Slow > 1s) with Microsoft SQL Server Express 10 GB limit monitoring.
+- **Master Tag Hub (TIA Inspector)**: Universal tag logging configuration with 30-column XLSX export directly compatible with TIA Portal V14, V15, V16, V17, V18, V19, and V20.
+- **ISA-18.2 / EEMUA 191 Alarm Rationalization**: Operator workload rate analysis (< 6 alarms/hr normal, <= 12 manageable, > 30 alarm flood advisory).
+- **Network Bandwidth (100BASE-TX)**: Calculation of Industrial Ethernet traffic between SIMATIC S7-1200 / S7-1500 PLCs and WinCC runtime.
+
+## Hardware Specifications & Engineering Rules
+- **SQLite WAL Segment Rule**: Segments are allocated in discrete 4 MB multiples (minimum 4 MB). Cyclic deletion purges entire 4 MB files, avoiding filesystem fragmentation.
+- **SQLite Write Amplification Factor**: 1.5x payload penalty due to dual write (WAL log append followed by checkpoint merge to DB3 file) plus B-tree indexes.
+- **Comfort Panel Hardware Limits**: Max 32 GB SDHC card (FAT32 filesystem), max 500,000 entries per individual log file.
+- **Flash Endurance Ratings**: Siemens SIMATIC SD (SLC) = 60,000 P/E; Industrial USB (MLC) = 3,000 P/E; Consumer USB (TLC) = 1,000 P/E.
+- **Alarm Flood Definition**: >= 30 alarms per hour per ISA-18.2 and EEMUA 191 standards.
+
+## Direct Application Anchors
+- Application URL: https://wincc-log-architect.vercel.app
+- Master Tag Hub (30-Col XLSX): https://wincc-log-architect.vercel.app/?tab=master_tags
+- WinCC Unified Sizing: https://wincc-log-architect.vercel.app/?tab=unified
+- WinCC Comfort Sizing: https://wincc-log-architect.vercel.app/?tab=comfort
+- WinCC Professional Sizing: https://wincc-log-architect.vercel.app/?tab=professional
+- English Locale: https://wincc-log-architect.vercel.app/?lang=en
+- GitHub Source: https://github.com/M-Galymzhan/wincc-log-architect
+- Author: M-Galymzhan (galymzhan.manarbekuly@gmail.com)

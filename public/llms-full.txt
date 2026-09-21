@@ -1,0 +1,108 @@
+# Siemens WinCC Log & Storage Architect — Full Technical Reference
+
+This document provides a comprehensive technical reference for AI assistants, engineers, and search engines evaluating Siemens SIMATIC WinCC archiving architectures in TIA Portal V14–V20.
+
+---
+
+## 1. Siemens WinCC Unified (SQLite WAL)
+
+### Architecture
+WinCC Unified runtime (PC Runtime and Unified Comfort Panels - UCP) stores Data Logs, Alarm Logs, and Audit Trails in SQLite databases operating in Write-Ahead Logging (WAL) mode.
+
+### 4 MB Segment Allocation Rule
+Siemens allocates disk storage in discrete 4 MB multiples. The minimum segment size is 4 MB. When circular log rotation occurs, the runtime purges entire 4 MB segment files (`*.db3`, `*.wal`, `*.shm`) at once. This design ensures that raw flash memory blocks on industrial SD cards are freed cleanly, preventing filesystem fragmentation.
+
+### Write Amplification Factor (1.5x)
+Every logged tag value is first written into the journal (`*.wal`), then flushed into the main SQLite database (`*.db3`) during a checkpoint operation. Together with SQLite B-tree indices and page allocation overhead, the physical data written to flash is approximately 1.5 times the raw tag data payload.
+
+### Circular Buffer Safety Rules
+- Minimum recommended circular buffer size is 3 segments.
+- Retention time must span at least 3 segment intervals to maintain historical trends.
+- Minimum storage allocation is 200 MB to avoid runtime initialization errors.
+
+---
+
+## 2. Siemens WinCC Comfort & Advanced (RDB / CSV)
+
+### Architecture
+SIMATIC Comfort Panels (7" to 22" running Windows CE 6.0) and WinCC Runtime Advanced log data to proprietary RDB (Relational Database) binary files or standard CSV text files.
+
+### 500,000 Record Hard Limit
+Siemens enforces a strict limit of 500,000 records per individual log file. If this limit is exceeded, logging halts or overwrites data unless configured as a "Sequence of log files" with a configured maximum number of files.
+
+### FAT32 32 GB Ceiling
+Windows CE 6.0 supports only FAT32 formatted SD/SDHC cards with a maximum volume capacity of 32 GB. Any single file cannot exceed 4 GB, and the total card volume cannot exceed 32 GB.
+
+---
+
+## 3. Siemens WinCC Professional (SCADA)
+
+### Architecture
+WinCC Professional uses Microsoft SQL Server (typically SQL Server Express for single-station or Standard for multi-user servers).
+
+### Dual-Stream Logging
+- **Fast Tag Logging**: For high-speed tags with acquisition cycles <= 1 second. Logged into circular fast database segments.
+- **Slow Tag Logging**: For process tags with acquisition cycles > 1 second. Stored in slow database segments.
+
+### SQL Server Express 10 GB Limit
+SQL Server Express enforces a hard limit of 10 GB per database file (`*.mdf`). Exceeding 10 GB stops database write transactions. Sizing calculations must ensure circular segment archiving or automatic backup to prevent database locking.
+
+---
+
+## 4. Alarm Rationalization (ISA-18.2 / EEMUA 191)
+
+The calculator implements metrics from ANSI/ISA-18.2, IEC 62682, and EEMUA 191:
+- **Normal Operation**: < 6 alarms per hour (< 0.1 alarms/minute) — manageable operator workload.
+- **Manageable**: 6 to 12 alarms per hour — acceptable during minor operational upsets.
+- **Demanding**: 12 to 30 alarms per hour — potential for delayed operator response.
+- **Alarm Flood**: >= 30 alarms per hour (or > 10 alarms per 10 minutes) — exceeds human cognitive capacity; triggers engineering advisory for alarm rationalization (deadbands, on-delay timers, first-out suppression).
+
+---
+
+## 5. Flash Memory Endurance & Lifespan (TBW)
+
+Calculated based on Total Bytes Written (TBW) against card capacity and P/E cycles:
+- **Siemens SIMATIC SD (SLC)**: 60,000 P/E cycles (up to 30 years operational life).
+- **Custom pSLC SD**: 20,000 P/E cycles.
+- **Industrial MLC USB/SD**: 3,000 P/E cycles.
+- **Consumer TLC USB/SD**: 1,000 P/E cycles.
+- **Consumer QLC SD**: 300 P/E cycles.
+- **Enterprise SSD**: 1,500 P/E cycles with wear leveling.
+
+---
+
+## 6. Master Tag Hub & TIA Portal 30-Column Specification
+
+The Master Tag Hub generates standard 30-column Excel (`.xlsx`) files adhering to Siemens TIA Portal specification:
+1. Name
+2. Path
+3. Connection
+4. PLC tag
+5. DataType
+6. HMI DataType
+7. Length
+8. Address
+9. Access Method
+10. Indirect addressing
+11. Index tag
+12. Start value
+13. Value deadband
+14. Acquisition mode
+15. Acquisition cycle
+16. Range Maximum Type
+17. Range Maximum
+18. Range Minimum Type
+19. Range Minimum
+20. Linear scaling
+21. End value PLC
+22. Start value PLC
+23. End value HMI
+24. Start value HMI
+25. Comment
+26. HMI Access
+27. Visible in HMI
+28. Logging Mode
+29. Scope
+30. Substitute Value Usage (Sheet 2)
+
+Compatible with TIA Portal V13 SP1, V14, V15, V15.1, V16, V17, V18, V19, and V20.

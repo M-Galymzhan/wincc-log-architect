@@ -35,9 +35,48 @@ const emptySubscribe = () => () => {};
 export default function Home() {
   const mounted = React.useSyncExternalStore(emptySubscribe, () => true, () => false);
   const isLoadedRef = useRef(false);
-  const [lang, setLang] = useState<Language>('ru');
+  const [lang, setLangState] = useState<Language>(() => {
+    if (typeof window !== 'undefined') {
+      const params = new URLSearchParams(window.location.search);
+      const l = params.get('lang');
+      if (l === 'ru' || l === 'en') return l;
+      try {
+        const savedLang = localStorage.getItem('wincc_lang') as Language;
+        if (savedLang === 'ru' || savedLang === 'en') return savedLang;
+      } catch {}
+    }
+    return 'ru';
+  });
   const [theme, setTheme] = useState<Theme>('dark');
-  const [activeTab, setActiveTab] = useState<ActiveTab>('unified');
+  const [activeTab, setActiveTabState] = useState<ActiveTab>(() => {
+    if (typeof window !== 'undefined') {
+      const params = new URLSearchParams(window.location.search);
+      const tab = params.get('tab');
+      if (tab === 'unified' || tab === 'comfort' || tab === 'professional' || tab === 'master_tags') {
+        return tab;
+      }
+    }
+    return 'unified';
+  });
+
+  const setLang = useCallback((l: Language) => {
+    setLangState(l);
+    if (typeof window !== 'undefined') {
+      const url = new URL(window.location.href);
+      url.searchParams.set('lang', l);
+      window.history.replaceState({}, '', url.toString());
+    }
+  }, []);
+
+  const setActiveTab = useCallback((tab: ActiveTab) => {
+    setActiveTabState(tab);
+    if (typeof window !== 'undefined') {
+      const url = new URL(window.location.href);
+      url.searchParams.set('tab', tab);
+      window.history.replaceState({}, '', url.toString());
+    }
+  }, []);
+
   const t = translations[lang];
 
   const [isCheatSheetOpen, setIsCheatSheetOpen] = useState(false);
@@ -404,8 +443,6 @@ export default function Home() {
   useEffect(() => {
     /* eslint-disable react-hooks/set-state-in-effect */
     try {
-      const savedLang = localStorage.getItem('wincc_lang') as Language;
-      if (savedLang === 'ru' || savedLang === 'en') setLang(savedLang);
       const savedTheme = localStorage.getItem('wincc_theme') as Theme;
       if (savedTheme) {
         setTheme(savedTheme);
@@ -680,8 +717,8 @@ export default function Home() {
               </p>
             </div>
 
-            {/* FAQ Cards Grid */}
-            <div className="max-w-5xl mx-auto mb-12">
+            {/* FAQ Cards Grid with Semantic Schema Microdata */}
+            <div className="max-w-5xl mx-auto mb-12" itemScope itemType="https://schema.org/FAQPage">
               <div className="flex items-center gap-2 mb-4 justify-center sm:justify-start">
                 <HelpCircle className="w-5 h-5 text-[#00646E] dark:text-[#00A3B5]" />
                 <h3 className="text-base sm:text-lg font-semibold text-slate-800 dark:text-slate-200">
@@ -689,38 +726,66 @@ export default function Home() {
                 </h3>
               </div>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div className="p-4 sm:p-5 rounded-2xl bg-white/70 dark:bg-slate-900/60 border border-slate-200/80 dark:border-slate-800/80 shadow-xs hover:border-[#00646E]/30 dark:hover:border-[#00A3B5]/30 transition-all">
-                  <h4 className="text-xs sm:text-sm font-bold text-slate-900 dark:text-slate-100 mb-2">
+                <article
+                  itemScope
+                  itemProp="mainEntity"
+                  itemType="https://schema.org/Question"
+                  className="p-4 sm:p-5 rounded-2xl bg-white/70 dark:bg-slate-900/60 border border-slate-200/80 dark:border-slate-800/80 shadow-xs hover:border-[#00646E]/30 dark:hover:border-[#00A3B5]/30 transition-all"
+                >
+                  <h4 itemProp="name" className="text-xs sm:text-sm font-bold text-slate-900 dark:text-slate-100 mb-2">
                     {t.faqQ1}
                   </h4>
-                  <p className="text-xs text-slate-600 dark:text-slate-400 leading-relaxed">
-                    {t.faqA1}
-                  </p>
-                </div>
-                <div className="p-4 sm:p-5 rounded-2xl bg-white/70 dark:bg-slate-900/60 border border-slate-200/80 dark:border-slate-800/80 shadow-xs hover:border-[#00646E]/30 dark:hover:border-[#00A3B5]/30 transition-all">
-                  <h4 className="text-xs sm:text-sm font-bold text-slate-900 dark:text-slate-100 mb-2">
+                  <div itemScope itemProp="acceptedAnswer" itemType="https://schema.org/Answer">
+                    <p itemProp="text" className="text-xs text-slate-600 dark:text-slate-400 leading-relaxed">
+                      {t.faqA1}
+                    </p>
+                  </div>
+                </article>
+                <article
+                  itemScope
+                  itemProp="mainEntity"
+                  itemType="https://schema.org/Question"
+                  className="p-4 sm:p-5 rounded-2xl bg-white/70 dark:bg-slate-900/60 border border-slate-200/80 dark:border-slate-800/80 shadow-xs hover:border-[#00646E]/30 dark:hover:border-[#00A3B5]/30 transition-all"
+                >
+                  <h4 itemProp="name" className="text-xs sm:text-sm font-bold text-slate-900 dark:text-slate-100 mb-2">
                     {t.faqQ2}
                   </h4>
-                  <p className="text-xs text-slate-600 dark:text-slate-400 leading-relaxed">
-                    {t.faqA2}
-                  </p>
-                </div>
-                <div className="p-4 sm:p-5 rounded-2xl bg-white/70 dark:bg-slate-900/60 border border-slate-200/80 dark:border-slate-800/80 shadow-xs hover:border-[#00646E]/30 dark:hover:border-[#00A3B5]/30 transition-all">
-                  <h4 className="text-xs sm:text-sm font-bold text-slate-900 dark:text-slate-100 mb-2">
+                  <div itemScope itemProp="acceptedAnswer" itemType="https://schema.org/Answer">
+                    <p itemProp="text" className="text-xs text-slate-600 dark:text-slate-400 leading-relaxed">
+                      {t.faqA2}
+                    </p>
+                  </div>
+                </article>
+                <article
+                  itemScope
+                  itemProp="mainEntity"
+                  itemType="https://schema.org/Question"
+                  className="p-4 sm:p-5 rounded-2xl bg-white/70 dark:bg-slate-900/60 border border-slate-200/80 dark:border-slate-800/80 shadow-xs hover:border-[#00646E]/30 dark:hover:border-[#00A3B5]/30 transition-all"
+                >
+                  <h4 itemProp="name" className="text-xs sm:text-sm font-bold text-slate-900 dark:text-slate-100 mb-2">
                     {t.faqQ3}
                   </h4>
-                  <p className="text-xs text-slate-600 dark:text-slate-400 leading-relaxed">
-                    {t.faqA3}
-                  </p>
-                </div>
-                <div className="p-4 sm:p-5 rounded-2xl bg-white/70 dark:bg-slate-900/60 border border-slate-200/80 dark:border-slate-800/80 shadow-xs hover:border-[#00646E]/30 dark:hover:border-[#00A3B5]/30 transition-all">
-                  <h4 className="text-xs sm:text-sm font-bold text-slate-900 dark:text-slate-100 mb-2">
+                  <div itemScope itemProp="acceptedAnswer" itemType="https://schema.org/Answer">
+                    <p itemProp="text" className="text-xs text-slate-600 dark:text-slate-400 leading-relaxed">
+                      {t.faqA3}
+                    </p>
+                  </div>
+                </article>
+                <article
+                  itemScope
+                  itemProp="mainEntity"
+                  itemType="https://schema.org/Question"
+                  className="p-4 sm:p-5 rounded-2xl bg-white/70 dark:bg-slate-900/60 border border-slate-200/80 dark:border-slate-800/80 shadow-xs hover:border-[#00646E]/30 dark:hover:border-[#00A3B5]/30 transition-all"
+                >
+                  <h4 itemProp="name" className="text-xs sm:text-sm font-bold text-slate-900 dark:text-slate-100 mb-2">
                     {t.faqQ4}
                   </h4>
-                  <p className="text-xs text-slate-600 dark:text-slate-400 leading-relaxed">
-                    {t.faqA4}
-                  </p>
-                </div>
+                  <div itemScope itemProp="acceptedAnswer" itemType="https://schema.org/Answer">
+                    <p itemProp="text" className="text-xs text-slate-600 dark:text-slate-400 leading-relaxed">
+                      {t.faqA4}
+                    </p>
+                  </div>
+                </article>
               </div>
             </div>
 
