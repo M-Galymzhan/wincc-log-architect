@@ -1914,7 +1914,7 @@ export const UnifiedTab: React.FC<UnifiedTabProps> = ({
                           </button>
                         )}
                       </div>
-                      <div className="flex flex-wrap gap-1 max-h-24 overflow-y-auto pr-0.5">
+                      <div className="flex flex-wrap gap-1 pr-0.5">
                         {activeKpiLogs.map((l) => {
                           const isSelected = (selectedKpiLogId === l.id) || (selectedKpiLogId === 'max' && l.id === maxSegmentLog?.id);
                           return (
@@ -2014,7 +2014,7 @@ export const UnifiedTab: React.FC<UnifiedTabProps> = ({
                           </button>
                         )}
                       </div>
-                      <div className="flex flex-wrap gap-1 max-h-24 overflow-y-auto pr-0.5">
+                      <div className="flex flex-wrap gap-1 pr-0.5">
                         {activeKpiLogs.map((l) => {
                           const isSelected = (selectedKpiLogId === l.id) || (selectedKpiLogId === 'max' && l.id === maxLogSizeLog?.id);
                           return (

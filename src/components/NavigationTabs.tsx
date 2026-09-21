@@ -77,7 +77,7 @@ export const NavigationTabs: React.FC<NavigationTabsProps> = ({ activeTab, setAc
           >
             <div className="flex items-center gap-1.5 sm:gap-2 min-w-0">
               <Icon className="w-4 h-4 sm:w-5 sm:h-5 shrink-0" />
-              <span className="whitespace-nowrap">{tab.label}</span>
+              <span className="truncate">{tab.label}</span>
               {tab.hasWarning && (
                 <span
                   title={t.tabHasWarnings}

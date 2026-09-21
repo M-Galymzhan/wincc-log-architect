@@ -2,7 +2,7 @@ export type Language = 'ru' | 'en';
 export type Theme = 'dark' | 'light';
 export type ActiveTab = 'unified' | 'comfort' | 'professional' | 'master_tags';
 
-// TIA PORTAL V19 LOGGING TYPES
+// TIA PORTAL V14–V20 LOGGING TYPES
 export type LoggingMode = 'cyclic' | 'onchange' | 'ondemand';
 
 export type TriggerMode = 'none' | 'rising_edge' | 'falling_edge' | 'change';

@@ -134,8 +134,8 @@ export function checkTagCompatibility(
     return {
       supported: true,
       status: 'full',
-      reasonsRu: ['Полная поддержка всех параметров TIA Portal V19 (SQLite / PC RT)'],
-      reasonsEn: ['Full native support for all TIA Portal V19 parameters (SQLite / PC RT)'],
+      reasonsRu: ['Полная поддержка всех параметров Siemens WinCC Unified (V16–V20, SQLite / PC RT)'],
+      reasonsEn: ['Full native support for all Siemens WinCC Unified (V16–V20, SQLite / PC RT) parameters'],
       effectiveModeRu: 'Unified Native (MTP/PC)',
       effectiveModeEn: 'Unified Native (MTP/PC)',
     };
