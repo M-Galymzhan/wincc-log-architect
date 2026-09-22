@@ -91,6 +91,22 @@ export const SeoFaqSection: React.FC<SeoFaqSectionProps> = React.memo(({ lang })
               </p>
             </div>
           </article>
+          <article
+            itemScope
+            itemProp="mainEntity"
+            itemType="https://schema.org/Question"
+            className="p-4 sm:p-5 rounded-2xl bg-white/70 dark:bg-slate-900/60 border border-[#00646E]/30 dark:border-[#00A3B5]/30 shadow-xs md:col-span-2 transition-all bg-gradient-to-br from-white/90 to-cyan-50/20 dark:from-slate-900/80 dark:to-slate-800/40"
+          >
+            <h4 itemProp="name" className="text-xs sm:text-sm font-bold text-[#00646E] dark:text-[#00A3B5] mb-2 flex items-center gap-2">
+              <span className="px-1.5 py-0.5 rounded text-[10px] uppercase font-mono tracking-wider bg-[#00646E]/10 dark:bg-[#00A3B5]/15 border border-[#00646E]/20 dark:border-[#00A3B5]/20">Tag Logging</span>
+              {t.faqQ5}
+            </h4>
+            <div itemScope itemProp="acceptedAnswer" itemType="https://schema.org/Answer">
+              <p itemProp="text" className="text-xs text-slate-600 dark:text-slate-400 leading-relaxed">
+                {t.faqA5}
+              </p>
+            </div>
+          </article>
         </div>
       </div>
 

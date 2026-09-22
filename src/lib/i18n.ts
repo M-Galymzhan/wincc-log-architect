@@ -450,6 +450,8 @@ export const translations = {
     faqA3: 'Панели SIMATIC Comfort под управлением Windows CE 6.0 поддерживают карты памяти SDHC объемом не более 32 ГБ с файловой системой FAT32. Максимальное число записей в одном файле журнала RDB/CSV ограничено системным пределом 500 000 строк. При превышении этого порога требуется создавать последовательность файлов (Sequence of log files).',
     faqQ4: 'Как интерпретировать анализ тревог по стандарту ISA-18.2 / EEMUA 191?',
     faqA4: 'Стандарт управления сигнализацией ISA-18.2 / EEMUA 191 рекомендует удерживать среднюю частоту тревог на уровне менее 6 алармов в час в нормальном технологическом режиме и не более 12 при переходных процессах. Превышение порога в 30 алармов в час классифицируется как лавина тревог (Alarm Flood), перегружающая оператора и требующая рационализации сигналов.',
+    faqQ5: 'Как настроить и рассчитать архивацию тегов (Tag Logging) в Siemens WinCC и TIA Portal?',
+    faqA5: 'Архивация тегов (WinCC Tag Logging) настраивается заданием циклов опроса (Acquisition cycle) и циклов архивации (Archiving cycle). В WinCC Unified данные сохраняются в монолитные сегменты SQLite WAL по 4 МБ. В WinCC Comfort действует лимит 500 000 строк на файл RDB/CSV. В WinCC Professional теги с быстрым циклом (<= 1 с) маршрутизируются в TagLoggingFast, а редкие — в TagLoggingSlow на базе MS SQL Server. Применение сглаживания (Deadband, Swinging Door) позволяет сократить объем архива до 70-85%.',
 
     // Master Tags Hub & Universal Configurator
     masterTagsTitle: 'Универсальный конфигуратор тегов архивации WinCC',
@@ -1016,6 +1018,8 @@ export const translations = {
     faqA3: 'SIMATIC Comfort Panels (running Windows CE 6.0) are limited to 32 GB SDHC cards formatted in FAT32. Furthermore, Siemens enforces a hard limit of 500,000 records per individual RDB or CSV log file before requiring a segmented file sequence.',
     faqQ4: 'How does the ISA-18.2 / EEMUA 191 alarm assessment work?',
     faqA4: 'ISA-18.2 and EEMUA 191 recommend keeping average alarm rates under 6 alarms per hour during steady-state operation, with a manageable ceiling of 12 alarms per hour. A rate exceeding 30 alarms per hour is defined as an Alarm Flood condition, requiring alarm rationalization.',
+    faqQ5: 'How to configure and size WinCC Tag Logging archives in TIA Portal?',
+    faqA5: 'WinCC Tag Logging configuration involves setting acquisition and archiving cycles for process values. In WinCC Unified, process values are committed to 4 MB SQLite WAL segments. In WinCC Comfort, individual RDB/CSV archives are constrained by a 500,000-record limit. In WinCC Professional, tags are partitioned into Fast (<= 1s) and Slow archives in Microsoft SQL Server. Applying Swinging Door or Deadband smoothing reduces storage demand by up to 85%.',
 
     // Master Tags Hub & Universal Configurator
     masterTagsTitle: 'Universal WinCC Tag Configurator',

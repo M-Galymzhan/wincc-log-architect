@@ -21,11 +21,16 @@ export const viewport: Viewport = {
 export const metadata: Metadata = {
   metadataBase: new URL("https://wincc-log-architect.vercel.app"),
   title: {
-    default: "Siemens WinCC Log & Storage Architect | Калькулятор архивов и Конфигуратор тегов TIA Portal",
-    template: "%s | WinCC Log Architect",
+    default: "Siemens WinCC Tag Logging & Storage Architect | TIA Portal Archive Calculator",
+    template: "%s | WinCC Tag Logging Architect",
   },
-  description: "Инженерный онлайн-калькулятор архивов и конфигуратор тегов Siemens SIMATIC (TIA Portal V14–V21+, WinCC V7/V8): WinCC Unified (SQLite WAL), Comfort/Advanced (RDB/CSV), Professional (MS SQL Server). Генерация и 30-колоночный XLSX экспорт таблиц тегов HMI, расчет сегментов, ресурса Flash (TBW), сети 100BASE-TX и сигнализации ISA-18.2.",
+  description: "Инженерный калькулятор архивов WinCC Tag Logging и конфигуратор тегов Siemens SIMATIC для TIA Portal (V14–V21+) и WinCC V7/V8. Расчет Tag Logging архивов, размера SQLite WAL в WinCC Unified, лимитов RDB в Comfort, Fast/Slow тегов в Professional и 30-колоночный XLSX экспорт Hmi Tags.",
   keywords: [
+    // High-Priority Exact Tag Logging Queries (English & Russian)
+    "wincc tag logging", "tag logging wincc", "wincc tag logging archive configuration", "wincc logging tags",
+    "tag logging archive", "process value logging", "wincc archive configuration", "tia portal tag logging",
+    "wincc unified tag logging", "wincc comfort data log", "tag logging fast slow", "wincc tag logging calculator",
+    "wincc tag logging excel export", "wincc tag logging table", "wincc tag logging size",
     // Brand & Platforms
     "Siemens", "SIMATIC", "TIA Portal", "TIA Portal V14", "TIA Portal V15", "TIA Portal V16", "TIA Portal V17", "TIA Portal V18", "TIA Portal V19", "TIA Portal V20", "TIA Portal V21",
     "WinCC", "WinCC Unified", "WinCC Comfort", "WinCC Advanced", "WinCC Professional", "WinCC V7", "WinCC V8", "WinCC Classic", "Unified Comfort Panel", "MTP",
@@ -70,8 +75,8 @@ export const metadata: Metadata = {
     },
   },
   openGraph: {
-    title: "Siemens WinCC Log & Storage Architect | Калькулятор архивов и Конфигуратор тегов",
-    description: "Инженерный расчет хранилищ архивов и конфигуратор тегов Siemens TIA Portal (V14–V21+) и WinCC V7/V8: WinCC Unified (SQLite), Comfort (RDB), Professional (MS SQL). Экспорт 30-колоночных таблиц тегов в Excel, ресурс Flash-памяти и нормы ISA-18.2.",
+    title: "Siemens WinCC Tag Logging & Storage Architect | TIA Portal Archive Calculator",
+    description: "Инженерный расчет архивов WinCC Tag Logging и конфигуратор тегов Siemens TIA Portal (V14–V21+) и WinCC V7/V8. Расчет архивов тегов, размера SQLite WAL, лимитов RDB и Fast/Slow SQL.",
     url: "https://wincc-log-architect.vercel.app",
     siteName: "Siemens WinCC Log & Storage Architect",
     locale: "ru_RU",
@@ -82,14 +87,14 @@ export const metadata: Metadata = {
         url: "https://wincc-log-architect.vercel.app/opengraph-image",
         width: 1200,
         height: 630,
-        alt: "Siemens WinCC Log & Storage Architect — TIA Portal V14-V21+ & WinCC V7/V8 Storage Sizing",
+        alt: "Siemens WinCC Tag Logging & Storage Architect — TIA Portal V14-V21+ Storage Sizing",
       },
     ],
   },
   twitter: {
     card: "summary_large_image",
-    title: "Siemens WinCC Log & Storage Architect | Калькулятор архивов и Конфигуратор тегов",
-    description: "Инженерный калькулятор архивов и генератор тегов Siemens WinCC Unified, Comfort и Professional для TIA Portal V14–V21+ и WinCC V7/V8.",
+    title: "Siemens WinCC Tag Logging & Storage Architect | TIA Portal Archive Calculator",
+    description: "Инженерный калькулятор архивов WinCC Tag Logging и генератор тегов Siemens для TIA Portal V14–V21+ и WinCC V7/V8.",
     images: ["https://wincc-log-architect.vercel.app/opengraph-image"],
   },
   robots: {
@@ -129,6 +134,10 @@ const jsonLd = {
       name: "Siemens WinCC Log & Storage Architect",
       alternateName: [
         "WinCC Log Architect",
+        "WinCC Tag Logging",
+        "WinCC Tag Logging Calculator",
+        "WinCC Tag Logging Archive Configuration",
+        "TIA Portal Tag Logging",
         "Конфигуратор тегов WinCC",
         "Конфигуратор тегов TIA Portal",
         "Мастер тегов TIA Portal",
@@ -174,6 +183,22 @@ const jsonLd = {
       "@type": "FAQPage",
       "@id": "https://wincc-log-architect.vercel.app/#faq",
       mainEntity: [
+        {
+          "@type": "Question",
+          name: "Как настроить и рассчитать архивацию тегов (Tag Logging) в Siemens WinCC и TIA Portal?",
+          acceptedAnswer: {
+            "@type": "Answer",
+            text: "Архивация тегов (WinCC Tag Logging) конфигурируется заданием циклов опроса (Acquisition) и циклов архивации (Archiving). В WinCC Unified переменные сохраняются в базе данных SQLite WAL монолитными сегментами по 4 МБ. В WinCC Comfort действует системное ограничение 500 000 записей на файл RDB/CSV. В WinCC Professional теги с быстрым циклом (<= 1с) направляются в TagLoggingFast, а более редкие — в TagLoggingSlow на MS SQL Server. Алгоритмы сжатия и сглаживания (Deadband, Swinging Door) позволяют сократить требуемый объем хранилища до 70-85%.",
+          },
+        },
+        {
+          "@type": "Question",
+          name: "How to configure and size WinCC Tag Logging archives in TIA Portal?",
+          acceptedAnswer: {
+            "@type": "Answer",
+            text: "WinCC Tag Logging archive sizing depends on acquisition and archiving cycles. In WinCC Unified, process values are stored in discrete 4 MB SQLite WAL segments. In WinCC Comfort, individual RDB/CSV archives are constrained by a 500,000-record limit. In WinCC Professional, tags are partitioned into Fast (<= 1s) and Slow archives in Microsoft SQL Server. Applying Swinging Door or Deadband smoothing reduces storage demand by up to 85%.",
+          },
+        },
         {
           "@type": "Question",
           name: "Как работает конфигуратор тегов для Siemens TIA Portal?",

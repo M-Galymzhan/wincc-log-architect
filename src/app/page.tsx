@@ -37,51 +37,18 @@ const IndustryPresetsModal = dynamic(
   { ssr: false }
 );
 
-const emptySubscribe = () => () => {};
-
 export default function Home() {
-  const mounted = React.useSyncExternalStore(emptySubscribe, () => true, () => false);
   const isLoadedRef = useRef(false);
-  const [lang, setLangState] = useState<Language>(() => {
-    if (typeof window !== 'undefined') {
-      const params = new URLSearchParams(window.location.search);
-      const l = params.get('lang');
-      if (l === 'ru' || l === 'en') return l;
-      try {
-        const savedLang = localStorage.getItem('wincc_lang') as Language;
-        if (savedLang === 'ru' || savedLang === 'en') return savedLang;
-      } catch {}
-    }
-    return 'ru';
-  });
+  const [lang, setLangState] = useState<Language>('ru');
   const [theme, setTheme] = useState<Theme>('dark');
   const [, startTransition] = useTransition();
-  const [activeTab, setActiveTabState] = useState<ActiveTab>(() => {
-    if (typeof window !== 'undefined') {
-      const params = new URLSearchParams(window.location.search);
-      const tab = params.get('tab');
-      if (tab === 'unified' || tab === 'comfort' || tab === 'professional' || tab === 'master_tags') {
-        return tab;
-      }
-    }
-    return 'unified';
-  });
+  const [activeTab, setActiveTabState] = useState<ActiveTab>('unified');
 
-  const [visitedTabs, setVisitedTabs] = useState<Record<ActiveTab, boolean>>(() => {
-    let initialTab: ActiveTab = 'unified';
-    if (typeof window !== 'undefined') {
-      const params = new URLSearchParams(window.location.search);
-      const tab = params.get('tab');
-      if (tab === 'unified' || tab === 'comfort' || tab === 'professional' || tab === 'master_tags') {
-        initialTab = tab;
-      }
-    }
-    return {
-      unified: initialTab === 'unified',
-      comfort: initialTab === 'comfort',
-      professional: initialTab === 'professional',
-      master_tags: initialTab === 'master_tags',
-    };
+  const [visitedTabs, setVisitedTabs] = useState<Record<ActiveTab, boolean>>({
+    unified: true,
+    comfort: false,
+    professional: false,
+    master_tags: false,
   });
 
   const setLang = useCallback((l: Language) => {
@@ -435,27 +402,49 @@ export default function Home() {
     }
   }, [unifiedTags, comfortTags, proTags, unifiedConfig.dataLogs, comfortConfig.dataLogs, addToast, lang]);
 
-  // Load from LocalStorage
+  // Load from LocalStorage & URL parameters on client mount
   useEffect(() => {
     /* eslint-disable react-hooks/set-state-in-effect */
     try {
-      const savedTheme = localStorage.getItem('wincc_theme') as Theme;
-      if (savedTheme) {
-        setTheme(savedTheme);
-        document.documentElement.classList.toggle('dark', savedTheme === 'dark');
-      } else {
-        document.documentElement.classList.add('dark');
-      }
-      const savedData = localStorage.getItem('wincc_project_data');
-      if (savedData) {
-        const parsed = JSON.parse(savedData);
-        if (Array.isArray(parsed.unifiedTags)) setUnifiedTags(parsed.unifiedTags);
-        if (parsed.unifiedConfig && typeof parsed.unifiedConfig === 'object') setUnifiedConfig(parsed.unifiedConfig);
-        if (Array.isArray(parsed.comfortTags)) setComfortTags(parsed.comfortTags);
-        if (parsed.comfortConfig && typeof parsed.comfortConfig === 'object') setComfortConfig(parsed.comfortConfig);
-        if (Array.isArray(parsed.proTags)) setProTags(parsed.proTags);
-        if (parsed.proConfig && typeof parsed.proConfig === 'object') setProConfig(parsed.proConfig);
-        if (Array.isArray(parsed.masterTags)) setMasterTags(parsed.masterTags);
+      if (typeof window !== 'undefined') {
+        const savedTheme = localStorage.getItem('wincc_theme') as Theme;
+        if (savedTheme) {
+          setTheme(savedTheme);
+          document.documentElement.classList.toggle('dark', savedTheme === 'dark');
+        } else {
+          document.documentElement.classList.add('dark');
+        }
+
+        // Sync language from URL parameter or localStorage
+        const params = new URLSearchParams(window.location.search);
+        const urlLang = params.get('lang') as Language;
+        if (urlLang === 'ru' || urlLang === 'en') {
+          setLangState(urlLang);
+        } else {
+          const savedLang = localStorage.getItem('wincc_lang') as Language;
+          if (savedLang === 'ru' || savedLang === 'en') {
+            setLangState(savedLang);
+          }
+        }
+
+        // Sync tab from URL parameter
+        const urlTab = params.get('tab') as ActiveTab;
+        if (urlTab === 'unified' || urlTab === 'comfort' || urlTab === 'professional' || urlTab === 'master_tags') {
+          setActiveTabState(urlTab);
+          setVisitedTabs((prev) => (prev[urlTab] ? prev : { ...prev, [urlTab]: true }));
+        }
+
+        const savedData = localStorage.getItem('wincc_project_data');
+        if (savedData) {
+          const parsed = JSON.parse(savedData);
+          if (Array.isArray(parsed.unifiedTags)) setUnifiedTags(parsed.unifiedTags);
+          if (parsed.unifiedConfig && typeof parsed.unifiedConfig === 'object') setUnifiedConfig(parsed.unifiedConfig);
+          if (Array.isArray(parsed.comfortTags)) setComfortTags(parsed.comfortTags);
+          if (parsed.comfortConfig && typeof parsed.comfortConfig === 'object') setComfortConfig(parsed.comfortConfig);
+          if (Array.isArray(parsed.proTags)) setProTags(parsed.proTags);
+          if (parsed.proConfig && typeof parsed.proConfig === 'object') setProConfig(parsed.proConfig);
+          if (Array.isArray(parsed.masterTags)) setMasterTags(parsed.masterTags);
+        }
       }
     } catch (e) {
       console.error('LocalStorage load error:', e);
@@ -611,8 +600,6 @@ export default function Home() {
     }),
     [unifiedResult.warnings.length, comfortResult.warnings.length, proResult.warnings.length]
   );
-
-  if (!mounted) return null;
 
   return (
     <div className="relative min-h-screen pb-16">

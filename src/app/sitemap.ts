@@ -2,7 +2,7 @@ import { MetadataRoute } from 'next';
 
 export default function sitemap(): MetadataRoute.Sitemap {
   const baseUrl = 'https://wincc-log-architect.vercel.app';
-  const releaseDate = new Date('2026-09-21T00:00:00Z');
+  const releaseDate = new Date('2026-09-22T00:00:00Z');
 
   return [
     {
@@ -12,25 +12,7 @@ export default function sitemap(): MetadataRoute.Sitemap {
       priority: 1.0,
     },
     {
-      url: `${baseUrl}/?tab=master_tags`,
-      lastModified: releaseDate,
-      changeFrequency: 'weekly',
-      priority: 0.95,
-    },
-    {
-      url: `${baseUrl}/?tab=unified`,
-      lastModified: releaseDate,
-      changeFrequency: 'weekly',
-      priority: 0.9,
-    },
-    {
-      url: `${baseUrl}/?tab=comfort`,
-      lastModified: releaseDate,
-      changeFrequency: 'weekly',
-      priority: 0.9,
-    },
-    {
-      url: `${baseUrl}/?tab=professional`,
+      url: `${baseUrl}/?lang=ru`,
       lastModified: releaseDate,
       changeFrequency: 'weekly',
       priority: 0.9,
@@ -39,7 +21,7 @@ export default function sitemap(): MetadataRoute.Sitemap {
       url: `${baseUrl}/?lang=en`,
       lastModified: releaseDate,
       changeFrequency: 'weekly',
-      priority: 0.85,
+      priority: 0.9,
     },
   ];
 }
