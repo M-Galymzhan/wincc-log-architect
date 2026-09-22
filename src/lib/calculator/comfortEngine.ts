@@ -174,6 +174,54 @@ export function calculateComfort(
     }
   });
 
+  // 4b. Process Audit Trail (if enabled)
+  if (config.includeAudit && (config.auditEntriesPerDay || 0) > 0) {
+    const auditEntriesPerDay = Math.max(0, Math.floor(config.auditEntriesPerDay || 0));
+    const auditRetentionDays = retentionDays;
+    const auditTotalRecords = Math.round(auditEntriesPerDay * auditRetentionDays);
+    const auditFormat = globalFormat;
+    // Audit records contain user, action, value change, timestamp, and crypto hash (~250 bytes)
+    const auditBytesPerRecord = 250;
+    const auditRecordsPerLog = Math.max(1000, Math.min(500000, globalRecordsPerLog));
+    const auditMethod = globalLogMethod;
+
+    const auditRecommendedFiles = auditTotalRecords > 0
+      ? (auditMethod === 'circular' ? 1 : Math.max(1, Math.ceil(auditTotalRecords / auditRecordsPerLog)))
+      : 0;
+
+    const auditSingleFileSizeMb = auditTotalRecords > 0
+      ? (Math.min(auditTotalRecords, auditRecordsPerLog) * auditBytesPerRecord) / (1024 * 1024)
+      : 0;
+
+    const auditTotalLogMb = auditTotalRecords > 0
+      ? (auditMethod === 'circular'
+          ? auditSingleFileSizeMb
+          : (auditTotalRecords * auditBytesPerRecord) / (1024 * 1024))
+      : 0;
+
+    logItems.push({
+      id: 'audit_trail',
+      name: 'Audit_Trail',
+      category: 'audit',
+      categoryNameRu: 'Электронный аудит (Audit Trail)',
+      categoryNameEn: 'Electronic Audit Trail',
+      format: auditFormat,
+      logMethod: auditMethod,
+      entriesPerDay: auditEntriesPerDay,
+      retentionDays: auditRetentionDays,
+      recordsPerLog: auditRecordsPerLog,
+      recommendedLogFiles: auditRecommendedFiles,
+      fileSizeMb: auditSingleFileSizeMb,
+      totalLogMb: auditTotalLogMb,
+      totalLogGb: auditTotalLogMb / 1024,
+      storageOccupancyPct: (auditTotalLogMb / storageCapMb) * 100,
+      path: defaultPath,
+      enabled: true,
+    });
+
+    totalRatePerSec += auditEntriesPerDay / 86400;
+  }
+
   // 5. Total Metrics
   const activeLogItems = logItems.filter((i) => i.enabled && i.totalLogMb > 0);
   const totalStorageUsedMb = activeLogItems.reduce((acc, item) => acc + item.totalLogMb, 0);
@@ -193,7 +241,7 @@ export function calculateComfort(
   // Daily writes with FAT32 amplification factor (~2.0x for directory updates on Windows CE)
   const totalDailyRecords = activeLogItems.reduce((acc, item) => acc + item.entriesPerDay, 0);
   const dailyWrittenMb = activeLogItems.reduce((acc, item) => {
-    const bytesPerRec = item.format === 'rdb' ? 32 : 65;
+    const bytesPerRec = item.category === 'audit' ? 250 : (item.format === 'rdb' ? 32 : 65);
     return acc + (item.entriesPerDay * bytesPerRec) / (1024 * 1024);
   }, 0);
   const dailyWrittenGb = (dailyWrittenMb * 2.0) / 1024;

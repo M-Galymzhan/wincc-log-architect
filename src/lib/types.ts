@@ -254,7 +254,7 @@ export interface ComfortAlarmTag {
 export interface CalculatedComfortLogItem {
   id: string;
   name: string;
-  category: 'data' | 'alarm';
+  category: 'data' | 'alarm' | 'audit';
   categoryNameRu: string;
   categoryNameEn: string;
   format: ComfortLogFormat;
@@ -296,6 +296,8 @@ export interface ComfortConfig {
   alarmTags?: ComfortAlarmTag[];
   includeAlarms?: boolean;
   alarmsPerDay?: number;
+  includeAudit?: boolean;
+  auditEntriesPerDay?: number;
   storageMedium?: 'sd_512m' | 'sd_2g' | 'sd_4g' | 'sd_12g' | 'sd_32g' | 'sd_custom' | 'sd_custom_x52' | 'usb_128g' | 'usb_custom' | 'ssd_custom';
   storageSizeGb?: number;
   nandClass?: NandClass;
@@ -354,7 +356,7 @@ export interface ProfessionalAlarmTag {
 export interface CalculatedSqlArchiveItem {
   id: string;
   name: string;
-  archiveType: 'fast' | 'slow' | 'alarm';
+  archiveType: 'fast' | 'slow' | 'alarm' | 'audit';
   nameRu: string;
   nameEn: string;
   segmentPeriod: 'day' | 'week' | 'month';
@@ -372,6 +374,8 @@ export interface ProfessionalConfig {
   segmentPeriod: 'day' | 'week' | 'month';
   includeAlarmLogging: boolean;
   alarmsPerHour: number;
+  includeAudit?: boolean;
+  auditEntriesPerDay?: number;
   databaseHeadroomPct: number;
   storageDiskType?: 'sata_ssd' | 'nvme_ssd' | 'hdd_raid1' | 'custom';
   diskCapacityGb?: number;
@@ -385,11 +389,13 @@ export interface ProfessionalResult {
   fastEntriesPerDay: number;
   slowEntriesPerDay: number;
   alarmEntriesPerDay: number;
+  auditEntriesPerDay?: number;
   totalEntriesPerDay: number;
   totalRatePerSec: number;
   fastDatabaseSizeGb: number;
   slowDatabaseSizeGb: number;
   alarmDatabaseSizeGb: number;
+  auditDatabaseSizeGb?: number;
   totalMdfSizeGb: number;
   estimatedLdfSizeGb: number;
   totalStorageGb: number;

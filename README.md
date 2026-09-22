@@ -6,13 +6,13 @@
 </p>
 
 <p align="center">
-  <img src="https://img.shields.io/badge/Версия-2.15.4-emerald?style=for-the-badge" alt="Version 2.15.4" />
+  <img src="https://img.shields.io/badge/Версия-2.16.0-emerald?style=for-the-badge" alt="Version 2.16.0" />
   <img src="https://img.shields.io/badge/Next.js-16.3.4-black?style=for-the-badge&logo=next.js" alt="Next.js" />
   <img src="https://img.shields.io/badge/React-19.2.8-blue?style=for-the-badge&logo=react" alt="React" />
   <img src="https://img.shields.io/badge/Tailwind_CSS-4.3.3-38B2AC?style=for-the-badge&logo=tailwind-css" alt="Tailwind" />
   <img src="https://img.shields.io/badge/TypeScript-5.8-3178C6?style=for-the-badge&logo=typescript" alt="TypeScript" />
   <img src="https://img.shields.io/badge/Siemens_TIA_Portal-V14--V20-00646E?style=for-the-badge&logo=siemens" alt="Siemens" />
-  <img src="https://img.shields.io/badge/Тесты-469%20passed-success?style=for-the-badge" alt="469 tests" />
+  <img src="https://img.shields.io/badge/Тесты-490%20passed-success?style=for-the-badge" alt="490 tests" />
 </p>
 
 ---
@@ -50,14 +50,18 @@
 * Расчет последовательности файлов журналов (`Sequence of log files`) и объема записей на файл (`Data records per log`).
 * Контроль жесткого аппаратного лимита Siemens — **до 500 000 записей на файл**.
 * Контроль аппаратного ограничения Comfort Panels (Windows CE 6.0) — **максимум 32 ГБ (FAT32, SDHC)**.
+* **Расчет Audit Trail (GMP / 21 CFR Part 11)**: моделирование журнала действий оператора SIMATIC WinCC Audit (~250 байт/запись с криптографическим хэшем), влияние на суточную запись на Flash (`dailyWrittenGb`) и ресурс SD-карты.
 
 ### 3. WinCC Professional (SCADA на базе Microsoft SQL Server)
 * Автоматическое разделение тегов на **Fast Tag Logging** (цикл опроса $\le 1$ с) и **Slow Tag Logging** (цикл $> 1$ с).
 * Расчет первичных файлов баз данных (**MDF**) и журналов транзакций (**LDF**).
 * Контроль порога **10 GB** бесплатной редакции Microsoft SQL Server Express.
+* **Архив электронного аудита (Audit Trail)**: моделирование таблицы `AuditLogging` в SQL Server (~500 байт/запись с электронными подписями) с расчетом дисковой нагрузки и требований к **IOPS**.
 
 ### 4. Конфигуратор тегов (Master Tags Hub / Инспектор TIA Portal V14–V20)
+* **Прямой импорт таблиц TIA Portal (XLSX / CSV Drag & Drop)**: автоматический парсинг 30-колоночных файлов экспорта TIA Portal V14–V20, автоопределение имен, адресов в ПЛК (`PLC tag`), типов данных, циклов и комментариев в режимах добавления (`Append`) или замены (`Replace`).
 * **Единый кросс-платформенный реестр**: централизованное хранение и взаимная синхронизация тегов между WinCC Unified, Comfort и Professional в один клик.
+* **Селектор импорта тегов из рантаймов**: выпадающее меню загрузки тегов из Unified, Comfort или Professional с живыми счетчиками тегов.
 * **Продвинутое трендовое сжатие и фильтрация**:
   - **Swinging Door** (качающаяся дверь): сокращение первичного потока записей до 85–90% без потери динамики процесса.
   - **Deadband (Value / Relative)**: абсолютная и относительная зона нечувствительности.
@@ -78,6 +82,10 @@ flowchart TD
         Drawer["Inspector Drawer (Свойства архивации тега)"]
     end
 
+    subgraph Importers ["Импорт и Разбор"]
+        TiaImport["TIA Portal Importer (XLSX / CSV Drag & Drop)\n30 колонок, автоопределение типов и циклов"]
+    end
+
     subgraph Hub ["Master Tags Hub"]
         MasterConfig["Конфигуратор тегов (TIA Portal V19)"]
         SmoothEngine["Smoothing & Compression Engine\n(Swinging Door, Deadband, Limits)"]
@@ -85,9 +93,9 @@ flowchart TD
     end
 
     subgraph Engines ["Вычислительные ядра"]
-        UnifiedEngine["Unified Engine (SQLite WAL 4MB, Multi-log, ISA-18.2)"]
-        ComfortEngine["Comfort Engine (RDB / CSV, 500k limit, SDHC 32GB)"]
-        ProEngine["Professional Engine (MS SQL Server MDF/LDF, Fast/Slow)"]
+        UnifiedEngine["Unified Engine (SQLite WAL 4MB, Multi-log, Audit Trail, ISA-18.2)"]
+        ComfortEngine["Comfort Engine (RDB / CSV, 500k limit, Audit Trail, SDHC 32GB)"]
+        ProEngine["Professional Engine (MS SQL Server MDF/LDF, Audit Trail, IOPS, Fast/Slow)"]
         NetEngine["Network Engine (S7comm, OMS+, OPC UA, Bandwidth)"]
         FlashEngine["Flash Life & TBW Engine (SLC, pSLC, MLC, TLC, P/E)"]
     end
@@ -99,13 +107,15 @@ flowchart TD
     end
 
     Header --> Nav
+    TiaImport --> MasterConfig & UnifiedEngine & ComfortEngine & ProEngine
     Nav --> MasterConfig
     MasterConfig --> SmoothEngine --> CrossSync
     CrossSync --> UnifiedEngine
     CrossSync --> ComfortEngine
     CrossSync --> ProEngine
     UnifiedEngine --> FlashEngine
-    UnifiedEngine --> NetEngine
+    ComfortEngine --> FlashEngine
+    UnifiedEngine & ComfortEngine & ProEngine --> NetEngine
     UnifiedEngine & ComfortEngine & ProEngine --> TiaXlsx & TiaCsv & PdfReport
 ```
 
@@ -143,9 +153,26 @@ flowchart TD
 * **Работа с таблицами**: SheetJS (`xlsx` 0.20.3 безопасной сборки) + `read-excel-file`
 * **Качество кода**:
   - 0 ошибок и предупреждений ESLint (`npm run lint`).
-  - 461 автоматизированный тест математических ядер (`npx tsx scripts/testEngines.ts`).
+  - 490 автоматизированных тестов математических ядер (`npx tsx scripts/testEngines.ts`).
   - 0 уязвимостей зависимостей (`npm audit`).
 * **PWA & Offline**: Web App Manifest + Service Worker с сетевой политикой Network-First.
+
+---
+
+## ⚡ Что нового в версии 2.16.0
+
+* **Прямой импорт таблиц экспорта TIA Portal (XLSX / CSV Drag & Drop) в Конфигуратор тегов**:
+  - Поддержка перетаскивания и парсинга официальных 30-колоночных файлов `Hmi Tags.xlsx` напрямую в Конфигуратор тегов (Master Tags Hub).
+  - Автоматическое распознавание символьных адресов ПЛК (`PLC tag`), соединений, типов данных, циклов опроса и комментариев.
+  - Поддержка режимов добавления (`Append`) и полной замены (`Replace`) с предпросмотром структуры строк.
+* **Сквозной расчет Audit Trail (GMP / 21 CFR Part 11) для всех платформ**:
+  - **WinCC Comfort / Advanced**: моделирование журнала действий оператора SIMATIC WinCC Audit (~250 байт/запись с криптографическим хэшем), динамический пересчет нагрузки на запись Flash (`dailyWrittenGb`) и ресурса SD-карты.
+  - **WinCC Professional**: моделирование архивной таблицы `AuditLogging` в SQL Server (~500 байт/запись с электронными подписями) с расчетом прироста размера MDF/LDF и требуемых IOPS дисковой подсистемы.
+* **Интеллектуальное выпадающее меню загрузки тегов из рантаймов**:
+  - Быстрый импорт тегов из Unified, Comfort или Professional с живыми бейджами счетчиков тегов в каждом источнике.
+  - Устранена графическая обрезка выпадающего списка (исправлен overflow контейнера).
+* **Расширение испытательного полигона**:
+  - **490 модульных тестов** математических ядер и парсеров (100% PASS).
 
 ---
 

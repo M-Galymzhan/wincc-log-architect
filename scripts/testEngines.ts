@@ -44,7 +44,8 @@ import {
   extractXlsxRows, 
   convertToUnifiedTags, 
   convertToComfortTags, 
-  convertToProfessionalTags 
+  convertToProfessionalTags,
+  convertToMasterTags 
 } from '../src/lib/tagImporter';
 
 let passedTests = 0;
@@ -1900,6 +1901,96 @@ async function runAsyncTests() {
   const pulledFromProfessional = adaptProfessionalToMasterTag(samplePTag, 2);
   assert(pulledFromProfessional.name === 'Turbine_Speed', 'Pull Adapter: Professional name preserved');
   assert(pulledFromProfessional.targetLogName === 'TagLoggingFast', 'Pull Adapter: Professional fast mapped to TagLoggingFast');
+
+  console.log('\n=== [11.2] CONVERT TO MASTER TAGS & AUDIT TRAIL VERIFICATION ===');
+
+  // Test 1: convertToMasterTags
+  const parsedSampleItems = [
+    {
+      name: 'Flow_Rate_Sensor',
+      dataType: 'Real' as const,
+      mode: 'cyclic' as const,
+      cycleSec: 2,
+      entriesPerSec: 0.5,
+      count: 5,
+      comment: 'Primary flow transmitter',
+      processTag: 'PLC_Flow_DB.sensor1',
+    },
+    {
+      name: 'Emergency_Valve_Sts',
+      dataType: 'Bool' as const,
+      mode: 'onchange' as const,
+      cycleSec: 1,
+      entriesPerSec: 0.0167,
+      count: 1,
+      comment: 'Valve state',
+    },
+  ];
+
+  const convertedMasterTags = convertToMasterTags(parsedSampleItems);
+  assert(convertedMasterTags.length === 2, 'TagImporter: convertToMasterTags converts all items');
+  assert(convertedMasterTags[0].name === 'Flow_Rate_Sensor', 'TagImporter: Tag 1 name preserved');
+  assert(convertedMasterTags[0].processTag === 'PLC_Flow_DB.sensor1', 'TagImporter: Tag 1 processTag preserved');
+  assert(convertedMasterTags[0].dataType === 'Real', 'TagImporter: Tag 1 dataType preserved');
+  assert(convertedMasterTags[0].loggingMode === 'cyclic', 'TagImporter: Tag 1 mode is cyclic');
+  assert(convertedMasterTags[0].cycleSec === 2, 'TagImporter: Tag 1 cycleSec is 2');
+  assert(convertedMasterTags[0].count === 5, 'TagImporter: Tag 1 count is 5');
+  assert(convertedMasterTags[1].loggingMode === 'onchange', 'TagImporter: Tag 2 mode is onchange');
+  assert(convertedMasterTags[1].processTag.includes('Emergency_Valve_Sts'), 'TagImporter: Tag 2 processTag generated if missing');
+
+  // Test 2: Comfort Audit Trail
+  const comfortBaseConfig: ComfortConfig = {
+    deviceType: 'comfort_panel',
+    format: 'rdb',
+    retentionDays: 30,
+    recordsPerLog: 50000,
+    logMethod: 'segmented',
+    storageMediumMb: 2048,
+    storageMedium: 'sd_2g',
+    includeAudit: false,
+    auditEntriesPerDay: 0,
+  };
+  const comfortResNoAudit = calculateComfort([], comfortBaseConfig);
+  const comfortResWithAudit = calculateComfort([], {
+    ...comfortBaseConfig,
+    includeAudit: true,
+    auditEntriesPerDay: 500,
+  });
+
+  const auditLogItem = comfortResWithAudit.logItems.find(item => item.id === 'audit_trail');
+  assert(auditLogItem !== undefined, 'Comfort Audit: logItems contains audit_trail when enabled');
+  assert(auditLogItem?.category === 'audit', 'Comfort Audit: item category is audit');
+  assert(auditLogItem?.entriesPerDay === 500, 'Comfort Audit: entriesPerDay set to 500');
+  assert((auditLogItem?.totalLogMb || 0) > 0, 'Comfort Audit: totalLogMb > 0');
+  assert(comfortResWithAudit.totalStorageUsedMb > comfortResNoAudit.totalStorageUsedMb, 'Comfort Audit: totalStorageUsedMb increases with audit');
+  assert(comfortResWithAudit.dailyWrittenGb > comfortResNoAudit.dailyWrittenGb, 'Comfort Audit: dailyWrittenGb increases with audit');
+
+  // Test 3: Professional Audit Trail
+  const proBaseConfig: ProfessionalConfig = {
+    sqlEdition: 'standard_enterprise',
+    retentionDays: 30,
+    segmentPeriod: 'month',
+    includeAlarmLogging: false,
+    alarmsPerHour: 0,
+    databaseHeadroomPct: 20,
+    diskCapacityGb: 500,
+    includeAudit: false,
+    auditEntriesPerDay: 0,
+  };
+  const proResNoAudit = calculateProfessional([], proBaseConfig);
+  const proResWithAudit = calculateProfessional([], {
+    ...proBaseConfig,
+    includeAudit: true,
+    auditEntriesPerDay: 500,
+  });
+
+  const proAuditItem = proResWithAudit.archiveItems.find(item => item.id === 'audit');
+  assert(proAuditItem !== undefined, 'Professional Audit: archiveItems contains audit when enabled');
+  assert(proAuditItem?.archiveType === 'audit', 'Professional Audit: item archiveType is audit');
+  assert((proAuditItem?.sizeGb || 0) > 0, 'Professional Audit: audit sizeGb > 0');
+  assert(proResWithAudit.totalMdfSizeGb > proResNoAudit.totalMdfSizeGb, 'Professional Audit: totalMdfSizeGb increases with audit');
+  assert(proResWithAudit.totalStorageGb > proResNoAudit.totalStorageGb, 'Professional Audit: totalStorageGb increases with audit');
+  assert(proResWithAudit.requiredIops >= proResNoAudit.requiredIops, 'Professional Audit: requiredIops increases with audit');
   }
 
   console.log(`\n========================================`);

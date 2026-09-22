@@ -69,28 +69,38 @@ export function calculateProfessional(
       alarmEntriesPerDay = Math.round(
         config.alarmTags.reduce((acc, at) => acc + (at.eventsPerDay || 0) * (at.count || 1), 0)
       );
-      alarmsPerHour = Math.round((alarmEntriesPerDay / 24) * 10) / 10;
+      alarmsPerHour = Math.round(alarmEntriesPerDay / 24);
     } else {
       alarmsPerHour = Math.max(0, config.alarmsPerHour || 0);
       alarmEntriesPerDay = Math.round(alarmsPerHour * 24);
     }
   }
 
-  const totalEntriesPerDay = fastEntriesPerDay + slowEntriesPerDay + alarmEntriesPerDay;
-  const totalRatePerSec = Math.round((fastRatePerSec + slowRatePerSec) * 10) / 10;
+  // Audit Trail Calculation (GMP / 21 CFR Part 11)
+  let auditEntriesPerDay = 0;
+  if (config.includeAudit && (config.auditEntriesPerDay || 0) > 0) {
+    auditEntriesPerDay = Math.max(0, Math.floor(config.auditEntriesPerDay || 0));
+  }
+  const auditRatePerSec = auditEntriesPerDay / 86400;
+
+  const totalEntriesPerDay = fastEntriesPerDay + slowEntriesPerDay + alarmEntriesPerDay + auditEntriesPerDay;
+  const totalRatePerSec = Math.round((fastRatePerSec + slowRatePerSec + auditRatePerSec) * 10) / 10;
 
   // SQL Server record footprint in MDF:
   // Fast & Slow MDF: dynamically weighted by DataType * factor
   // Alarm logging record: ~192 bytes in MDF (Alarm text, state, acknowledge, timestamps, indexes)
+  // Audit Trail record: ~500 bytes in MDF (GMP electronic signatures, checksums, user, old/new value)
   const fastBytesTotal = fastBytesPerSec * 86400 * retentionDays * factor;
   const slowBytesTotal = slowBytesPerSec * 86400 * retentionDays * factor;
   const alarmBytesTotal = alarmEntriesPerDay * retentionDays * 192 * factor;
+  const auditBytesTotal = auditEntriesPerDay * retentionDays * 500 * factor;
 
   const fastDatabaseSizeGb = fastBytesTotal / (1024 * 1024 * 1024);
   const slowDatabaseSizeGb = slowBytesTotal / (1024 * 1024 * 1024);
   const alarmDatabaseSizeGb = alarmBytesTotal / (1024 * 1024 * 1024);
+  const auditDatabaseSizeGb = auditBytesTotal / (1024 * 1024 * 1024);
 
-  const totalMdfSizeGb = fastDatabaseSizeGb + slowDatabaseSizeGb + alarmDatabaseSizeGb;
+  const totalMdfSizeGb = fastDatabaseSizeGb + slowDatabaseSizeGb + alarmDatabaseSizeGb + auditDatabaseSizeGb;
   // Transaction Log (LDF) typically requires 25% of MDF under regular maintenance and checkpointing
   const estimatedLdfSizeGb = totalMdfSizeGb * 0.25;
   const totalStorageGb = totalMdfSizeGb + estimatedLdfSizeGb;
@@ -98,8 +108,8 @@ export function calculateProfessional(
 
   // Required IOPS Calculation for Microsoft SQL Server:
   // SQL Server buffers writes in Memory/Buffer Pool and writes 8KB pages in batches.
-  // Base IOPS = (writes/sec / 20) + alarm flushes + checkpoint overhead.
-  const writeIops = Math.ceil(totalRatePerSec / 20) + Math.ceil(alarmsPerHour / 60) + 15;
+  // Base IOPS = (writes/sec / 20) + alarm flushes + audit flushes + checkpoint overhead.
+  const writeIops = Math.ceil(totalRatePerSec / 20) + Math.ceil(alarmsPerHour / 60) + Math.ceil(auditRatePerSec * 2) + 15;
   const requiredIops = Math.round(writeIops * 1.5); // +50% headroom for indexes and queries
 
   // Traffic status (Rate thresholds for SQL Server)
@@ -200,6 +210,23 @@ export function calculateProfessional(
     },
   ];
 
+  if (config.includeAudit && auditEntriesPerDay > 0) {
+    archiveItems.push({
+      id: 'audit',
+      name: 'AuditLogging',
+      archiveType: 'audit',
+      nameRu: 'Архив электронного аудита (Audit Trail)',
+      nameEn: 'Electronic Audit Trail Archive',
+      segmentPeriod,
+      retentionDays,
+      sizeGb: auditDatabaseSizeGb,
+      sizeMb: Math.round(auditDatabaseSizeGb * 1024),
+      path: `${basePath}\\ArchiveManager\\AuditLogging`,
+      descriptionRu: 'Электронный журнал аудита действий, уставок и электронных подписей GMP (21 CFR Part 11)',
+      descriptionEn: 'GMP electronic records, setpoint changes, and electronic signatures (21 CFR Part 11)',
+    });
+  }
+
   const warnings: string[] = [];
 
   // SQL Server Express limit warning
@@ -262,11 +289,13 @@ export function calculateProfessional(
     fastEntriesPerDay,
     slowEntriesPerDay,
     alarmEntriesPerDay,
+    auditEntriesPerDay,
     totalEntriesPerDay,
     totalRatePerSec,
     fastDatabaseSizeGb,
     slowDatabaseSizeGb,
     alarmDatabaseSizeGb,
+    auditDatabaseSizeGb,
     totalMdfSizeGb,
     estimatedLdfSizeGb,
     totalStorageGb,

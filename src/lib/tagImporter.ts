@@ -1,5 +1,5 @@
 import readXlsxFile from 'read-excel-file/universal';
-import { UnifiedTag, ComfortTag, ProfessionalTag } from './types';
+import { UnifiedTag, ComfortTag, ProfessionalTag, MasterLoggingTag } from './types';
 
 export interface ParsedTagItem {
   name: string;
@@ -9,6 +9,8 @@ export interface ParsedTagItem {
   entriesPerSec: number;
   count: number;
   comment?: string;
+  processTag?: string;
+  connection?: string;
 }
 
 export interface ImportParseResult {
@@ -28,6 +30,8 @@ export interface DetectedColumns {
   modeIdx: number;
   commentIdx: number;
   countIdx: number;
+  plcTagIdx: number;
+  connectionIdx: number;
 }
 
 /**
@@ -161,7 +165,16 @@ export function detectColumns(headers: string[]): DetectedColumns {
   // 6. Count / Quantity
   const countIdx = norm.findIndex(h => h === 'count' || h === 'qty' || h === 'кол-во' || h === 'количество');
 
-  return { nameIdx, typeIdx, cycleIdx, modeIdx, commentIdx, countIdx };
+  // 7. PLC Tag / Process Tag
+  let plcTagIdx = norm.findIndex(h => h === 'plc tag' || h === 'process tag' || h === 'адрес плк' || h === 'тег плк');
+  if (plcTagIdx === -1) {
+    plcTagIdx = norm.findIndex(h => (h.includes('plc tag') || h.includes('process tag') || h.includes('plc_tag')) && !h.includes('substitute'));
+  }
+
+  // 8. Connection
+  const connectionIdx = norm.findIndex(h => h === 'connection' || h === 'соединение' || h === 'связь');
+
+  return { nameIdx, typeIdx, cycleIdx, modeIdx, commentIdx, countIdx, plcTagIdx, connectionIdx };
 }
 
 /**
@@ -217,6 +230,8 @@ export function parseRowsToTags(rows: unknown[][]): { tags: ParsedTagItem[]; err
       ? Math.max(1, Math.round(Number(row[cols.countIdx]))) 
       : 1;
     const comment = cols.commentIdx !== -1 && row[cols.commentIdx] ? String(row[cols.commentIdx]).trim() : undefined;
+    const processTag = cols.plcTagIdx !== -1 && row[cols.plcTagIdx] ? String(row[cols.plcTagIdx]).trim() : undefined;
+    const connection = cols.connectionIdx !== -1 && row[cols.connectionIdx] ? String(row[cols.connectionIdx]).trim() : undefined;
 
     const entriesPerSec = mode === 'cyclic'
       ? Number((1 / Math.max(0.01, cycleSec)).toFixed(4))
@@ -230,6 +245,8 @@ export function parseRowsToTags(rows: unknown[][]): { tags: ParsedTagItem[]; err
       entriesPerSec,
       count,
       comment,
+      processTag,
+      connection,
     });
   }
 
@@ -428,5 +445,22 @@ export function convertToProfessionalTags(items: ParsedTagItem[]): ProfessionalT
     count: item.count,
     archiveType: item.cycleSec <= 1 ? 'fast' : 'slow',
     dataType: item.dataType,
+  }));
+}
+
+/**
+ * Converts parsed items to MasterLoggingTag for Master Tags Hub.
+ * Retains PLC process tag, description, data types, and acquisition mode.
+ */
+export function convertToMasterTags(items: ParsedTagItem[]): MasterLoggingTag[] {
+  return items.map((item, idx) => ({
+    id: 'mt_' + Date.now().toString(36) + '_' + Math.random().toString(36).substring(2, 7) + '_' + idx,
+    name: item.name,
+    processTag: item.processTag || (item.connection ? `${item.connection}.${item.name}` : `PLC1_${item.name}_DB`),
+    description: item.comment || item.name,
+    dataType: item.dataType,
+    loggingMode: item.mode === 'onchange' ? 'onchange' : 'cyclic',
+    cycleSec: item.cycleSec,
+    count: item.count,
   }));
 }

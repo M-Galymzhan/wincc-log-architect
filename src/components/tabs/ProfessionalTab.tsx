@@ -12,7 +12,7 @@ import { ConfirmModal } from '../ConfirmModal';
 import { ImportTagsModal } from '../ImportTagsModal';
 import { 
   Plus, Trash2, Database, AlertTriangle, CheckCircle2, RefreshCw, Zap, Server, Upload,
-  HardDrive, Bell, Copy, Check, ShieldAlert, Cpu, Activity
+  HardDrive, Bell, Copy, Check, ShieldAlert, ShieldCheck, Cpu, Activity
 } from 'lucide-react';
 import { getSiemensArticle } from '../../lib/calculator/mlfbCatalog';
 import { 
@@ -495,6 +495,33 @@ export const ProfessionalTab: React.FC<ProfessionalTabProps> = ({
                 <Bell className="w-3.5 h-3.5 text-blue-500" />
                 <span>{lang === 'ru' ? 'Настроить алармы' : 'Manage Alarms'}</span>
               </button>
+            </div>
+
+            {/* Audit Trail Toggle (GMP / 21 CFR Part 11) */}
+            <div className="flex items-center justify-between p-3 mb-3 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/50">
+              <div className="flex items-center gap-2.5">
+                <ShieldCheck className="w-4 h-4 text-blue-500" />
+                <div>
+                  <div className="text-xs font-bold text-slate-900 dark:text-white">{t.auditToggle}</div>
+                  <div className="flex items-center gap-1.5 mt-0.5">
+                    <input
+                      type="number"
+                      min="0"
+                      disabled={!config.includeAudit}
+                      value={config.auditEntriesPerDay || 200}
+                      onChange={(e) => setConfig({ ...config, auditEntriesPerDay: Math.max(0, parseInt(e.target.value, 10) || 0) })}
+                      className="w-20 p-0.5 text-xs font-mono rounded border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 disabled:opacity-50 focus:ring-1 focus:ring-blue-500 outline-none"
+                    />
+                    <span className="text-[10px] text-slate-500 dark:text-slate-400">{t.auditPerDay}</span>
+                  </div>
+                </div>
+              </div>
+              <input
+                type="checkbox"
+                checked={config.includeAudit || false}
+                onChange={(e) => setConfig({ ...config, includeAudit: e.target.checked })}
+                className="w-4 h-4 accent-blue-600 cursor-pointer"
+              />
             </div>
           </div>
 

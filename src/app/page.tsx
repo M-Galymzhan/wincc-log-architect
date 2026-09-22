@@ -160,6 +160,8 @@ export default function Home() {
       { id: 'alarms_log', name: 'Alarms_log', entriesPerDay: 50, retentionDays: 30, recordsPerLog: 20000, enabled: true },
       { id: 'events_log', name: 'Events_log', entriesPerDay: 100, retentionDays: 30, recordsPerLog: 20000, enabled: true },
     ],
+    includeAudit: false,
+    auditEntriesPerDay: 200,
     alarmTags: [
       { id: 'alm_1', name: 'M101_Trip_Overload', alarmClass: 'Alarm', triggerType: 'digital', eventsPerDay: 2, count: 4, alarmLogId: 'alarms_log' },
       { id: 'alm_2', name: 'Tank_Level_HighHigh', alarmClass: 'Alarm', triggerType: 'analog', eventsPerDay: 1, count: 2, alarmLogId: 'alarms_log' },
@@ -183,6 +185,8 @@ export default function Home() {
     segmentPeriod: 'month',
     includeAlarmLogging: true,
     alarmsPerHour: 150,
+    includeAudit: false,
+    auditEntriesPerDay: 200,
     databaseHeadroomPct: 25,
     storageDiskType: 'nvme_ssd',
     diskCapacityGb: 512,

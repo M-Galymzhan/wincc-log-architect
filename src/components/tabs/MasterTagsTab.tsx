@@ -14,6 +14,8 @@ import {
   checkTagCompatibility,
 } from '../../lib/calculator/smoothingEngine';
 import { translations } from '../../lib/i18n';
+import { ImportTagsModal } from '../ImportTagsModal';
+import { convertToMasterTags, ParsedTagItem } from '../../lib/tagImporter';
 import {
   Sliders,
   Plus,
@@ -33,6 +35,7 @@ import {
   ChevronRight,
   ChevronDown,
   X,
+  Upload,
 } from 'lucide-react';
 
 const generateMasterTagId = (): string => {
@@ -81,6 +84,7 @@ export const MasterTagsTab: React.FC<MasterTagsTabProps> = ({
   const [showComfortWarningModal, setShowComfortWarningModal] = useState(false);
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
   const [isPullMenuOpen, setIsPullMenuOpen] = useState(false);
+  const [isImportModalOpen, setIsImportModalOpen] = useState(false);
   const pullMenuRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -261,6 +265,25 @@ export const MasterTagsTab: React.FC<MasterTagsTabProps> = ({
     }
     addToast(lang === 'ru' ? 'Тег удален' : 'Tag deleted', 'info');
   };
+
+  const handleImportTags = useCallback((parsedTags: ParsedTagItem[], mode: 'append' | 'replace') => {
+    const converted = convertToMasterTags(parsedTags);
+    if (mode === 'replace') {
+      setMasterTags(converted);
+      if (converted.length > 0) {
+        setSelectedTagId(converted[0].id);
+      }
+    } else {
+      setMasterTags((prev) => [...prev, ...converted]);
+      if (converted.length > 0 && !selectedTagId) {
+        setSelectedTagId(converted[0].id);
+      }
+    }
+    const successMsg = t.importToastSuccess 
+      ? t.importToastSuccess.replace('{n}', String(converted.length))
+      : (lang === 'ru' ? `Успешно импортировано ${converted.length} тегов` : `Successfully imported ${converted.length} tags`);
+    addToast(successMsg, 'success');
+  }, [setMasterTags, selectedTagId, addToast, t.importToastSuccess, lang]);
 
   // Check if any tag has features unsupported by Comfort
   const comfortUnsupportedCount = useMemo(() => {
@@ -471,6 +494,17 @@ export const MasterTagsTab: React.FC<MasterTagsTabProps> = ({
                 </div>
               )}
             </div>
+
+            {/* Import Tags Button */}
+            <button
+              type="button"
+              onClick={() => setIsImportModalOpen(true)}
+              className="px-3 py-2 rounded-xl text-xs font-semibold bg-emerald-600/15 hover:bg-emerald-600/25 text-emerald-800 dark:text-emerald-200 border border-emerald-500/40 transition-all flex items-center gap-1.5 cursor-pointer shadow-xs"
+              title={lang === 'ru' ? 'Импортировать теги из файла TIA Portal (.xlsx, .csv)' : 'Import tags from TIA Portal file (.xlsx, .csv)'}
+            >
+              <Upload className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400" />
+              <span>{t.btnImportTagsFull || (lang === 'ru' ? 'Импорт тегов' : 'Import Tags')}</span>
+            </button>
 
             <button
               onClick={handleAddTag}
@@ -1489,6 +1523,16 @@ export const MasterTagsTab: React.FC<MasterTagsTabProps> = ({
                             <div className="w-1.5 h-1.5 rounded-full bg-blue-500" />
                             <span>Professional ({proTagsCount})</span>
                           </button>
+
+                          <button
+                            type="button"
+                            onClick={() => setIsImportModalOpen(true)}
+                            className="px-2.5 py-1.5 rounded-xl text-xs font-medium bg-emerald-600/10 hover:bg-emerald-600/20 text-emerald-700 dark:text-emerald-300 border border-emerald-500/30 transition-all flex items-center gap-1.5 cursor-pointer"
+                            title={lang === 'ru' ? 'Импортировать теги из файла TIA Portal (.xlsx, .csv)' : 'Import tags from TIA Portal file (.xlsx, .csv)'}
+                          >
+                            <Upload className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400" />
+                            <span>{t.btnImportTagsFull || (lang === 'ru' ? 'Импорт тегов' : 'Import Tags')}</span>
+                          </button>
                         </div>
                       </div>
                     </td>
@@ -1713,6 +1757,15 @@ export const MasterTagsTab: React.FC<MasterTagsTabProps> = ({
           </div>
         </div>
       )}
+
+      {/* Import Tags Modal */}
+      <ImportTagsModal
+        isOpen={isImportModalOpen}
+        onClose={() => setIsImportModalOpen(false)}
+        onImport={handleImportTags}
+        tab="master_tags"
+        lang={lang}
+      />
     </div>
   );
 };
