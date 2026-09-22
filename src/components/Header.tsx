@@ -8,7 +8,7 @@ interface HeaderProps {
   lang: Language;
   setLang: (l: Language) => void;
   theme: Theme;
-  setTheme: (t: Theme) => void;
+  onToggleTheme: () => void;
   onOpenReport: () => void;
   onOpenCheatSheet: () => void;
   onOpenPresets: () => void;
@@ -20,7 +20,7 @@ export const Header: React.FC<HeaderProps> = React.memo(({
   lang,
   setLang,
   theme,
-  setTheme,
+  onToggleTheme,
   onOpenReport,
   onOpenCheatSheet,
   onOpenPresets,
@@ -61,11 +61,11 @@ export const Header: React.FC<HeaderProps> = React.memo(({
                   href="https://github.com/M-Galymzhan/wincc-log-architect/commits/main"
                   target="_blank"
                   rel="noopener noreferrer"
-                  title={lang === 'ru' ? 'Релиз v2.17.0 (кликните для просмотра коммитов на GitHub)' : 'Release v2.17.0 (click to view GitHub commits)'}
+                  title={lang === 'ru' ? 'Релиз v2.17.1 (кликните для просмотра коммитов на GitHub)' : 'Release v2.17.1 (click to view GitHub commits)'}
                   className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/30 hover:bg-emerald-500/20 hover:border-emerald-500/50 transition-colors cursor-pointer"
                 >
                   <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
-                  <span>v2.17.0</span>
+                  <span>v2.17.1</span>
                 </a>
                 <a
                   href="https://ko-fi.com/glmm1"
@@ -112,7 +112,7 @@ export const Header: React.FC<HeaderProps> = React.memo(({
 
             {/* Mobile Theme Switch */}
             <button
-              onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
+              onClick={onToggleTheme}
               className="p-1.5 rounded-lg bg-slate-200/80 dark:bg-slate-800 border border-slate-300/60 dark:border-slate-700 text-slate-700 dark:text-amber-400 hover:bg-slate-300 dark:hover:bg-slate-700 transition-all cursor-pointer"
               title={theme === 'dark' ? 'Light Mode' : 'Dark Mode'}
               aria-label={theme === 'dark' ? 'Light Mode' : 'Dark Mode'}
@@ -206,7 +206,7 @@ export const Header: React.FC<HeaderProps> = React.memo(({
 
           {/* Theme Switch */}
           <button
-            onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
+            onClick={onToggleTheme}
             className="p-1.5 sm:p-2 rounded-lg bg-slate-200/80 dark:bg-slate-800 border border-slate-300/60 dark:border-slate-700 text-slate-700 dark:text-amber-400 hover:bg-slate-300 dark:hover:bg-slate-700 transition-all cursor-pointer shrink-0"
             title={theme === 'dark' ? 'Light Mode' : 'Dark Mode'}
             aria-label={theme === 'dark' ? 'Light Mode' : 'Dark Mode'}

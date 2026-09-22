@@ -6,7 +6,7 @@
 </p>
 
 <p align="center">
-  <img src="https://img.shields.io/badge/Версия-2.17.0-emerald?style=for-the-badge" alt="Version 2.17.0" />
+  <img src="https://img.shields.io/badge/Версия-2.17.1-emerald?style=for-the-badge" alt="Version 2.17.1" />
   <img src="https://img.shields.io/badge/Next.js-16.3.4-black?style=for-the-badge&logo=next.js" alt="Next.js" />
   <img src="https://img.shields.io/badge/React-19.2.8-blue?style=for-the-badge&logo=react" alt="React" />
   <img src="https://img.shields.io/badge/Tailwind_CSS-4.3.3-38B2AC?style=for-the-badge&logo=tailwind-css" alt="Tailwind" />
@@ -158,6 +158,24 @@ flowchart TD
   - 490 автоматизированных тестов математических ядер (`npx tsx scripts/testEngines.ts`).
   - 0 уязвимостей зависимостей (`npm audit`).
 * **PWA & Offline**: Web App Manifest + Service Worker с сетевой политикой Network-First.
+
+---
+
+## ⚡ Что нового в версии 2.17.1
+
+* **Плавное переключение темной и светлой темы (CSS View Transitions API)**:
+  - Устранены рывки, мерцания и контрастные полосы между карточками при смене темы оформления.
+  - Ликвидирован рассинхронизированный CSS-переход у `body`, приводивший к отставанию цвета фона от стеклянных панелей.
+  - Внедрен нативный аппаратный кросс-фейд через современный веб-стандарт `document.startViewTransition` с поддержкой директивы доступности `@media (prefers-reduced-motion: reduce)`.
+  - Синхронное обновление класса `dark` на теге `<html>` и `localStorage` в момент клика исключает асинхронную задержку `useEffect`.
+  - Реализована безопасная деградация (graceful fallback) для старых браузеров (мгновенное четкое переключение без артефактов).
+* **Поисковая оптимизация под запросы «WinCC Tag Logging» (SEO & SSR)**:
+  - Устранен пустой рендер `<body>` при первой загрузке: поисковые роботы (Googlebot, Bingbot) получают готовый статический HTML (155+ КБ) со всеми таблицами, шапкой и FAQ сразу в первом ответе сервера.
+  - Добавлены ключевые фразы `wincc tag logging`, `wincc tag logging archive configuration` в Title, Description, OpenGraph и Twitter Cards.
+  - Внедрен развернутый инженерный FAQ по Tag Logging (циклы опроса/архивации, SQLite WAL, лимиты RDB, Fast/Slow теги) с микроразметкой `FAQPage` (JSON-LD).
+  - Очищен `sitemap.xml` от параметров запроса для устранения конфликтов канонических ссылок.
+* **Испытательный полигон**:
+  - Все **499 модульных тестов** калькулятора, парсеров и адаптеров проходят со 100% успехом.
 
 ---
 

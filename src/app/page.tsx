@@ -475,6 +475,29 @@ export default function Home() {
     }
   }, [lang, theme, unifiedTags, unifiedConfig, comfortTags, comfortConfig, proTags, proConfig, masterTags]);
 
+  // Smooth theme toggle with View Transitions API and synchronous DOM update
+  const toggleTheme = useCallback(() => {
+    const nextTheme: Theme = theme === 'dark' ? 'light' : 'dark';
+
+    const applyThemeChange = () => {
+      setTheme(nextTheme);
+      document.documentElement.classList.toggle('dark', nextTheme === 'dark');
+      try {
+        localStorage.setItem('wincc_theme', nextTheme);
+      } catch (e) {
+        console.error('LocalStorage theme save error:', e);
+      }
+    };
+
+    if (typeof document !== 'undefined' && 'startViewTransition' in document) {
+      (document as unknown as { startViewTransition: (cb: () => void) => void }).startViewTransition(() => {
+        applyThemeChange();
+      });
+    } else {
+      applyThemeChange();
+    }
+  }, [theme]);
+
   // Export Project JSON
   const handleExportJson = () => {
     const payload = {
@@ -622,7 +645,7 @@ export default function Home() {
         lang={lang}
         setLang={setLang}
         theme={theme}
-        setTheme={setTheme}
+        onToggleTheme={toggleTheme}
         onOpenReport={() => setIsReportOpen(true)}
         onOpenCheatSheet={() => setIsCheatSheetOpen(true)}
         onOpenPresets={() => setIsPresetsOpen(true)}
