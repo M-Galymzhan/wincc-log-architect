@@ -1,5 +1,5 @@
 'use client';
-import React, { useState, useEffect, useCallback, useRef, useMemo } from 'react';
+import React, { useState, useEffect, useCallback, useRef, useMemo, useTransition } from 'react';
 import dynamic from 'next/dynamic';
 import { ActiveTab, Language, Theme, UnifiedTag, UnifiedConfig, ComfortTag, ComfortConfig, ProfessionalTag, ProfessionalConfig, ToastMessage, MasterLoggingTag } from '../lib/types';
 import { calculateUnified } from '../lib/calculator/unifiedEngine';
@@ -20,9 +20,9 @@ import { UnifiedTab } from '../components/tabs/UnifiedTab';
 import { ComfortTab } from '../components/tabs/ComfortTab';
 import { ProfessionalTab } from '../components/tabs/ProfessionalTab';
 import { MasterTagsTab } from '../components/tabs/MasterTagsTab';
+import { SeoFaqSection } from '../components/SeoFaqSection';
 import { IndustryPreset } from '../lib/presets';
 import { Toast } from '../components/Toast';
-import { Coffee, HelpCircle } from 'lucide-react';
 
 const TiaCheatSheetModal = dynamic(
   () => import('../components/TiaCheatSheetModal').then((m) => m.TiaCheatSheetModal),
@@ -55,6 +55,7 @@ export default function Home() {
     return 'ru';
   });
   const [theme, setTheme] = useState<Theme>('dark');
+  const [, startTransition] = useTransition();
   const [activeTab, setActiveTabState] = useState<ActiveTab>(() => {
     if (typeof window !== 'undefined') {
       const params = new URLSearchParams(window.location.search);
@@ -64,6 +65,23 @@ export default function Home() {
       }
     }
     return 'unified';
+  });
+
+  const [visitedTabs, setVisitedTabs] = useState<Record<ActiveTab, boolean>>(() => {
+    let initialTab: ActiveTab = 'unified';
+    if (typeof window !== 'undefined') {
+      const params = new URLSearchParams(window.location.search);
+      const tab = params.get('tab');
+      if (tab === 'unified' || tab === 'comfort' || tab === 'professional' || tab === 'master_tags') {
+        initialTab = tab;
+      }
+    }
+    return {
+      unified: initialTab === 'unified',
+      comfort: initialTab === 'comfort',
+      professional: initialTab === 'professional',
+      master_tags: initialTab === 'master_tags',
+    };
   });
 
   const setLang = useCallback((l: Language) => {
@@ -76,7 +94,10 @@ export default function Home() {
   }, []);
 
   const setActiveTab = useCallback((tab: ActiveTab) => {
-    setActiveTabState(tab);
+    setVisitedTabs((prev) => (prev[tab] ? prev : { ...prev, [tab]: true }));
+    startTransition(() => {
+      setActiveTabState(tab);
+    });
     if (typeof window !== 'undefined') {
       const url = new URL(window.location.href);
       url.searchParams.set('tab', tab);
@@ -482,7 +503,7 @@ export default function Home() {
     a.download = `wincc-log-architect-${new Date().toISOString().slice(0, 10)}.json`;
     a.click();
     URL.revokeObjectURL(url);
-    addToast(translations[lang].toastExportSuccess, 'success');
+    addToast(t.toastExportSuccess, 'success');
   };
 
   // Import Project JSON with strict schema validation
@@ -543,12 +564,12 @@ export default function Home() {
           }
 
           if (loaded) {
-            addToast(translations[lang].toastImportSuccess, 'success');
+            addToast(t.toastImportSuccess, 'success');
           } else {
-            addToast(translations[lang].toastImportError, 'error');
+            addToast(t.toastImportError, 'error');
           }
         } catch {
-          addToast(translations[lang].toastImportError, 'error');
+          addToast(t.toastImportError, 'error');
         }
       };
       reader.readAsText(file);
@@ -557,6 +578,7 @@ export default function Home() {
   };
 
   const handleApplyPreset = (preset: IndustryPreset) => {
+    setVisitedTabs((prev) => (prev[activeTab] ? prev : { ...prev, [activeTab]: true }));
     if (activeTab === 'unified') {
       setUnifiedTags(preset.unifiedTags.map((t, i) => ({ ...t, id: `${preset.id}_${i + 1}` })));
     } else if (activeTab === 'comfort') {
@@ -564,7 +586,7 @@ export default function Home() {
     } else {
       setProTags(preset.proTags.map((t, i) => ({ ...t, id: `${preset.id}_${i + 1}` })));
     }
-    addToast(translations[lang].presetAppliedToast, 'success');
+    addToast(t.presetAppliedToast, 'success');
   };
 
   // Calculations with active language for localized warnings (memoized to eliminate redundant recalculation)
@@ -579,6 +601,15 @@ export default function Home() {
   const proResult = useMemo(
     () => calculateProfessional(proTags, proConfig, lang),
     [proTags, proConfig, lang]
+  );
+
+  const navWarnings = useMemo(
+    () => ({
+      unified: unifiedResult.warnings.length > 0,
+      comfort: comfortResult.warnings.length > 0,
+      professional: proResult.warnings.length > 0,
+    }),
+    [unifiedResult.warnings.length, comfortResult.warnings.length, proResult.warnings.length]
   );
 
   if (!mounted) return null;
@@ -619,181 +650,96 @@ export default function Home() {
           activeTab={activeTab}
           setActiveTab={setActiveTab}
           lang={lang}
-          warnings={{
-            unified: unifiedResult.warnings.length > 0,
-            comfort: comfortResult.warnings.length > 0,
-            professional: proResult.warnings.length > 0,
-          }}
+          warnings={navWarnings}
         />
 
-        {/* Tab Panels */}
-        <div role="tabpanel" id={`tabpanel-${activeTab}`} aria-labelledby={`tab-${activeTab}`}>
-          {/* Tab 1: WinCC Unified */}
-          {activeTab === 'unified' && (
-            <UnifiedTab
-              tags={unifiedTags}
-              setTags={setUnifiedTags}
-              config={unifiedConfig}
-              setConfig={setUnifiedConfig}
-              result={unifiedResult}
-              lang={lang}
-              onShowToast={addToast}
-            />
-          )}
-
-          {/* Tab 2: WinCC Comfort / Advanced */}
-          {activeTab === 'comfort' && (
-            <ComfortTab
-              tags={comfortTags}
-              setTags={setComfortTags}
-              config={comfortConfig}
-              setConfig={setComfortConfig}
-              result={comfortResult}
-              lang={lang}
-              onShowToast={addToast}
-            />
-          )}
-
-          {/* Tab 3: WinCC Professional */}
-          {activeTab === 'professional' && (
-            <ProfessionalTab
-              tags={proTags}
-              setTags={setProTags}
-              config={proConfig}
-              setConfig={setProConfig}
-              result={proResult}
-              lang={lang}
-              onShowToast={addToast}
-            />
-          )}
-
-          {/* Tab 4: Master Tags (TIA Portal V14–V21+ Inspector Hub) */}
-          {activeTab === 'master_tags' && (
-            <MasterTagsTab
-              masterTags={masterTags}
-              setMasterTags={setMasterTags}
-              onPushToUnified={handlePushToUnified}
-              onPushToComfort={handlePushToComfort}
-              onPushToProfessional={handlePushToProfessional}
-              onPullFromRuntime={handlePullFromRuntime}
-              unifiedTagsCount={unifiedTags.length}
-              comfortTagsCount={comfortTags.length}
-              proTagsCount={proTags.length}
-              unifiedDataLogs={unifiedConfig.dataLogs}
-              comfortDataLogs={comfortConfig.dataLogs}
-              lang={lang}
-              addToast={addToast}
-            />
-          )}
-
-          {/* SEO Technical Guide & FAQ Section */}
-          <section className="mt-16 pt-10 border-t border-slate-200/80 dark:border-slate-800">
-            <div className="text-center max-w-3xl mx-auto mb-8">
-              <h2 className="text-xl sm:text-2xl font-bold text-slate-900 dark:text-slate-100 mb-2.5 tracking-tight">
-                {t.seoHeading}
-              </h2>
-              <p className="text-xs sm:text-sm text-slate-600 dark:text-slate-400 leading-relaxed">
-                {t.seoIntro}
-              </p>
+        {/* Tab Panels with Keep-Alive Lazy Mounting */}
+        <div className="tab-panels-container relative">
+          {visitedTabs.unified && (
+            <div
+              role="tabpanel"
+              id="tabpanel-unified"
+              aria-labelledby="tab-unified"
+              className={activeTab === 'unified' ? 'block' : 'hidden'}
+            >
+              <UnifiedTab
+                tags={unifiedTags}
+                setTags={setUnifiedTags}
+                config={unifiedConfig}
+                setConfig={setUnifiedConfig}
+                result={unifiedResult}
+                lang={lang}
+                onShowToast={addToast}
+              />
             </div>
+          )}
 
-            {/* FAQ Cards Grid with Semantic Schema Microdata */}
-            <div className="max-w-5xl mx-auto mb-12" itemScope itemType="https://schema.org/FAQPage">
-              <div className="flex items-center gap-2 mb-4 justify-center sm:justify-start">
-                <HelpCircle className="w-5 h-5 text-[#00646E] dark:text-[#00A3B5]" />
-                <h3 className="text-base sm:text-lg font-semibold text-slate-800 dark:text-slate-200">
-                  {t.faqTitle}
-                </h3>
-              </div>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <article
-                  itemScope
-                  itemProp="mainEntity"
-                  itemType="https://schema.org/Question"
-                  className="p-4 sm:p-5 rounded-2xl bg-white/70 dark:bg-slate-900/60 border border-slate-200/80 dark:border-slate-800/80 shadow-xs hover:border-[#00646E]/30 dark:hover:border-[#00A3B5]/30 transition-all"
-                >
-                  <h4 itemProp="name" className="text-xs sm:text-sm font-bold text-slate-900 dark:text-slate-100 mb-2">
-                    {t.faqQ1}
-                  </h4>
-                  <div itemScope itemProp="acceptedAnswer" itemType="https://schema.org/Answer">
-                    <p itemProp="text" className="text-xs text-slate-600 dark:text-slate-400 leading-relaxed">
-                      {t.faqA1}
-                    </p>
-                  </div>
-                </article>
-                <article
-                  itemScope
-                  itemProp="mainEntity"
-                  itemType="https://schema.org/Question"
-                  className="p-4 sm:p-5 rounded-2xl bg-white/70 dark:bg-slate-900/60 border border-slate-200/80 dark:border-slate-800/80 shadow-xs hover:border-[#00646E]/30 dark:hover:border-[#00A3B5]/30 transition-all"
-                >
-                  <h4 itemProp="name" className="text-xs sm:text-sm font-bold text-slate-900 dark:text-slate-100 mb-2">
-                    {t.faqQ2}
-                  </h4>
-                  <div itemScope itemProp="acceptedAnswer" itemType="https://schema.org/Answer">
-                    <p itemProp="text" className="text-xs text-slate-600 dark:text-slate-400 leading-relaxed">
-                      {t.faqA2}
-                    </p>
-                  </div>
-                </article>
-                <article
-                  itemScope
-                  itemProp="mainEntity"
-                  itemType="https://schema.org/Question"
-                  className="p-4 sm:p-5 rounded-2xl bg-white/70 dark:bg-slate-900/60 border border-slate-200/80 dark:border-slate-800/80 shadow-xs hover:border-[#00646E]/30 dark:hover:border-[#00A3B5]/30 transition-all"
-                >
-                  <h4 itemProp="name" className="text-xs sm:text-sm font-bold text-slate-900 dark:text-slate-100 mb-2">
-                    {t.faqQ3}
-                  </h4>
-                  <div itemScope itemProp="acceptedAnswer" itemType="https://schema.org/Answer">
-                    <p itemProp="text" className="text-xs text-slate-600 dark:text-slate-400 leading-relaxed">
-                      {t.faqA3}
-                    </p>
-                  </div>
-                </article>
-                <article
-                  itemScope
-                  itemProp="mainEntity"
-                  itemType="https://schema.org/Question"
-                  className="p-4 sm:p-5 rounded-2xl bg-white/70 dark:bg-slate-900/60 border border-slate-200/80 dark:border-slate-800/80 shadow-xs hover:border-[#00646E]/30 dark:hover:border-[#00A3B5]/30 transition-all"
-                >
-                  <h4 itemProp="name" className="text-xs sm:text-sm font-bold text-slate-900 dark:text-slate-100 mb-2">
-                    {t.faqQ4}
-                  </h4>
-                  <div itemScope itemProp="acceptedAnswer" itemType="https://schema.org/Answer">
-                    <p itemProp="text" className="text-xs text-slate-600 dark:text-slate-400 leading-relaxed">
-                      {t.faqA4}
-                    </p>
-                  </div>
-                </article>
-              </div>
+          {visitedTabs.comfort && (
+            <div
+              role="tabpanel"
+              id="tabpanel-comfort"
+              aria-labelledby="tab-comfort"
+              className={activeTab === 'comfort' ? 'block' : 'hidden'}
+            >
+              <ComfortTab
+                tags={comfortTags}
+                setTags={setComfortTags}
+                config={comfortConfig}
+                setConfig={setComfortConfig}
+                result={comfortResult}
+                lang={lang}
+                onShowToast={addToast}
+              />
             </div>
+          )}
 
-            {/* Support / Donation Footer */}
-            <div className="pt-8 pb-12 border-t border-slate-200/60 dark:border-slate-800 text-center">
-              <h3 className="text-xl sm:text-2xl font-bold mb-2.5 text-slate-900 dark:text-slate-100">
-                {t.supportTitle}
-              </h3>
-              <p className="text-slate-600 dark:text-slate-400 mb-6 max-w-xl mx-auto text-xs sm:text-sm leading-relaxed">
-                {t.supportDesc}
-              </p>
-              <div className="flex items-center justify-center">
-                <a
-                  href="https://ko-fi.com/glmm1"
-                  target="_blank"
-                  rel="noreferrer"
-                  className="inline-flex items-center gap-2.5 px-7 py-3 bg-[#FF5E5B] hover:bg-[#ff4542] text-white font-bold text-sm sm:text-base rounded-2xl shadow-xl shadow-[#FF5E5B]/25 transition-all duration-300 hover:scale-105 active:scale-95 cursor-pointer"
-                >
-                  <Coffee className="w-5 h-5" />
-                  {t.kofiBtn}
-                </a>
-              </div>
-              <div className="mt-8 text-xs sm:text-sm text-slate-400 dark:text-slate-500">
-                © {new Date().getFullYear()} Siemens WinCC Log & Storage Architect • Open Source Engineering Tool
-              </div>
+          {visitedTabs.professional && (
+            <div
+              role="tabpanel"
+              id="tabpanel-professional"
+              aria-labelledby="tab-professional"
+              className={activeTab === 'professional' ? 'block' : 'hidden'}
+            >
+              <ProfessionalTab
+                tags={proTags}
+                setTags={setProTags}
+                config={proConfig}
+                setConfig={setProConfig}
+                result={proResult}
+                lang={lang}
+                onShowToast={addToast}
+              />
             </div>
-          </section>
+          )}
+
+          {visitedTabs.master_tags && (
+            <div
+              role="tabpanel"
+              id="tabpanel-master_tags"
+              aria-labelledby="tab-master_tags"
+              className={activeTab === 'master_tags' ? 'block' : 'hidden'}
+            >
+              <MasterTagsTab
+                masterTags={masterTags}
+                setMasterTags={setMasterTags}
+                onPushToUnified={handlePushToUnified}
+                onPushToComfort={handlePushToComfort}
+                onPushToProfessional={handlePushToProfessional}
+                onPullFromRuntime={handlePullFromRuntime}
+                unifiedTagsCount={unifiedTags.length}
+                comfortTagsCount={comfortTags.length}
+                proTagsCount={proTags.length}
+                unifiedDataLogs={unifiedConfig.dataLogs}
+                comfortDataLogs={comfortConfig.dataLogs}
+                lang={lang}
+                addToast={addToast}
+              />
+            </div>
+          )}
         </div>
+
+        {/* SEO Technical Guide & FAQ Section (Subtree Isolated) */}
+        <SeoFaqSection lang={lang} />
       </main>
 
       {/* TIA Portal Cheat Sheet Modal */}

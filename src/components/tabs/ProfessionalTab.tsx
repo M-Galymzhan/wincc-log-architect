@@ -37,7 +37,7 @@ interface ProfessionalTabProps {
   onShowToast?: (message: string, type?: ToastMessage['type']) => void;
 }
 
-export const ProfessionalTab: React.FC<ProfessionalTabProps> = ({
+export const ProfessionalTab: React.FC<ProfessionalTabProps> = React.memo(({
   tags,
   setTags,
   config,
@@ -1281,4 +1281,6 @@ export const ProfessionalTab: React.FC<ProfessionalTabProps> = ({
       />
     </div>
   );
-};
+});
+
+ProfessionalTab.displayName = 'ProfessionalTab';

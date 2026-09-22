@@ -106,7 +106,7 @@ interface MasterTagsTabProps {
 
 type InspectorTab = 'general' | 'trigger' | 'cycle' | 'limits' | 'smoothing' | 'compression';
 
-export const MasterTagsTab: React.FC<MasterTagsTabProps> = ({
+export const MasterTagsTab: React.FC<MasterTagsTabProps> = React.memo(({
   masterTags,
   setMasterTags,
   onPushToUnified,
@@ -1967,4 +1967,6 @@ export const MasterTagsTab: React.FC<MasterTagsTabProps> = ({
       />
     </div>
   );
-};
+});
+
+MasterTagsTab.displayName = 'MasterTagsTab';

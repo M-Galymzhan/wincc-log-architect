@@ -6,14 +6,14 @@
 </p>
 
 <p align="center">
-  <img src="https://img.shields.io/badge/Версия-2.16.0-emerald?style=for-the-badge" alt="Version 2.16.0" />
+  <img src="https://img.shields.io/badge/Версия-2.17.0-emerald?style=for-the-badge" alt="Version 2.17.0" />
   <img src="https://img.shields.io/badge/Next.js-16.3.4-black?style=for-the-badge&logo=next.js" alt="Next.js" />
   <img src="https://img.shields.io/badge/React-19.2.8-blue?style=for-the-badge&logo=react" alt="React" />
   <img src="https://img.shields.io/badge/Tailwind_CSS-4.3.3-38B2AC?style=for-the-badge&logo=tailwind-css" alt="Tailwind" />
   <img src="https://img.shields.io/badge/TypeScript-5.8-3178C6?style=for-the-badge&logo=typescript" alt="TypeScript" />
   <img src="https://img.shields.io/badge/Siemens_TIA_Portal-V14--V21+-00646E?style=for-the-badge&logo=siemens" alt="Siemens TIA Portal" />
   <img src="https://img.shields.io/badge/SIMATIC_WinCC-V7.0--V8.0-00828F?style=for-the-badge&logo=siemens" alt="SIMATIC WinCC V7/V8" />
-  <img src="https://img.shields.io/badge/Тесты-490%20passed-success?style=for-the-badge" alt="490 tests" />
+  <img src="https://img.shields.io/badge/Тесты-499%20passed-success?style=for-the-badge" alt="499 tests" />
 </p>
 
 ---
@@ -158,6 +158,26 @@ flowchart TD
   - 490 автоматизированных тестов математических ядер (`npx tsx scripts/testEngines.ts`).
   - 0 уязвимостей зависимостей (`npm audit`).
 * **PWA & Offline**: Web App Manifest + Service Worker с сетевой политикой Network-First.
+
+---
+
+## ⚡ Что нового в версии 2.17.0
+
+* **Мгновенное переключение вкладок (0ms Lag & Keep-Alive Архитектура)**:
+  - Устранена задержка (200–450 мс) и фризы интерфейса при смене вкладок: внедрен механизм ленивого монтирования `visitedTabs` и переключение видимости через CSS (`block` / `hidden`).
+  - Сохраняются позиции скролла, введенные поисковые запросы, фильтры и фокус внутри каждой вкладки.
+  - Все корневые вкладки (`UnifiedTab`, `ComfortTab`, `ProfessionalTab`, `MasterTagsTab`), а также `Header` и `NavigationTabs` обернуты в `React.memo`.
+  - Переключение активной вкладки переведено в неблокирующий `React.startTransition` для приоритетного отклика UI.
+  - Массивный статический блок FAQ & SEO вынесен в автономное изолированное поддерево `SeoFaqSection`, исключающее холостые пересчеты DOM.
+  - Фоновые световые пятна (Siemens Petrol/Cyan Blobs) аппаратно изолированы на GPU Compositor (`will-change: transform`) с поддержкой `@media (prefers-reduced-motion: reduce)`.
+* **Исправление синхронизации свойств тегов в Конфигураторе тегов**:
+  - Устранен баг, при котором изменения параметров в боковой панели свойств не отображались в строке конфигуратора: поиск целевого тега переведен на строгий UUID (`tag.id`) вместо мутирующего индекса.
+* **Корректный перенос имени тега в Runtime-вкладки**:
+  - При переносе тегов из Конфигуратора в Unified, Comfort и Professional поле имени (`tag.name`) гарантированно сохраняется как первичное имя, исключая подмену развернутым описанием (`tag.description`).
+* **Интеллектуальная маршрутизация по нескольким Data Log**:
+  - Если в целевой конфигурации создано более одного архива данных (`Data Log`), перед переносом отображается диалог выбора целевого журнала: сопоставление по именам либо групповое размещение в конкретный архив.
+* **Испытательный полигон**:
+  - **499 модульных тестов** калькулятора, парсеров и адаптеров (100% PASS).
 
 ---
 

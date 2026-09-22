@@ -38,7 +38,7 @@ interface UnifiedTabProps {
   onShowToast?: (message: string, type?: ToastMessage['type']) => void;
 }
 
-export const UnifiedTab: React.FC<UnifiedTabProps> = ({
+export const UnifiedTab: React.FC<UnifiedTabProps> = React.memo(({
   tags,
   setTags,
   config,
@@ -2181,4 +2181,6 @@ export const UnifiedTab: React.FC<UnifiedTabProps> = ({
       />
     </div>
   );
-};
+});
+
+UnifiedTab.displayName = 'UnifiedTab';

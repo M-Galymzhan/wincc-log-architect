@@ -38,7 +38,7 @@ interface ComfortTabProps {
   onShowToast?: (message: string, type?: ToastMessage['type']) => void;
 }
 
-export const ComfortTab: React.FC<ComfortTabProps> = ({
+export const ComfortTab: React.FC<ComfortTabProps> = React.memo(({
   tags,
   setTags,
   config,
@@ -1989,4 +1989,6 @@ export const ComfortTab: React.FC<ComfortTabProps> = ({
       />
     </div>
   );
-};
+});
+
+ComfortTab.displayName = 'ComfortTab';

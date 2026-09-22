@@ -146,7 +146,7 @@ const jsonLd = {
       description: "Комплексный инженерный калькулятор и валидатор хранилищ архивов Siemens SIMATIC: WinCC Unified (SQLite WAL), Comfort/Advanced (RDB/CSV), Professional (MS SQL Server). Расчет сегментов, кольцевых буферов, ресурса Flash (TBW) и норм ISA-18.2.",
       screenshot: "https://wincc-log-architect.vercel.app/opengraph-image",
       image: "https://wincc-log-architect.vercel.app/opengraph-image",
-      softwareVersion: "2.16.0",
+      softwareVersion: "2.17.0",
       inLanguage: ["ru", "en"],
       license: "https://opensource.org/licenses/MIT",
       featureList: [

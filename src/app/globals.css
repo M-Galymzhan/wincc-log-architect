@@ -101,12 +101,19 @@ option {
   z-index: 0;
   pointer-events: none;
   opacity: 0.25;
+  will-change: transform;
   animation: blob-float 20s infinite alternate ease-in-out;
 }
 
 @keyframes blob-float {
   0% { transform: translate(0, 0) scale(1); }
   100% { transform: translate(60px, 40px) scale(1.15); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ambient-blob {
+    animation: none;
+  }
 }
 
 /* Print Stylesheet for Project Documentation */

@@ -15,7 +15,7 @@ interface NavigationTabsProps {
   };
 }
 
-export const NavigationTabs: React.FC<NavigationTabsProps> = ({ activeTab, setActiveTab, lang, warnings }) => {
+export const NavigationTabs: React.FC<NavigationTabsProps> = React.memo(({ activeTab, setActiveTab, lang, warnings }) => {
   const t = translations[lang];
 
   const tabs = [
@@ -100,4 +100,6 @@ export const NavigationTabs: React.FC<NavigationTabsProps> = ({ activeTab, setAc
       })}
     </div>
   );
-};
+});
+
+NavigationTabs.displayName = 'NavigationTabs';
