@@ -348,3 +348,77 @@ export function adaptMasterTagToProfessional(
     warnings,
   };
 }
+
+/**
+ * Converts a UnifiedTag from WinCC Unified to a MasterLoggingTag.
+ */
+export function adaptUnifiedToMasterTag(ut: UnifiedTag, idx: number = 0): MasterLoggingTag {
+  return {
+    id: ut.id || `mt_pulled_${idx}`,
+    name: ut.name || ut.description || `Tag_${idx + 1}`,
+    processTag: ut.processTag || ut.description || `ProcessTag_${idx + 1}`,
+    description: ut.description,
+    dataType: ut.dataType || 'Real',
+    loggingMode: ut.mode || 'cyclic',
+    cycleSec: ut.cycleSec || 1,
+    cycleFactor: ut.cycleFactor || 1,
+    count: ut.count || 1,
+    targetLogName: ut.dataLogId || 'Trend_Logs',
+    triggerMode: ut.triggerMode || 'none',
+    triggerTag: ut.triggerTag,
+    triggerBit: ut.triggerBit,
+    limitScope: ut.limitScope || 'no_limits',
+    highLimit: ut.highLimit,
+    lowLimit: ut.lowLimit,
+    useTagLimits: ut.useTagLimits,
+    smoothingMode: ut.smoothingMode || 'no_smoothing',
+    smoothingDelta: ut.smoothingDelta,
+    maxTimeSec: ut.maxTimeSec,
+    minTimeSec: ut.minTimeSec,
+    compressionMode: ut.compressionMode || 'no_compression',
+    compressionDelaySec: ut.compressionDelaySec,
+    sourceLog: ut.sourceLog,
+  };
+}
+
+/**
+ * Converts a ComfortTag from WinCC Comfort / Advanced to a MasterLoggingTag.
+ */
+export function adaptComfortToMasterTag(ct: ComfortTag, idx: number = 0): MasterLoggingTag {
+  return {
+    id: ct.id || `mt_pulled_c_${idx}`,
+    name: ct.name || ct.description || `Tag_${idx + 1}`,
+    processTag: ct.processTag || ct.description || `ProcessTag_${idx + 1}`,
+    description: ct.description,
+    dataType: ct.dataType || 'Real',
+    loggingMode: ct.mode,
+    cycleSec: ct.cycleSec || 1,
+    cycleFactor: 1,
+    count: ct.count || 1,
+    limitScope: 'no_limits',
+    smoothingMode: 'no_smoothing',
+    compressionMode: 'no_compression',
+    targetLogName: ct.dataLogId || 'default_data_log',
+  };
+}
+
+/**
+ * Converts a ProfessionalTag from WinCC Professional to a MasterLoggingTag.
+ */
+export function adaptProfessionalToMasterTag(pt: ProfessionalTag, idx: number = 0): MasterLoggingTag {
+  return {
+    id: pt.id || `mt_pulled_p_${idx}`,
+    name: pt.name || pt.description || `Tag_${idx + 1}`,
+    processTag: pt.processTag || pt.description || `ProcessTag_${idx + 1}`,
+    description: pt.description,
+    dataType: pt.dataType || 'Real',
+    loggingMode: 'cyclic',
+    cycleSec: pt.cycleSec || 1,
+    cycleFactor: 1,
+    count: pt.count || 1,
+    limitScope: 'no_limits',
+    smoothingMode: 'no_smoothing',
+    compressionMode: 'no_compression',
+    targetLogName: pt.archiveType === 'fast' ? 'TagLoggingFast' : 'TagLoggingSlow',
+  };
+}

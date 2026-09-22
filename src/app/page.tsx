@@ -5,7 +5,14 @@ import { ActiveTab, Language, Theme, UnifiedTag, UnifiedConfig, ComfortTag, Comf
 import { calculateUnified } from '../lib/calculator/unifiedEngine';
 import { calculateComfort } from '../lib/calculator/comfortEngine';
 import { calculateProfessional } from '../lib/calculator/professionalEngine';
-import { adaptMasterTagToUnified, adaptMasterTagToComfort, adaptMasterTagToProfessional } from '../lib/calculator/smoothingEngine';
+import {
+  adaptMasterTagToUnified,
+  adaptMasterTagToComfort,
+  adaptMasterTagToProfessional,
+  adaptUnifiedToMasterTag,
+  adaptComfortToMasterTag,
+  adaptProfessionalToMasterTag,
+} from '../lib/calculator/smoothingEngine';
 import { translations } from '../lib/i18n';
 import { Header } from '../components/Header';
 import { NavigationTabs } from '../components/NavigationTabs';
@@ -368,76 +375,34 @@ export default function Home() {
     setProTags(converted);
   }, []);
 
-  const handlePullFromActive = useCallback(() => {
+  const handlePullFromRuntime = useCallback((runtime: 'unified' | 'comfort' | 'professional') => {
     let sourceTags: MasterLoggingTag[] = [];
-    if (activeTab === 'unified' || (activeTab === 'master_tags' && unifiedTags.length > 0)) {
-      sourceTags = unifiedTags.map((ut, idx) => ({
-        id: ut.id || `mt_pulled_${idx}`,
-        name: ut.name || ut.description || `Tag_${idx + 1}`,
-        processTag: ut.processTag || ut.description || `ProcessTag_${idx + 1}`,
-        description: ut.description,
-        dataType: ut.dataType || 'Real',
-        loggingMode: ut.mode || 'cyclic',
-        cycleSec: ut.cycleSec || 1,
-        cycleFactor: ut.cycleFactor || 1,
-        count: ut.count || 1,
-        targetLogName: ut.dataLogId || 'Trend_Logs',
-        triggerMode: ut.triggerMode || 'none',
-        triggerTag: ut.triggerTag,
-        triggerBit: ut.triggerBit,
-        limitScope: ut.limitScope || 'no_limits',
-        highLimit: ut.highLimit,
-        lowLimit: ut.lowLimit,
-        useTagLimits: ut.useTagLimits,
-        smoothingMode: ut.smoothingMode || 'no_smoothing',
-        smoothingDelta: ut.smoothingDelta,
-        maxTimeSec: ut.maxTimeSec,
-        minTimeSec: ut.minTimeSec,
-        compressionMode: ut.compressionMode || 'no_compression',
-        compressionDelaySec: ut.compressionDelaySec,
-        sourceLog: ut.sourceLog,
-      }));
-    } else if (activeTab === 'comfort') {
-      sourceTags = comfortTags.map((ct, idx) => ({
-        id: ct.id || `mt_pulled_c_${idx}`,
-        name: ct.name || ct.description || `Tag_${idx + 1}`,
-        processTag: ct.processTag || ct.description || `ProcessTag_${idx + 1}`,
-        description: ct.description,
-        dataType: ct.dataType || 'Real',
-        loggingMode: ct.mode,
-        cycleSec: ct.cycleSec || 1,
-        cycleFactor: 1,
-        count: ct.count || 1,
-        limitScope: 'no_limits',
-        smoothingMode: 'no_smoothing',
-        compressionMode: 'no_compression',
-        targetLogName: ct.dataLogId || 'default_data_log',
-      }));
-    } else if (activeTab === 'professional') {
-      sourceTags = proTags.map((pt, idx) => ({
-        id: pt.id || `mt_pulled_p_${idx}`,
-        name: pt.name || pt.description || `Tag_${idx + 1}`,
-        processTag: pt.processTag || pt.description || `ProcessTag_${idx + 1}`,
-        description: pt.description,
-        dataType: pt.dataType || 'Real',
-        loggingMode: 'cyclic',
-        cycleSec: pt.cycleSec || 1,
-        cycleFactor: 1,
-        count: pt.count || 1,
-        limitScope: 'no_limits',
-        smoothingMode: 'no_smoothing',
-        compressionMode: 'no_compression',
-        targetLogName: pt.archiveType === 'fast' ? 'TagLoggingFast' : 'TagLoggingSlow',
-      }));
+    let runtimeLabel = '';
+
+    if (runtime === 'unified') {
+      runtimeLabel = 'WinCC Unified';
+      sourceTags = unifiedTags.map(adaptUnifiedToMasterTag);
+    } else if (runtime === 'comfort') {
+      runtimeLabel = 'WinCC Comfort';
+      sourceTags = comfortTags.map(adaptComfortToMasterTag);
+    } else if (runtime === 'professional') {
+      runtimeLabel = 'WinCC Professional';
+      sourceTags = proTags.map(adaptProfessionalToMasterTag);
     }
 
     if (sourceTags.length > 0) {
       setMasterTags(sourceTags);
-      addToast(t.pullSuccess, 'success');
+      const msg = lang === 'ru'
+        ? `Загружено ${sourceTags.length} тегов из ${runtimeLabel}`
+        : `Successfully pulled ${sourceTags.length} tags from ${runtimeLabel}`;
+      addToast(msg, 'success');
     } else {
-      addToast(lang === 'ru' ? 'Нет тегов для загрузки' : 'No tags to pull', 'warning');
+      const msg = lang === 'ru'
+        ? `Во вкладке ${runtimeLabel} нет настроенных тегов для загрузки`
+        : `No tags configured in ${runtimeLabel} to pull`;
+      addToast(msg, 'warning');
     }
-  }, [activeTab, unifiedTags, comfortTags, proTags, addToast, t.pullSuccess, lang]);
+  }, [unifiedTags, comfortTags, proTags, addToast, lang]);
 
   // Load from LocalStorage
   useEffect(() => {
@@ -700,7 +665,10 @@ export default function Home() {
               onPushToUnified={handlePushToUnified}
               onPushToComfort={handlePushToComfort}
               onPushToProfessional={handlePushToProfessional}
-              onPullFromActive={handlePullFromActive}
+              onPullFromRuntime={handlePullFromRuntime}
+              unifiedTagsCount={unifiedTags.length}
+              comfortTagsCount={comfortTags.length}
+              proTagsCount={proTags.length}
               lang={lang}
               addToast={addToast}
             />

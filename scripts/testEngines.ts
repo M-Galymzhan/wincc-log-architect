@@ -8,7 +8,16 @@ import { calculateUnified, getDataTypeBytes, getMediumPeCycles } from '../src/li
 import { calculateComfort } from '../src/lib/calculator/comfortEngine';
 import { calculateProfessional } from '../src/lib/calculator/professionalEngine';
 import { UnifiedTag, UnifiedAlarmTag, UnifiedConfig, ComfortTag, ComfortConfig, ProfessionalTag, ProfessionalConfig, MasterLoggingTag } from '../src/lib/types';
-import { calculateDataReductionFactor, checkTagCompatibility, adaptMasterTagToUnified, adaptMasterTagToComfort, adaptMasterTagToProfessional } from '../src/lib/calculator/smoothingEngine';
+import {
+  calculateDataReductionFactor,
+  checkTagCompatibility,
+  adaptMasterTagToUnified,
+  adaptMasterTagToComfort,
+  adaptMasterTagToProfessional,
+  adaptUnifiedToMasterTag,
+  adaptComfortToMasterTag,
+  adaptProfessionalToMasterTag,
+} from '../src/lib/calculator/smoothingEngine';
 import { INDUSTRY_PRESETS } from '../src/lib/presets';
 import * as XLSX from 'xlsx';
 import { 
@@ -1845,6 +1854,52 @@ async function runAsyncTests() {
 
   const pTagRes = adaptMasterTagToProfessional(slowTag);
   assert(pTagRes.archiveType === 'slow', 'Adapter Professional: correctly assigns slow archive');
+
+  // 17.5 Reciprocal Adapters (Pull from Runtime into Master Tags)
+  const sampleUTag: UnifiedTag = {
+    id: 'u1',
+    name: 'Motor_Current',
+    description: 'Motor Current Tag',
+    dataType: 'Real',
+    mode: 'cyclic',
+    cycleSec: 2,
+    cycleFactor: 1,
+    entriesPerSec: 0.5,
+    count: 3,
+    dataLogId: 'Power_Logs',
+  };
+  const pulledFromUnified = adaptUnifiedToMasterTag(sampleUTag, 0);
+  assert(pulledFromUnified.name === 'Motor_Current', 'Pull Adapter: Unified name preserved');
+  assert(pulledFromUnified.targetLogName === 'Power_Logs', 'Pull Adapter: Unified dataLogId mapped to targetLogName');
+  assert(pulledFromUnified.cycleSec === 2, 'Pull Adapter: Unified cycleSec preserved');
+
+  const sampleCTag: ComfortTag = {
+    id: 'c1',
+    name: 'Tank_Level',
+    description: 'Tank Level Tag',
+    dataType: 'Int',
+    mode: 'onchange',
+    cycleSec: 1,
+    count: 1,
+    dataLogId: 'Level_Log',
+  };
+  const pulledFromComfort = adaptComfortToMasterTag(sampleCTag, 1);
+  assert(pulledFromComfort.name === 'Tank_Level', 'Pull Adapter: Comfort name preserved');
+  assert(pulledFromComfort.loggingMode === 'onchange', 'Pull Adapter: Comfort mode mapped to loggingMode');
+  assert(pulledFromComfort.dataType === 'Int', 'Pull Adapter: Comfort dataType preserved');
+
+  const samplePTag: ProfessionalTag = {
+    id: 'p1',
+    name: 'Turbine_Speed',
+    description: 'Turbine Speed Tag',
+    dataType: 'DInt',
+    cycleSec: 0.5,
+    count: 2,
+    archiveType: 'fast',
+  };
+  const pulledFromProfessional = adaptProfessionalToMasterTag(samplePTag, 2);
+  assert(pulledFromProfessional.name === 'Turbine_Speed', 'Pull Adapter: Professional name preserved');
+  assert(pulledFromProfessional.targetLogName === 'TagLoggingFast', 'Pull Adapter: Professional fast mapped to TagLoggingFast');
   }
 
   console.log(`\n========================================`);

@@ -6,13 +6,13 @@
 </p>
 
 <p align="center">
-  <img src="https://img.shields.io/badge/Версия-2.15.3-emerald?style=for-the-badge" alt="Version 2.15.3" />
+  <img src="https://img.shields.io/badge/Версия-2.15.4-emerald?style=for-the-badge" alt="Version 2.15.4" />
   <img src="https://img.shields.io/badge/Next.js-16.3.4-black?style=for-the-badge&logo=next.js" alt="Next.js" />
   <img src="https://img.shields.io/badge/React-19.2.8-blue?style=for-the-badge&logo=react" alt="React" />
   <img src="https://img.shields.io/badge/Tailwind_CSS-4.3.3-38B2AC?style=for-the-badge&logo=tailwind-css" alt="Tailwind" />
   <img src="https://img.shields.io/badge/TypeScript-5.8-3178C6?style=for-the-badge&logo=typescript" alt="TypeScript" />
   <img src="https://img.shields.io/badge/Siemens_TIA_Portal-V14--V20-00646E?style=for-the-badge&logo=siemens" alt="Siemens" />
-  <img src="https://img.shields.io/badge/Тесты-461%20passed-success?style=for-the-badge" alt="461 tests" />
+  <img src="https://img.shields.io/badge/Тесты-469%20passed-success?style=for-the-badge" alt="469 tests" />
 </p>
 
 ---

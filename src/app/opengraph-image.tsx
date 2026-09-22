@@ -129,7 +129,7 @@ export default async function Image() {
                 }}
               />
               <span style={{ color: '#34D399', fontSize: '14px', fontWeight: 700, fontFamily: 'monospace' }}>
-                v2.15.3
+                v2.15.4
               </span>
             </div>
           </div>
