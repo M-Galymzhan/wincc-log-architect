@@ -136,7 +136,7 @@ function createTagRow(
 }
 
 /**
- * Generates an XLSX workbook for Siemens TIA Portal V14–V20 tag import matching test_impTeg.xlsx.
+ * Generates an XLSX workbook for Siemens TIA Portal V14–V21+ tag import matching test_impTeg.xlsx.
  * Contains 'Hmi Tags' and 'Substitute Value Usage' sheets with all 30 TIA Portal tag columns.
  */
 export function generateTiaPortalXlsx(

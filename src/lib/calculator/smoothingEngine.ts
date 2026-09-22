@@ -134,8 +134,8 @@ export function checkTagCompatibility(
     return {
       supported: true,
       status: 'full',
-      reasonsRu: ['Полная поддержка всех параметров Siemens WinCC Unified (V16–V20, SQLite / PC RT)'],
-      reasonsEn: ['Full native support for all Siemens WinCC Unified (V16–V20, SQLite / PC RT) parameters'],
+      reasonsRu: ['Полная поддержка всех параметров Siemens WinCC Unified (V16–V21+, SQLite / PC RT)'],
+      reasonsEn: ['Full native support for all Siemens WinCC Unified (V16–V21+, SQLite / PC RT) parameters'],
       effectiveModeRu: 'Unified Native (MTP/PC)',
       effectiveModeEn: 'Unified Native (MTP/PC)',
     };

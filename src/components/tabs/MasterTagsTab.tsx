@@ -777,7 +777,7 @@ export const MasterTagsTab: React.FC<MasterTagsTabProps> = ({
                             Триггер отключен в циклическом режиме (Cyclic)
                           </div>
                           <div className="text-slate-700 dark:text-slate-300 text-xs leading-relaxed">
-                            По стандарту Siemens TIA Portal (V14–V20) в циклическом режиме архивация инициируется таймером цикла (Cycle). Параметры Tag trigger деактивированы (None) и не влияют на запись.
+                            По стандарту Siemens TIA Portal (V14–V21+) в циклическом режиме архивация инициируется таймером цикла (Cycle). Параметры Tag trigger деактивированы (None) и не влияют на запись.
                           </div>
                         </div>
                       </div>
@@ -901,7 +901,7 @@ export const MasterTagsTab: React.FC<MasterTagsTabProps> = ({
                             Параметры Cycle отключены в режиме «{selectedTag.loggingMode === 'onchange' ? 'По изменению' : 'По требованию'}»
                           </div>
                           <div className="text-slate-700 dark:text-slate-300 text-xs leading-relaxed">
-                            По стандарту Siemens TIA Portal (V14–V20) период архивации (Logging cycle) активен исключительно при циклической записи (Cyclic). В текущем режиме архивация управляется {selectedTag.loggingMode === 'onchange' ? 'событиями изменения значений' : 'событиями внешнего триггера'}.
+                            По стандарту Siemens TIA Portal (V14–V21+) период архивации (Logging cycle) активен исключительно при циклической записи (Cyclic). В текущем режиме архивация управляется {selectedTag.loggingMode === 'onchange' ? 'событиями изменения значений' : 'событиями внешнего триггера'}.
                           </div>
                         </div>
                       </div>
@@ -1236,7 +1236,7 @@ export const MasterTagsTab: React.FC<MasterTagsTabProps> = ({
                             Вторичное сжатие отключено в режиме «{selectedTag.loggingMode === 'onchange' ? 'По изменению' : 'По требованию'}»
                           </div>
                           <div className="text-slate-700 dark:text-slate-300 text-xs leading-relaxed">
-                            По стандарту Siemens TIA Portal (V14–V20) вторичное сжатие (Compression / агрегированные архивы Min/Max/Avg) поддерживается исключительно для циклического режима архивации (Cyclic).
+                            По стандарту Siemens TIA Portal (V14–V21+) вторичное сжатие (Compression / агрегированные архивы Min/Max/Avg) поддерживается исключительно для циклического режима архивации (Cyclic).
                           </div>
                         </div>
                       </div>

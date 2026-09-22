@@ -24,11 +24,11 @@ export const metadata: Metadata = {
     default: "Siemens WinCC Log & Storage Architect | Калькулятор архивов и Конфигуратор тегов TIA Portal",
     template: "%s | WinCC Log Architect",
   },
-  description: "Инженерный онлайн-калькулятор архивов и конфигуратор тегов Siemens SIMATIC (TIA Portal V14–V20): WinCC Unified (SQLite WAL), Comfort/Advanced (RDB/CSV), Professional (MS SQL Server). Генерация и 30-колоночный XLSX экспорт таблиц тегов HMI, расчет сегментов, ресурса Flash (TBW), сети 100BASE-TX и сигнализации ISA-18.2.",
+  description: "Инженерный онлайн-калькулятор архивов и конфигуратор тегов Siemens SIMATIC (TIA Portal V14–V21+, WinCC V7/V8): WinCC Unified (SQLite WAL), Comfort/Advanced (RDB/CSV), Professional (MS SQL Server). Генерация и 30-колоночный XLSX экспорт таблиц тегов HMI, расчет сегментов, ресурса Flash (TBW), сети 100BASE-TX и сигнализации ISA-18.2.",
   keywords: [
     // Brand & Platforms
-    "Siemens", "SIMATIC", "TIA Portal", "TIA Portal V14", "TIA Portal V15", "TIA Portal V16", "TIA Portal V17", "TIA Portal V18", "TIA Portal V19", "TIA Portal V20",
-    "WinCC", "WinCC Unified", "WinCC Comfort", "WinCC Advanced", "WinCC Professional", "Unified Comfort Panel", "MTP",
+    "Siemens", "SIMATIC", "TIA Portal", "TIA Portal V14", "TIA Portal V15", "TIA Portal V16", "TIA Portal V17", "TIA Portal V18", "TIA Portal V19", "TIA Portal V20", "TIA Portal V21",
+    "WinCC", "WinCC Unified", "WinCC Comfort", "WinCC Advanced", "WinCC Professional", "WinCC V7", "WinCC V8", "WinCC Classic", "Unified Comfort Panel", "MTP",
     // Tag Configurator & Generator (Synonyms & Long-tail)
     "конфигуратор тегов", "конфигуратор тегов WinCC", "конфигуратор тегов TIA Portal",
     "мастер тегов WinCC", "мастер тегов TIA Portal", "генератор тегов TIA Portal", "генератор тегов WinCC",
@@ -71,7 +71,7 @@ export const metadata: Metadata = {
   },
   openGraph: {
     title: "Siemens WinCC Log & Storage Architect | Калькулятор архивов и Конфигуратор тегов",
-    description: "Инженерный расчет хранилищ архивов и конфигуратор тегов Siemens TIA Portal (V14–V20): WinCC Unified (SQLite), Comfort (RDB), Professional (MS SQL). Экспорт 30-колоночных таблиц тегов в Excel, ресурс Flash-памяти и нормы ISA-18.2.",
+    description: "Инженерный расчет хранилищ архивов и конфигуратор тегов Siemens TIA Portal (V14–V21+) и WinCC V7/V8: WinCC Unified (SQLite), Comfort (RDB), Professional (MS SQL). Экспорт 30-колоночных таблиц тегов в Excel, ресурс Flash-памяти и нормы ISA-18.2.",
     url: "https://wincc-log-architect.vercel.app",
     siteName: "Siemens WinCC Log & Storage Architect",
     locale: "ru_RU",
@@ -82,14 +82,14 @@ export const metadata: Metadata = {
         url: "https://wincc-log-architect.vercel.app/opengraph-image",
         width: 1200,
         height: 630,
-        alt: "Siemens WinCC Log & Storage Architect — TIA Portal V14-V20 Storage Sizing",
+        alt: "Siemens WinCC Log & Storage Architect — TIA Portal V14-V21+ & WinCC V7/V8 Storage Sizing",
       },
     ],
   },
   twitter: {
     card: "summary_large_image",
     title: "Siemens WinCC Log & Storage Architect | Калькулятор архивов и Конфигуратор тегов",
-    description: "Инженерный калькулятор архивов и генератор тегов Siemens WinCC Unified, Comfort и Professional для TIA Portal V14–V20.",
+    description: "Инженерный калькулятор архивов и генератор тегов Siemens WinCC Unified, Comfort и Professional для TIA Portal V14–V21+ и WinCC V7/V8.",
     images: ["https://wincc-log-architect.vercel.app/opengraph-image"],
   },
   robots: {
@@ -153,7 +153,7 @@ const jsonLd = {
         "Расчет размера сегментов и кольцевого буфера SQLite WAL для WinCC Unified (кратность 4 МБ)",
         "Валидация ограничений WinCC Comfort: лимит 500 000 строк на RDB/CSV файл и 32 ГБ FAT32",
         "Разделение тегов на Fast и Slow архивы для WinCC Professional с лимитом 10 ГБ SQL Express",
-        "Конфигуратор и мастер тегов (TIA Portal V14–V20 Inspector Hub) с 30-колоночным XLSX экспортом и автовалидацией типов данных",
+        "Конфигуратор и мастер тегов (TIA Portal V14–V21+ Inspector Hub) с 30-колоночным XLSX экспортом и автовалидацией типов данных",
         "Анализ перегрузки оператора и лавины тревог (Alarm Flood) по ISA-18.2 / EEMUA 191",
         "Оценка времени жизни Flash-памяти (TBW, P/E циклы, фактор Write Amplification 1.5x)",
         "Оценка пропускной способности Industrial Ethernet 100BASE-TX для циклов опроса",
@@ -179,7 +179,7 @@ const jsonLd = {
           name: "Как работает конфигуратор тегов для Siemens TIA Portal?",
           acceptedAnswer: {
             "@type": "Answer",
-            text: "Конфигуратор тегов (Master Tag Hub) позволяет формировать и валидировать единый реестр переменных для WinCC Unified, Comfort и Professional с последующим экспортом в стандартизированную 30-колоночную таблицу Excel (.xlsx), совместимую с TIA Portal V14–V20 для мгновенного импорта тегов в проект.",
+            text: "Конфигуратор тегов (Master Tag Hub) позволяет формировать и валидировать единый реестр переменных для WinCC Unified, Comfort и Professional с последующим экспортом в стандартизированную 30-колоночную таблицу Excel (.xlsx), совместимую с TIA Portal V14–V21+ для мгновенного импорта тегов в проект.",
           },
         },
         {
@@ -245,7 +245,7 @@ const jsonLd = {
         {
           "@type": "HowToStep",
           name: "Экспорт конфигурации в TIA Portal",
-          text: "Выгрузите готовый 30-колоночный XLSX файл Hmi Tags для импорта в TIA Portal V14–V20 без ручного ввода.",
+          text: "Выгрузите готовый 30-колоночный XLSX файл Hmi Tags для импорта в TIA Portal V14–V21+ без ручного ввода.",
         },
       ],
     },

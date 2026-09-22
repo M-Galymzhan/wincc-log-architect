@@ -736,7 +736,7 @@ export const ReportModal: React.FC<ReportModalProps> = ({
               <span>{t.reportVerifiedStamp}</span>
             </div>
             <div className="font-mono text-[10px] text-[#00646E] dark:text-[#00A3B5] font-bold">
-              VERIFIED FOR SIEMENS TIA PORTAL V16-V20
+              VERIFIED FOR SIEMENS TIA PORTAL V14-V21+ & WINCC V7/V8
             </div>
           </div>
         </div>

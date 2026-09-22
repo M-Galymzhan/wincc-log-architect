@@ -199,7 +199,7 @@ export default function Home() {
     ],
   });
 
-  // 4. Master Tags State (TIA Portal V14–V20 Inspector Hub)
+  // 4. Master Tags State (TIA Portal V14–V21+ Inspector Hub)
   const [masterTags, setMasterTags] = useState<MasterLoggingTag[]>([
     {
       id: 'mt_1',
@@ -661,7 +661,7 @@ export default function Home() {
             />
           )}
 
-          {/* Tab 4: Master Tags (TIA Portal V14–V20 Inspector Hub) */}
+          {/* Tab 4: Master Tags (TIA Portal V14–V21+ Inspector Hub) */}
           {activeTab === 'master_tags' && (
             <MasterTagsTab
               masterTags={masterTags}

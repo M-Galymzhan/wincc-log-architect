@@ -1,11 +1,11 @@
 # Siemens WinCC Log & Storage Architect
-> Engineering sizing, flash endurance (TBW) validation, tag configurator, and TIA Portal (V14–V20) export tool for Siemens WinCC Unified (SQLite WAL), Comfort/Advanced (RDB/CSV), and Professional (MS SQL Server). Also known as: WinCC Tag Configurator, Конфигуратор тегов WinCC, TIA Portal Tag Generator, Siemens HMI Storage Calculator.
+> Engineering sizing, flash endurance (TBW) validation, tag configurator, and TIA Portal (V14–V21+) / WinCC V7-V8 export tool for Siemens WinCC Unified (SQLite WAL), Comfort/Advanced (RDB/CSV), and Professional (MS SQL Server). Also known as: WinCC Tag Configurator, Конфигуратор тегов WinCC, TIA Portal Tag Generator, Siemens HMI Storage Calculator.
 
 ## Core Capabilities
 - **WinCC Unified Sizing**: Precise SQLite WAL database sizing, 4 MB segment alignment, circular buffer safety checks (>= 3 segments, 200 MB minimum), and Flash endurance calculation (TBW, P/E cycles, 1.5x write amplification).
 - **WinCC Comfort / Advanced**: Sizing and verification for SIMATIC Comfort Panels and PC Runtime Advanced against the 500,000 records per RDB/CSV file limit and 32 GB FAT32 storage ceiling.
-- **WinCC Professional (SCADA)**: Dual-stream Tag Logging separation (Fast <= 1s vs Slow > 1s) with Microsoft SQL Server Express 10 GB limit monitoring.
-- **Tag Configurator & Master Tag Hub (TIA Inspector)**: Universal PLC/HMI tag configurator and generator with standardized 30-column XLSX export directly compatible with Siemens TIA Portal V14, V15, V16, V17, V18, V19, and V20.
+- **WinCC Professional & WinCC V7/V8 (SCADA)**: Dual-stream Tag Logging separation (Fast <= 1 min vs Slow > 1 min) with Microsoft SQL Server Express 10 GB limit monitoring.
+- **Tag Configurator & Master Tag Hub (TIA Inspector)**: Universal PLC/HMI tag configurator and generator with standardized 30-column XLSX export directly compatible with Siemens TIA Portal V14, V15, V16, V17, V18, V19, V20, and V21+.
 - **ISA-18.2 / EEMUA 191 Alarm Rationalization**: Operator workload rate analysis (< 6 alarms/hr normal, <= 12 manageable, > 30 alarm flood advisory).
 - **Network Bandwidth (100BASE-TX)**: Calculation of Industrial Ethernet traffic between SIMATIC S7-1200 / S7-1500 PLCs and WinCC runtime.
 

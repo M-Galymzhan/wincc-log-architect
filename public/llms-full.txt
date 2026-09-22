@@ -1,6 +1,6 @@
 # Siemens WinCC Log & Storage Architect — Full Technical Reference
 
-This document provides a comprehensive technical reference for AI assistants, engineers, and search engines evaluating Siemens SIMATIC WinCC archiving architectures in TIA Portal V14–V20.
+This document provides a comprehensive technical reference for AI assistants, engineers, and search engines evaluating Siemens SIMATIC WinCC archiving architectures in TIA Portal V14–V21+ and WinCC V7.0–V8.0.
 
 ---
 
@@ -35,14 +35,14 @@ Windows CE 6.0 supports only FAT32 formatted SD/SDHC cards with a maximum volume
 
 ---
 
-## 3. Siemens WinCC Professional (SCADA)
+## 3. Siemens WinCC Professional & WinCC Classic V7/V8 (SCADA)
 
 ### Architecture
-WinCC Professional uses Microsoft SQL Server (typically SQL Server Express for single-station or Standard for multi-user servers).
+WinCC Professional (TIA Portal) and standalone SIMATIC WinCC V7.0/V7.5/V8.0 use Microsoft SQL Server. The underlying storage sizing, TagLoggingFast/Slow segment allocation, MDF/LDF ratios, and IOPS requirements are mathematically identical.
 
 ### Dual-Stream Logging
-- **Fast Tag Logging**: For high-speed tags with acquisition cycles <= 1 second. Logged into circular fast database segments.
-- **Slow Tag Logging**: For process tags with acquisition cycles > 1 second. Stored in slow database segments.
+- **Fast Tag Logging**: For high-speed tags with acquisition cycles <= 1 minute (compressed binary records, ~16 bytes average). Logged into circular fast database segments.
+- **Slow Tag Logging**: For process tags with acquisition cycles > 1 minute (standard SQL tables, ~32 bytes average). Stored in slow database segments.
 
 ### SQL Server Express 10 GB Limit
 SQL Server Express enforces a hard limit of 10 GB per database file (`*.mdf`). Exceeding 10 GB stops database write transactions. Sizing calculations must ensure circular segment archiving or automatic backup to prevent database locking.

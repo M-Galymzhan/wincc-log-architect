@@ -1,8 +1,8 @@
 # Siemens WinCC Log & Storage Architect ⚡
 
 <p align="center">
-  <b>Комплексный инженерный калькулятор и валидатор хранилищ архивов Siemens TIA Portal</b><br>
-  WinCC Unified (SQLite / MS SQL) • WinCC Comfort / Advanced (RDB / CSV) • WinCC Professional (MS SQL Server)
+  <b>Комплексный инженерный калькулятор и валидатор хранилищ архивов Siemens TIA Portal V14–V21+ и WinCC V7/V8</b><br>
+  WinCC Unified (SQLite / MS SQL) • WinCC Comfort / Advanced (RDB / CSV) • WinCC Professional & WinCC V7/V8 (MS SQL Server)
 </p>
 
 <p align="center">
@@ -11,7 +11,8 @@
   <img src="https://img.shields.io/badge/React-19.2.8-blue?style=for-the-badge&logo=react" alt="React" />
   <img src="https://img.shields.io/badge/Tailwind_CSS-4.3.3-38B2AC?style=for-the-badge&logo=tailwind-css" alt="Tailwind" />
   <img src="https://img.shields.io/badge/TypeScript-5.8-3178C6?style=for-the-badge&logo=typescript" alt="TypeScript" />
-  <img src="https://img.shields.io/badge/Siemens_TIA_Portal-V14--V20-00646E?style=for-the-badge&logo=siemens" alt="Siemens" />
+  <img src="https://img.shields.io/badge/Siemens_TIA_Portal-V14--V21+-00646E?style=for-the-badge&logo=siemens" alt="Siemens TIA Portal" />
+  <img src="https://img.shields.io/badge/SIMATIC_WinCC-V7.0--V8.0-00828F?style=for-the-badge&logo=siemens" alt="SIMATIC WinCC V7/V8" />
   <img src="https://img.shields.io/badge/Тесты-490%20passed-success?style=for-the-badge" alt="490 tests" />
 </p>
 
@@ -19,7 +20,7 @@
 
 ## 🇷🇺 Описание проекта
 
-**Siemens WinCC Log & Storage Architect** — специализированное веб-приложение и оффлайн PWA-инструмент для инженеров АСУ ТП, проектировщиков и специалистов по ПНР. Калькулятор рассчитывает объемы баз данных, периоды сегментации, кольцевые буферы, сетевой трафик и ресурс флеш-памяти для всех линеек **Siemens SIMATIC WinCC**:
+**Siemens WinCC Log & Storage Architect** — специализированное веб-приложение и оффлайн PWA-инструмент для инженеров АСУ ТП, проектировщиков и специалистов по ПНР. Калькулятор рассчитывает объемы баз данных, периоды сегментации, кольцевые буферы, сетевой трафик и ресурс флеш-памяти для всех линеек **Siemens SIMATIC WinCC** (TIA Portal V14–V21+ и классических SCADA WinCC V7.0–V8.0):
 
 ### 1. WinCC Unified (Unified Comfort Panels MTP & PC Runtime)
 * **Мульти-архивная архитектура**: независимое создание и параллельный расчет произвольного количества журналов данных ($N$ Data Logs) и журналов тревог ($M$ Alarm Logs).
@@ -52,14 +53,15 @@
 * Контроль аппаратного ограничения Comfort Panels (Windows CE 6.0) — **максимум 32 ГБ (FAT32, SDHC)**.
 * **Расчет Audit Trail (GMP / 21 CFR Part 11)**: моделирование журнала действий оператора SIMATIC WinCC Audit (~250 байт/запись с криптографическим хэшем), влияние на суточную запись на Flash (`dailyWrittenGb`) и ресурс SD-карты.
 
-### 3. WinCC Professional (SCADA на базе Microsoft SQL Server)
-* Автоматическое разделение тегов на **Fast Tag Logging** (цикл опроса $\le 1$ с) и **Slow Tag Logging** (цикл $> 1$ с).
-* Расчет первичных файлов баз данных (**MDF**) и журналов транзакций (**LDF**).
+### 3. WinCC Professional & WinCC Classic (V7.0 / V7.5 / V8.0 SCADA)
+* **100% архитектурная эквивалентность**: математическая модель и расчет базы данных Microsoft SQL Server полностью совпадают для TIA Portal WinCC Professional и автономных систем SIMATIC WinCC V7.0, V7.5, V8.0.
+* Автоматическое разделение тегов на **Fast Tag Logging** (цикл опроса $\le 1$ мин, бинарное сжатие ~16 байт) и **Slow Tag Logging** (цикл $> 1$ мин, ~32 байта).
+* Расчет первичных файлов баз данных (**MDF**) и журналов транзакций (**LDF**, запас +20–25% на Bulk Insert).
 * Контроль порога **10 GB** бесплатной редакции Microsoft SQL Server Express.
 * **Архив электронного аудита (Audit Trail)**: моделирование таблицы `AuditLogging` в SQL Server (~500 байт/запись с электронными подписями) с расчетом дисковой нагрузки и требований к **IOPS**.
 
-### 4. Конфигуратор тегов (Master Tags Hub / Инспектор TIA Portal V14–V20)
-* **Прямой импорт таблиц TIA Portal (XLSX / CSV Drag & Drop)**: автоматический парсинг 30-колоночных файлов экспорта TIA Portal V14–V20, автоопределение имен, адресов в ПЛК (`PLC tag`), типов данных, циклов и комментариев в режимах добавления (`Append`) или замены (`Replace`).
+### 4. Конфигуратор тегов (Master Tags Hub / Инспектор TIA Portal V14–V21+)
+* **Прямой импорт таблиц TIA Portal (XLSX / CSV Drag & Drop)**: автоматический парсинг 30-колоночных файлов экспорта TIA Portal V14–V21+, автоопределение имен, адресов в ПЛК (`PLC tag`), типов данных, циклов и комментариев в режимах добавления (`Append`) или замены (`Replace`).
 * **Единый кросс-платформенный реестр**: централизованное хранение и взаимная синхронизация тегов между WinCC Unified, Comfort и Professional в один клик.
 * **Селектор импорта тегов из рантаймов**: выпадающее меню загрузки тегов из Unified, Comfort или Professional с живыми счетчиками тегов.
 * **Продвинутое трендовое сжатие и фильтрация**:
@@ -123,7 +125,7 @@ flowchart TD
 
 ## 📊 Инженерные функции и интеграция с TIA Portal
 
-* **Двусторонний обмен с TIA Portal V14–V20**:
+* **Двусторонний обмен с TIA Portal V14–V21+**:
   - **Экспорт в Excel (.xlsx)**: генерация готовой рабочей книги со страницами `Hmi Tags` (30 официальных столбцов TIA Portal) и `Substitute Value Usage` для прямого импорта в HMI Tags.
   - **Экспорт в CSV (.csv)**: выгрузка с разделителем `;` и UTF-8 BOM.
   - **Импорт тегов (.xlsx, .xls, .csv)**: парсинг циклов TIA Portal (`T100ms`, `T250ms`, `T500ms`, `T1s`, `T2s`, `T5s`, `T10s`, `T1min`, `T5min`, `T1d`), автоматическое распознавание типов данных (`Bool`, `Int`, `Real`, `String`), режимов сбора и автоматическая маршрутизация тегов.

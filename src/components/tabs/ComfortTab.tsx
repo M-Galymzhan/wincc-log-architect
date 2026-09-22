@@ -1472,12 +1472,12 @@ export const ComfortTab: React.FC<ComfortTabProps> = ({
               </h3>
               <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5">
                 {lang === 'ru'
-                  ? 'Точные значения для Historical Data → Data logs / Alarm logs в TIA Portal V14–V20'
-                  : 'Exact values for Historical Data → Data logs / Alarm logs in TIA Portal V14–V20'}
+                  ? 'Точные значения для Historical Data → Data logs / Alarm logs в TIA Portal V14–V21+'
+                  : 'Exact values for Historical Data → Data logs / Alarm logs in TIA Portal V14–V21+'}
               </p>
             </div>
             <span className="text-[11px] font-mono px-2 py-0.5 rounded bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 font-bold border border-emerald-500/20">
-              TIA Portal V14–V20
+              TIA Portal V14–V21+
             </span>
           </div>
 

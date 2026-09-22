@@ -1227,9 +1227,9 @@ async function runAsyncTests() {
     assert(!negativeResult.warnings.some(w => w.includes('exFAT')), 'Storage Boundary: negative size clamps safely and does not flag exFAT');
 
     // =========================================================================
-    // Test Suite 13: Siemens TIA Portal V14–V20 XLSX Tag Export Specification
+    // Test Suite 13: Siemens TIA Portal V14–V21+ XLSX Tag Export Specification
     // =========================================================================
-    console.log('\n--- Test Suite 13: Siemens TIA Portal V14–V20 XLSX Tag Export Specification ---');
+    console.log('\n--- Test Suite 13: Siemens TIA Portal V14–V21+ XLSX Tag Export Specification ---');
 
     // 13.1 Format cycle conversion helper
     assert(formatTiaCycle(0.1) === 'T100ms', 'TIA Cycle: 0.1s formats to T100ms');

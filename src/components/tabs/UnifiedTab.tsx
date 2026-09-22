@@ -1693,7 +1693,7 @@ export const UnifiedTab: React.FC<UnifiedTabProps> = ({
               </p>
             </div>
             <span className="text-[11px] font-mono px-2 py-0.5 rounded bg-[#00646E]/10 dark:bg-[#00A3B5]/10 text-[#00646E] dark:text-[#00A3B5] font-bold border border-[#00646E]/20">
-              TIA Portal V16–V20
+              TIA Portal V16–V21+
             </span>
           </div>
 

@@ -55,7 +55,7 @@ export const Header: React.FC<HeaderProps> = ({
                   <span className="inline xl:hidden">WinCC Log Architect</span>
                 </h1>
                 <span className="hidden xl:inline-flex text-xs uppercase font-bold tracking-wider px-2 py-0.5 rounded-full bg-[#00646E]/15 text-[#00646E] dark:bg-[#00A3B5]/20 dark:text-[#00A3B5] border border-[#00646E]/20 dark:border-[#00A3B5]/30 whitespace-nowrap shrink-0">
-                  TIA V16-V20
+                  TIA V14-V21+ | WinCC V7/V8
                 </span>
                 <a
                   href="https://github.com/M-Galymzhan/wincc-log-architect/commits/main"

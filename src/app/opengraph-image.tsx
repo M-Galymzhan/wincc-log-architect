@@ -102,7 +102,7 @@ export default async function Image() {
                 Siemens SIMATIC
               </span>
               <span style={{ fontSize: '14px', color: '#00A3B5', fontWeight: 600 }}>
-                TIA Portal V14 – V20 Engineering Hub
+                TIA Portal V14 – V21+ & WinCC V7/V8 Hub
               </span>
             </div>
           </div>
