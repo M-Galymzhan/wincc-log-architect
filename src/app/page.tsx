@@ -364,15 +364,21 @@ export default function Home() {
   ]);
 
   // Master Tag Sync Handlers
-  const handlePushToUnified = useCallback((tags: MasterLoggingTag[]) => {
-    const converted = tags.map(adaptMasterTagToUnified);
+  const handlePushToUnified = useCallback((tags: MasterLoggingTag[], targetDataLogId?: string) => {
+    const converted = tags.map((t) => adaptMasterTagToUnified(t, {
+      targetDataLogId,
+      dataLogs: unifiedConfig.dataLogs,
+    }));
     setUnifiedTags(converted);
-  }, []);
+  }, [unifiedConfig.dataLogs]);
 
-  const handlePushToComfort = useCallback((tags: MasterLoggingTag[]) => {
-    const converted = tags.map((t) => adaptMasterTagToComfort(t).tag);
+  const handlePushToComfort = useCallback((tags: MasterLoggingTag[], targetDataLogId?: string) => {
+    const converted = tags.map((t) => adaptMasterTagToComfort(t, {
+      targetDataLogId,
+      dataLogs: comfortConfig.dataLogs,
+    }).tag);
     setComfortTags(converted);
-  }, []);
+  }, [comfortConfig.dataLogs]);
 
   const handlePushToProfessional = useCallback((tags: MasterLoggingTag[]) => {
     const converted = tags.map((t) => adaptMasterTagToProfessional(t).tag);
@@ -385,10 +391,10 @@ export default function Home() {
 
     if (runtime === 'unified') {
       runtimeLabel = 'WinCC Unified';
-      sourceTags = unifiedTags.map(adaptUnifiedToMasterTag);
+      sourceTags = unifiedTags.map((t, idx) => adaptUnifiedToMasterTag(t, idx, { dataLogs: unifiedConfig.dataLogs }));
     } else if (runtime === 'comfort') {
       runtimeLabel = 'WinCC Comfort';
-      sourceTags = comfortTags.map(adaptComfortToMasterTag);
+      sourceTags = comfortTags.map((t, idx) => adaptComfortToMasterTag(t, idx, { dataLogs: comfortConfig.dataLogs }));
     } else if (runtime === 'professional') {
       runtimeLabel = 'WinCC Professional';
       sourceTags = proTags.map(adaptProfessionalToMasterTag);
@@ -406,7 +412,7 @@ export default function Home() {
         : `No tags configured in ${runtimeLabel} to pull`;
       addToast(msg, 'warning');
     }
-  }, [unifiedTags, comfortTags, proTags, addToast, lang]);
+  }, [unifiedTags, comfortTags, proTags, unifiedConfig.dataLogs, comfortConfig.dataLogs, addToast, lang]);
 
   // Load from LocalStorage
   useEffect(() => {
@@ -673,6 +679,8 @@ export default function Home() {
               unifiedTagsCount={unifiedTags.length}
               comfortTagsCount={comfortTags.length}
               proTagsCount={proTags.length}
+              unifiedDataLogs={unifiedConfig.dataLogs}
+              comfortDataLogs={comfortConfig.dataLogs}
               lang={lang}
               addToast={addToast}
             />

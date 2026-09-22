@@ -221,10 +221,18 @@ export function checkTagCompatibility(
   };
 }
 
+export interface AdaptMasterTagOptions {
+  targetDataLogId?: string;
+  dataLogs?: { id: string; name: string }[];
+}
+
 /**
- * Converts a MasterLoggingTag to a UnifiedTag for WinCC Unified.
+ * Converts a MasterLoggingTag to a UnifiedTag for WinCC Unified runtime.
  */
-export function adaptMasterTagToUnified(tag: MasterLoggingTag): UnifiedTag {
+export function adaptMasterTagToUnified(
+  tag: MasterLoggingTag,
+  options?: AdaptMasterTagOptions
+): UnifiedTag {
   const isCyclic = tag.loggingMode === 'cyclic';
   const isOnDemand = tag.loggingMode === 'ondemand';
 
@@ -246,18 +254,35 @@ export function adaptMasterTagToUnified(tag: MasterLoggingTag): UnifiedTag {
     ? +(reductionFactor).toFixed(4)
     : +(rawRatePerSec * reductionFactor).toFixed(4);
 
+  // Resolve target Data Log ID
+  let resolvedDataLogId = 'default_data_log';
+  if (options?.targetDataLogId && options.targetDataLogId !== 'keep_config') {
+    resolvedDataLogId = options.targetDataLogId;
+  } else if (options?.dataLogs && options.dataLogs.length > 0) {
+    const matched = options.dataLogs.find(
+      (dl) => dl.id === tag.targetLogName || dl.name.toLowerCase() === (tag.targetLogName || '').toLowerCase()
+    );
+    if (matched) {
+      resolvedDataLogId = matched.id;
+    } else {
+      resolvedDataLogId = options.dataLogs[0].id;
+    }
+  } else if (tag.targetLogName) {
+    resolvedDataLogId = tag.targetLogName;
+  }
+
   return {
     id: tag.id || Math.random().toString(36).substring(2, 9),
     name: tag.name || tag.description,
     processTag: tag.processTag || tag.name,
-    description: tag.description || tag.name,
+    description: tag.name || tag.description,
     mode: tag.loggingMode,
     cycleSec: isOnDemand ? 0 : (tag.cycleSec || 1),
     cycleFactor: isOnDemand ? 1 : (tag.cycleFactor || 1),
     entriesPerSec: effectiveEntriesPerSec,
     count: tag.count || 1,
     dataType: tag.dataType || 'Real',
-    dataLogId: tag.targetLogName || 'Trend_Logs',
+    dataLogId: resolvedDataLogId,
     // Trigger is active in ondemand (mandatory) and onchange (optional) modes; disabled in cyclic
     triggerMode: isOnDemand
       ? (tag.triggerMode && tag.triggerMode !== 'none' ? tag.triggerMode : 'rising_edge')
@@ -286,7 +311,10 @@ export function adaptMasterTagToUnified(tag: MasterLoggingTag): UnifiedTag {
 /**
  * Converts a MasterLoggingTag to a ComfortTag with safe capability degradation.
  */
-export function adaptMasterTagToComfort(tag: MasterLoggingTag): { tag: ComfortTag; warnings: string[] } {
+export function adaptMasterTagToComfort(
+  tag: MasterLoggingTag,
+  options?: AdaptMasterTagOptions
+): { tag: ComfortTag; warnings: string[] } {
   const warnings: string[] = [];
   let mode: 'cyclic' | 'onchange' = 'cyclic';
 
@@ -295,8 +323,14 @@ export function adaptMasterTagToComfort(tag: MasterLoggingTag): { tag: ComfortTa
     warnings.push(`Тег "${tag.name}": Режим On demand преобразован в On change (Comfort не поддерживает On demand в свойствах тега)`);
   } else if (tag.loggingMode === 'onchange') {
     mode = 'onchange';
-  } else {
-    mode = 'cyclic';
+  }
+
+  if (tag.triggerMode && tag.triggerMode !== 'none') {
+    warnings.push(`Тег "${tag.name}": Триггеры опроса не поддерживаются в свойствах тега Comfort (настраиваются через Script / discrete events)`);
+  }
+
+  if (tag.compressionMode && tag.compressionMode !== 'no_compression') {
+    warnings.push(`Тег "${tag.name}": Вторичное сжатие (${tag.compressionMode}) отключено (не поддерживается в Comfort RDB)`);
   }
 
   if (tag.smoothingMode === 'swinging_door') {
@@ -307,17 +341,34 @@ export function adaptMasterTagToComfort(tag: MasterLoggingTag): { tag: ComfortTa
     warnings.push(`Тег "${tag.name}": Фильтрация по пределам (${tag.limitScope}) проигнорирована (не поддерживается в Comfort)`);
   }
 
+  // Resolve target Data Log ID
+  let resolvedDataLogId = 'default_data_log';
+  if (options?.targetDataLogId && options.targetDataLogId !== 'keep_config') {
+    resolvedDataLogId = options.targetDataLogId;
+  } else if (options?.dataLogs && options.dataLogs.length > 0) {
+    const matched = options.dataLogs.find(
+      (dl) => dl.id === tag.targetLogName || dl.name.toLowerCase() === (tag.targetLogName || '').toLowerCase()
+    );
+    if (matched) {
+      resolvedDataLogId = matched.id;
+    } else {
+      resolvedDataLogId = options.dataLogs[0].id;
+    }
+  } else if (tag.targetLogName) {
+    resolvedDataLogId = tag.targetLogName;
+  }
+
   return {
     tag: {
       id: tag.id || Math.random().toString(36).substring(2, 9),
       name: tag.name || tag.description,
       processTag: tag.processTag || tag.name,
-      description: tag.description || tag.name,
+      description: tag.name || tag.description,
       mode,
       cycleSec: (tag.cycleSec || 1) * (tag.cycleFactor || 1),
       count: tag.count || 1,
       dataType: tag.dataType || 'Real',
-      dataLogId: tag.targetLogName || 'default_data_log',
+      dataLogId: resolvedDataLogId,
     },
     warnings,
   };
@@ -338,7 +389,7 @@ export function adaptMasterTagToProfessional(
       id: tag.id || Math.random().toString(36).substring(2, 9),
       name: tag.name || tag.description,
       processTag: tag.processTag || tag.name,
-      description: tag.description || tag.name,
+      description: tag.name || tag.description,
       cycleSec: effectiveCycle,
       count: tag.count || 1,
       archiveType,
@@ -352,18 +403,30 @@ export function adaptMasterTagToProfessional(
 /**
  * Converts a UnifiedTag from WinCC Unified to a MasterLoggingTag.
  */
-export function adaptUnifiedToMasterTag(ut: UnifiedTag, idx: number = 0): MasterLoggingTag {
+export function adaptUnifiedToMasterTag(
+  ut: UnifiedTag,
+  idx: number = 0,
+  options?: { dataLogs?: { id: string; name: string }[] }
+): MasterLoggingTag {
+  let targetLogName = ut.dataLogId || 'Trend_Logs';
+  if (options?.dataLogs) {
+    const matched = options.dataLogs.find(dl => dl.id === ut.dataLogId);
+    if (matched) {
+      targetLogName = matched.name;
+    }
+  }
+
   return {
     id: ut.id || `mt_pulled_${idx}`,
     name: ut.name || ut.description || `Tag_${idx + 1}`,
-    processTag: ut.processTag || ut.description || `ProcessTag_${idx + 1}`,
-    description: ut.description,
+    processTag: ut.processTag || ut.name || ut.description || `ProcessTag_${idx + 1}`,
+    description: ut.description || ut.name || '',
     dataType: ut.dataType || 'Real',
     loggingMode: ut.mode || 'cyclic',
     cycleSec: ut.cycleSec || 1,
     cycleFactor: ut.cycleFactor || 1,
     count: ut.count || 1,
-    targetLogName: ut.dataLogId || 'Trend_Logs',
+    targetLogName,
     triggerMode: ut.triggerMode || 'none',
     triggerTag: ut.triggerTag,
     triggerBit: ut.triggerBit,
@@ -384,12 +447,24 @@ export function adaptUnifiedToMasterTag(ut: UnifiedTag, idx: number = 0): Master
 /**
  * Converts a ComfortTag from WinCC Comfort / Advanced to a MasterLoggingTag.
  */
-export function adaptComfortToMasterTag(ct: ComfortTag, idx: number = 0): MasterLoggingTag {
+export function adaptComfortToMasterTag(
+  ct: ComfortTag,
+  idx: number = 0,
+  options?: { dataLogs?: { id: string; name: string }[] }
+): MasterLoggingTag {
+  let targetLogName = ct.dataLogId || 'default_data_log';
+  if (options?.dataLogs) {
+    const matched = options.dataLogs.find(dl => dl.id === ct.dataLogId);
+    if (matched) {
+      targetLogName = matched.name;
+    }
+  }
+
   return {
     id: ct.id || `mt_pulled_c_${idx}`,
     name: ct.name || ct.description || `Tag_${idx + 1}`,
-    processTag: ct.processTag || ct.description || `ProcessTag_${idx + 1}`,
-    description: ct.description,
+    processTag: ct.processTag || ct.name || ct.description || `ProcessTag_${idx + 1}`,
+    description: ct.description || ct.name || '',
     dataType: ct.dataType || 'Real',
     loggingMode: ct.mode,
     cycleSec: ct.cycleSec || 1,
@@ -398,7 +473,7 @@ export function adaptComfortToMasterTag(ct: ComfortTag, idx: number = 0): Master
     limitScope: 'no_limits',
     smoothingMode: 'no_smoothing',
     compressionMode: 'no_compression',
-    targetLogName: ct.dataLogId || 'default_data_log',
+    targetLogName,
   };
 }
 

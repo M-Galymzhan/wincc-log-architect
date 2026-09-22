@@ -8,6 +8,8 @@ import {
   LimitScope,
   SmoothingMode,
   CompressionMode,
+  UnifiedDataLogConfig,
+  ComfortDataLogConfig,
 } from '../../lib/types';
 import {
   calculateDataReductionFactor,
@@ -15,6 +17,7 @@ import {
 } from '../../lib/calculator/smoothingEngine';
 import { translations } from '../../lib/i18n';
 import { ImportTagsModal } from '../ImportTagsModal';
+import { SelectDataLogModal } from '../SelectDataLogModal';
 import { convertToMasterTags, ParsedTagItem } from '../../lib/tagImporter';
 import {
   Sliders,
@@ -42,17 +45,61 @@ const generateMasterTagId = (): string => {
   return 'mt_' + Date.now().toString(36) + '_' + Math.random().toString(36).substring(2, 7);
 };
 
+const formatLimitBadge = (tag: MasterLoggingTag, lang: Language): string | null => {
+  if (!tag.limitScope || tag.limitScope === 'no_limits') return null;
+  const high = tag.highLimit ?? 100;
+  const low = tag.lowLimit ?? 0;
+  switch (tag.limitScope) {
+    case 'greater':
+      return `> ${high}`;
+    case 'greater_or_equal':
+      return `>= ${high}`;
+    case 'less':
+      return `< ${low}`;
+    case 'less_or_equal':
+      return `<= ${low}`;
+    case 'within_limits':
+      return `${low} < X < ${high}`;
+    case 'within_or_equal':
+      return `[${low} .. ${high}]`;
+    case 'outside_limits':
+      return `X < ${low} | X > ${high}`;
+    case 'outside_or_equal':
+      return lang === 'ru' ? `Вне [${low} .. ${high}]` : `Outside [${low} .. ${high}]`;
+    default:
+      return 'Limits';
+  }
+};
+
+const formatCompressionBadge = (mode?: CompressionMode): string => {
+  switch (mode) {
+    case 'average': return 'Avg';
+    case 'maximum': return 'Max';
+    case 'minimum': return 'Min';
+    case 'sum': return 'Sum';
+    case 'end': return 'End';
+    case 'time_average_stepped': return 'T-Avg';
+    case 'max_with_timestamp': return 'Max+TS';
+    case 'min_with_timestamp': return 'Min+TS';
+    case 'no_compression':
+    default:
+      return 'None';
+  }
+};
+
 interface MasterTagsTabProps {
   masterTags: MasterLoggingTag[];
   setMasterTags: React.Dispatch<React.SetStateAction<MasterLoggingTag[]>>;
-  onPushToUnified: (tags: MasterLoggingTag[]) => void;
-  onPushToComfort: (tags: MasterLoggingTag[]) => void;
+  onPushToUnified: (tags: MasterLoggingTag[], targetDataLogId?: string) => void;
+  onPushToComfort: (tags: MasterLoggingTag[], targetDataLogId?: string) => void;
   onPushToProfessional: (tags: MasterLoggingTag[]) => void;
   onPullFromRuntime?: (runtime: 'unified' | 'comfort' | 'professional') => void;
   onPullFromActive?: () => void;
   unifiedTagsCount?: number;
   comfortTagsCount?: number;
   proTagsCount?: number;
+  unifiedDataLogs?: UnifiedDataLogConfig[];
+  comfortDataLogs?: ComfortDataLogConfig[];
   lang: Language;
   addToast: (msg: string, type?: 'success' | 'error' | 'info' | 'warning') => void;
 }
@@ -70,6 +117,8 @@ export const MasterTagsTab: React.FC<MasterTagsTabProps> = ({
   unifiedTagsCount = 0,
   comfortTagsCount = 0,
   proTagsCount = 0,
+  unifiedDataLogs = [],
+  comfortDataLogs = [],
   lang,
   addToast,
 }) => {
@@ -82,6 +131,15 @@ export const MasterTagsTab: React.FC<MasterTagsTabProps> = ({
   const [searchQuery, setSearchQuery] = useState('');
   const [modeFilter, setModeFilter] = useState<string>('all');
   const [showComfortWarningModal, setShowComfortWarningModal] = useState(false);
+  const [selectDataLogModalState, setSelectDataLogModalState] = useState<{
+    isOpen: boolean;
+    targetRuntime: 'unified' | 'comfort';
+    dataLogs: { id: string; name: string }[];
+  }>({
+    isOpen: false,
+    targetRuntime: 'unified',
+    dataLogs: [],
+  });
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
   const [isPullMenuOpen, setIsPullMenuOpen] = useState(false);
   const [isImportModalOpen, setIsImportModalOpen] = useState(false);
@@ -293,11 +351,44 @@ export const MasterTagsTab: React.FC<MasterTagsTabProps> = ({
     }).length;
   }, [masterTags]);
 
+  const handlePushUnifiedClick = () => {
+    const activeUnifiedLogs = (unifiedDataLogs || []).filter(l => l.enabled !== false);
+    if (activeUnifiedLogs.length > 1) {
+      setSelectDataLogModalState({
+        isOpen: true,
+        targetRuntime: 'unified',
+        dataLogs: activeUnifiedLogs,
+      });
+    } else {
+      onPushToUnified(masterTags, activeUnifiedLogs[0]?.id);
+      addToast(t.pushSuccessUnified, 'success');
+    }
+  };
+
   const handlePushComfortClick = () => {
     if (comfortUnsupportedCount > 0) {
       setShowComfortWarningModal(true);
     } else {
-      onPushToComfort(masterTags);
+      const activeComfortLogs = (comfortDataLogs || []).filter(l => l.enabled !== false);
+      if (activeComfortLogs.length > 1) {
+        setSelectDataLogModalState({
+          isOpen: true,
+          targetRuntime: 'comfort',
+          dataLogs: activeComfortLogs,
+        });
+      } else {
+        onPushToComfort(masterTags, activeComfortLogs[0]?.id);
+        addToast(t.pushSuccessComfort, 'success');
+      }
+    }
+  };
+
+  const handleSelectDataLogConfirm = (selectedLogId: string) => {
+    if (selectDataLogModalState.targetRuntime === 'unified') {
+      onPushToUnified(masterTags, selectedLogId);
+      addToast(t.pushSuccessUnified, 'success');
+    } else {
+      onPushToComfort(masterTags, selectedLogId);
       addToast(t.pushSuccessComfort, 'success');
     }
   };
@@ -376,10 +467,7 @@ export const MasterTagsTab: React.FC<MasterTagsTabProps> = ({
             </span>
 
             <button
-              onClick={() => {
-                onPushToUnified(masterTags);
-                addToast(t.pushSuccessUnified, 'success');
-              }}
+              onClick={handlePushUnifiedClick}
               className="px-3.5 py-2 rounded-xl text-xs font-semibold bg-[#00A3B5]/15 hover:bg-[#00A3B5]/25 text-[#008394] dark:text-[#00E5FF] border border-[#00A3B5]/40 transition-all flex items-center gap-2 shadow-xs cursor-pointer"
               title="Перенести теги с сохранением всех свойств TIA Inspector в WinCC Unified"
             >
@@ -545,13 +633,17 @@ export const MasterTagsTab: React.FC<MasterTagsTabProps> = ({
                     <h3 className="text-base font-bold text-slate-900 dark:text-slate-100 flex items-center gap-2 truncate">
                       {lang === 'ru' ? 'Свойства:' : 'Properties:'} {selectedTag.name}
                     </h3>
-                    <div className="flex items-center gap-2">
+                    <div className="flex items-center gap-2 flex-wrap">
                       <span className="text-xs font-mono text-slate-500 dark:text-slate-400 truncate max-w-[200px]">
                         [{selectedTag.processTag}]
                       </span>
                       <span className="text-xs text-amber-600 dark:text-amber-300 font-medium shrink-0">
                         (Unified • Comfort • Pro)
                       </span>
+                      <div className="inline-flex items-center gap-1 text-[11px] text-emerald-600 dark:text-emerald-400 font-medium bg-emerald-500/10 px-2 py-0.5 rounded-full border border-emerald-500/20 shrink-0">
+                        <CheckCircle2 className="w-3 h-3 text-emerald-500" />
+                        <span>{t.statusAutoSaved}</span>
+                      </div>
                     </div>
                   </div>
                 </div>
@@ -896,12 +988,22 @@ export const MasterTagsTab: React.FC<MasterTagsTabProps> = ({
                     {isCycleDisabled ? (
                       <div className="p-3.5 rounded-2xl bg-amber-500/10 border border-amber-500/30 text-xs text-amber-800 dark:text-amber-300 flex items-start gap-2.5">
                         <AlertTriangle className="w-4 h-4 shrink-0 mt-0.5 text-amber-600 dark:text-amber-400" />
-                        <div className="space-y-1">
+                        <div className="space-y-1.5 flex-1">
                           <div className="font-semibold text-amber-900 dark:text-amber-200">
                             Параметры Cycle отключены в режиме «{selectedTag.loggingMode === 'onchange' ? 'По изменению' : 'По требованию'}»
                           </div>
                           <div className="text-slate-700 dark:text-slate-300 text-xs leading-relaxed">
                             По стандарту Siemens TIA Portal (V14–V21+) период архивации (Logging cycle) активен исключительно при циклической записи (Cyclic). В текущем режиме архивация управляется {selectedTag.loggingMode === 'onchange' ? 'событиями изменения значений' : 'событиями внешнего триггера'}.
+                          </div>
+                          <div className="pt-1">
+                            <button
+                              type="button"
+                              onClick={() => handleUpdateTag(selectedTag.id, { loggingMode: 'cyclic' })}
+                              className="px-2.5 py-1 rounded-lg bg-amber-600 hover:bg-amber-500 text-white font-medium text-xs shadow-xs transition-colors cursor-pointer flex items-center gap-1.5"
+                            >
+                              <ArrowRightLeft className="w-3.5 h-3.5" />
+                              <span>{t.btnSwitchToCyclic}</span>
+                            </button>
                           </div>
                         </div>
                       </div>
@@ -1231,12 +1333,22 @@ export const MasterTagsTab: React.FC<MasterTagsTabProps> = ({
                     {isCompressionDisabled ? (
                       <div className="p-3.5 rounded-2xl bg-amber-500/10 border border-amber-500/30 text-xs text-amber-800 dark:text-amber-300 flex items-start gap-2.5">
                         <AlertTriangle className="w-4 h-4 shrink-0 mt-0.5 text-amber-600 dark:text-amber-400" />
-                        <div className="space-y-1">
+                        <div className="space-y-1.5 flex-1">
                           <div className="font-semibold text-amber-900 dark:text-amber-200">
                             Вторичное сжатие отключено в режиме «{selectedTag.loggingMode === 'onchange' ? 'По изменению' : 'По требованию'}»
                           </div>
                           <div className="text-slate-700 dark:text-slate-300 text-xs leading-relaxed">
                             По стандарту Siemens TIA Portal (V14–V21+) вторичное сжатие (Compression / агрегированные архивы Min/Max/Avg) поддерживается исключительно для циклического режима архивации (Cyclic).
+                          </div>
+                          <div className="pt-1">
+                            <button
+                              type="button"
+                              onClick={() => handleUpdateTag(selectedTag.id, { loggingMode: 'cyclic' })}
+                              className="px-2.5 py-1 rounded-lg bg-amber-600 hover:bg-amber-500 text-white font-medium text-xs shadow-xs transition-colors cursor-pointer flex items-center gap-1.5"
+                            >
+                              <ArrowRightLeft className="w-3.5 h-3.5" />
+                              <span>{t.btnSwitchToCyclic}</span>
+                            </button>
                           </div>
                         </div>
                       </div>
@@ -1456,9 +1568,9 @@ export const MasterTagsTab: React.FC<MasterTagsTabProps> = ({
                   <th className="py-2.5 pl-3 pr-2">{t.colNameProcessTag}</th>
                   <th className="py-2.5 px-2">{t.colMasterDataType}</th>
                   <th className="py-2.5 px-2">{t.colLoggingMode}</th>
-                  <th className="py-2.5 px-2">{t.colMasterCycle}</th>
-                  <th className="py-2.5 px-2">{t.colSmoothing}</th>
-                  <th className="py-2.5 px-2 text-center">{t.colMasterCompression}</th>
+                  <th className="py-2.5 px-2">{t.colMasterCycleOrTrigger || t.colMasterCycle}</th>
+                  <th className="py-2.5 px-2">{t.colMasterSmoothingAndLimits || t.colSmoothing}</th>
+                  <th className="py-2.5 px-2 text-center">{t.colMasterReductionAndCompression || t.colMasterCompression}</th>
                   <th className="py-2.5 px-2 text-center" title={t.colPlatformsTooltip}>{t.colPlatforms}</th>
                   <th className="py-2.5 pl-2 pr-3 text-right">{t.colMasterActions}</th>
                 </tr>
@@ -1559,17 +1671,27 @@ export const MasterTagsTab: React.FC<MasterTagsTabProps> = ({
                         }`}
                       >
                         <td className="py-2.5 pl-3 pr-2">
-                          <div className="font-semibold text-slate-900 dark:text-slate-100 flex items-center gap-1.5">
-                            {tag.name}
+                          <div className="font-semibold text-slate-900 dark:text-slate-100 flex items-center gap-1.5 flex-wrap">
+                            <span>{tag.name}</span>
                             {tag.count > 1 && (
                               <span className="text-xs px-1.5 py-0.5 rounded bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 font-mono border border-slate-200 dark:border-slate-700">
                                 ×{tag.count}
                               </span>
                             )}
+                            {tag.targetLogName && (
+                              <span className="text-[10px] font-mono px-1.5 py-0.2 rounded bg-[#00646E]/10 dark:bg-[#00A3B5]/15 text-[#00646E] dark:text-[#00A3B5] border border-[#00646E]/20 dark:border-[#00A3B5]/30">
+                                {tag.targetLogName}
+                              </span>
+                            )}
                           </div>
-                          <div className="text-xs font-mono text-slate-500 dark:text-slate-400 truncate max-w-[190px]" title={tag.processTag}>
+                          <div className="text-xs font-mono text-slate-500 dark:text-slate-400 truncate max-w-[190px]" title={`${tag.processTag}${tag.description ? ` (${tag.description})` : ''}`}>
                             {tag.processTag}
                           </div>
+                          {tag.description && (
+                            <div className="text-[11px] text-slate-400 dark:text-slate-500 truncate max-w-[190px]" title={tag.description}>
+                              {tag.description}
+                            </div>
+                          )}
                         </td>
 
                         <td className="py-2.5 px-2">
@@ -1594,17 +1716,44 @@ export const MasterTagsTab: React.FC<MasterTagsTabProps> = ({
 
                         <td className="py-2.5 px-2 text-xs">
                           {tag.loggingMode === 'ondemand' ? (
-                            <span className="text-slate-400 dark:text-slate-500 font-mono italic">
-                              {t.modeTriggerBadge}
-                            </span>
+                            <div className="space-y-0.5">
+                              <div className="font-mono text-amber-700 dark:text-amber-400 font-medium flex items-center gap-1">
+                                <span>⚡</span>
+                                <span className="truncate max-w-[130px]" title={tag.triggerTag ? `Trigger tag: ${tag.triggerTag}` : 'No trigger tag'}>
+                                  {tag.triggerTag || t.triggerNoneSet}
+                                </span>
+                              </div>
+                              <div className="text-[10px] font-mono text-slate-500 dark:text-slate-400">
+                                {tag.triggerMode === 'rising_edge'
+                                  ? '↑ 0→1'
+                                  : tag.triggerMode === 'falling_edge'
+                                  ? '↓ 1→0'
+                                  : tag.triggerMode === 'change'
+                                  ? '⇅ toggle'
+                                  : '—'}
+                                {tag.triggerBit !== undefined && tag.triggerBit > 0 ? ` (${t.triggerBitLabelShort} ${tag.triggerBit})` : ''}
+                              </div>
+                            </div>
                           ) : tag.loggingMode === 'onchange' ? (
-                            <span className="text-slate-400 dark:text-slate-500 font-mono italic">
-                              {t.modeOnChangeBadge}
-                            </span>
+                            <div className="space-y-0.5">
+                              <span className="text-emerald-700 dark:text-emerald-400 font-medium">
+                                {t.modeOnChangeBadge}
+                              </span>
+                              {tag.triggerTag && (
+                                <div className="text-[10px] font-mono text-slate-500 dark:text-slate-400 truncate max-w-[120px]" title={`Gate: ${tag.triggerTag}`}>
+                                  trig: {tag.triggerTag}
+                                </div>
+                              )}
+                            </div>
                           ) : (
-                            <span className="font-mono text-slate-700 dark:text-slate-300">
-                              {tag.cycleSec * (tag.cycleFactor || 1)}s
-                            </span>
+                            <div className="font-mono text-slate-700 dark:text-slate-300">
+                              <span className="font-semibold">{(tag.cycleSec * (tag.cycleFactor || 1)).toFixed(tag.cycleSec < 1 ? 1 : 0)}s</span>
+                              {tag.cycleFactor && tag.cycleFactor > 1 && (
+                                <span className="text-[10px] text-slate-400 block font-normal">
+                                  ({tag.cycleSec}s × {tag.cycleFactor})
+                                </span>
+                              )}
+                            </div>
                           )}
                         </td>
 
@@ -1620,25 +1769,55 @@ export const MasterTagsTab: React.FC<MasterTagsTabProps> = ({
                               ? 'Compare'
                               : 'None'}
                           </span>
-                          {tag.limitScope && tag.limitScope !== 'no_limits' && (
-                            <span className="text-xs text-amber-600 dark:text-amber-400 font-mono block">
-                              Limits active
-                            </span>
-                          )}
+                          {(() => {
+                            const limitLabel = formatLimitBadge(tag, lang);
+                            if (!limitLabel) return null;
+                            return (
+                              <span
+                                className="text-[10px] text-amber-700 dark:text-amber-300 font-mono font-medium block truncate max-w-[140px]"
+                                title={`Limit scope: ${tag.limitScope}`}
+                              >
+                                🎯 {limitLabel}
+                              </span>
+                            );
+                          })()}
                         </td>
 
                         <td className="py-2.5 px-2 text-center">
-                          <span
-                            className={`text-xs font-mono px-2 py-0.5 rounded ${
-                              reductionPct > 70
-                                ? 'bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 font-bold'
-                                : reductionPct > 30
-                                ? 'bg-cyan-500/15 text-cyan-700 dark:text-cyan-300'
-                                : 'bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400'
-                            }`}
-                          >
-                            -{reductionPct}%
-                          </span>
+                          <div className="flex flex-col items-center gap-0.5">
+                            <span
+                              title={t.dataReductionTooltip}
+                              className={`text-xs font-mono px-2 py-0.5 rounded font-semibold ${
+                                reductionPct > 70
+                                  ? 'bg-emerald-500/15 text-emerald-700 dark:text-emerald-300 font-bold'
+                                  : reductionPct > 30
+                                  ? 'bg-cyan-500/15 text-cyan-700 dark:text-cyan-300'
+                                  : 'bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400'
+                              }`}
+                            >
+                              -{reductionPct}%
+                            </span>
+
+                            {tag.loggingMode === 'cyclic' ? (
+                              <span
+                                className={`text-[10px] font-mono px-1.5 py-0.2 rounded border ${
+                                  tag.compressionMode && tag.compressionMode !== 'no_compression'
+                                    ? 'bg-blue-500/15 text-blue-700 dark:text-blue-300 border-blue-500/30 font-medium'
+                                    : 'bg-slate-100/80 dark:bg-slate-800/80 text-slate-500 dark:text-slate-400 border-slate-200/50 dark:border-slate-700/50'
+                                }`}
+                                title={lang === 'ru' ? `Вторичное сжатие: ${tag.compressionMode || 'no_compression'}` : `Secondary compression: ${tag.compressionMode || 'no_compression'}`}
+                              >
+                                {formatCompressionBadge(tag.compressionMode)}
+                              </span>
+                            ) : (
+                              <span
+                                className="text-[10px] font-mono text-slate-400 dark:text-slate-500"
+                                title={lang === 'ru' ? 'Вторичное сжатие не применимо в режимах On demand и On change' : 'Secondary compression N/A in On demand and On change'}
+                              >
+                                N/A
+                              </span>
+                            )}
+                          </div>
                         </td>
 
                         {/* Compatibility Badges */}
@@ -1746,8 +1925,17 @@ export const MasterTagsTab: React.FC<MasterTagsTabProps> = ({
               <button
                 onClick={() => {
                   setShowComfortWarningModal(false);
-                  onPushToComfort(masterTags);
-                  addToast(t.pushSuccessComfort, 'success');
+                  const activeComfortLogs = (comfortDataLogs || []).filter(l => l.enabled !== false);
+                  if (activeComfortLogs.length > 1) {
+                    setSelectDataLogModalState({
+                      isOpen: true,
+                      targetRuntime: 'comfort',
+                      dataLogs: activeComfortLogs,
+                    });
+                  } else {
+                    onPushToComfort(masterTags, activeComfortLogs[0]?.id);
+                    addToast(t.pushSuccessComfort, 'success');
+                  }
                 }}
                 className="px-4 py-2 rounded-xl text-xs font-semibold bg-amber-600 hover:bg-amber-500 text-white shadow-lg shadow-amber-600/30 transition-all cursor-pointer"
               >
@@ -1757,6 +1945,17 @@ export const MasterTagsTab: React.FC<MasterTagsTabProps> = ({
           </div>
         </div>
       )}
+
+      {/* Select Data Log Destination Modal */}
+      <SelectDataLogModal
+        isOpen={selectDataLogModalState.isOpen}
+        onClose={() => setSelectDataLogModalState(prev => ({ ...prev, isOpen: false }))}
+        onConfirm={handleSelectDataLogConfirm}
+        targetRuntime={selectDataLogModalState.targetRuntime}
+        dataLogs={selectDataLogModalState.dataLogs}
+        tagsCount={masterTags.length}
+        lang={lang}
+      />
 
       {/* Import Tags Modal */}
       <ImportTagsModal

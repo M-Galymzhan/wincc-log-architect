@@ -1856,6 +1856,34 @@ async function runAsyncTests() {
   const pTagRes = adaptMasterTagToProfessional(slowTag);
   assert(pTagRes.archiveType === 'slow', 'Adapter Professional: correctly assigns slow archive');
 
+  // 17.4.4 Target Data Log Mapping and Tag Name vs Description Verification
+  const customDataLogs = [
+    { id: 'log_fast', name: 'Fast_Archive' },
+    { id: 'log_slow', name: 'Slow_Archive' },
+  ];
+  const tagWithLogName: MasterLoggingTag = {
+    ...rawCyclicTag,
+    name: 'Bearing_Temp',
+    description: 'Bearing Temp Verbose Description',
+    targetLogName: 'Slow_Archive',
+  };
+  const uMatchedLog = adaptMasterTagToUnified(tagWithLogName, { dataLogs: customDataLogs });
+  assert(uMatchedLog.dataLogId === 'log_slow', 'Adapter Unified: correctly maps targetLogName to dataLog.id');
+  assert(uMatchedLog.name === 'Bearing_Temp', 'Adapter Unified: preserves name');
+  assert(uMatchedLog.description === 'Bearing_Temp', 'Adapter Unified: sets primary description to name');
+
+  const uForcedLog = adaptMasterTagToUnified(tagWithLogName, { targetDataLogId: 'log_fast' });
+  assert(uForcedLog.dataLogId === 'log_fast', 'Adapter Unified: targetDataLogId override works');
+
+  const cMatchedLog = adaptMasterTagToComfort(tagWithLogName, { dataLogs: customDataLogs });
+  assert(cMatchedLog.tag.dataLogId === 'log_slow', 'Adapter Comfort: correctly maps targetLogName to dataLog.id');
+  assert(cMatchedLog.tag.name === 'Bearing_Temp', 'Adapter Comfort: preserves name');
+  assert(cMatchedLog.tag.description === 'Bearing_Temp', 'Adapter Comfort: sets primary description to name');
+
+  const pAdapted = adaptMasterTagToProfessional(tagWithLogName);
+  assert(pAdapted.tag.name === 'Bearing_Temp', 'Adapter Professional: preserves name');
+  assert(pAdapted.tag.description === 'Bearing_Temp', 'Adapter Professional: sets primary description to name');
+
   // 17.5 Reciprocal Adapters (Pull from Runtime into Master Tags)
   const sampleUTag: UnifiedTag = {
     id: 'u1',
