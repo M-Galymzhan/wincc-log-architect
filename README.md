@@ -6,7 +6,7 @@
 </p>
 
 <p align="center">
-  <img src="https://img.shields.io/badge/Версия-2.17.1-emerald?style=for-the-badge" alt="Version 2.17.1" />
+  <img src="https://img.shields.io/badge/Версия-2.18.0-emerald?style=for-the-badge" alt="Version 2.18.0" />
   <img src="https://img.shields.io/badge/Next.js-16.3.4-black?style=for-the-badge&logo=next.js" alt="Next.js" />
   <img src="https://img.shields.io/badge/React-19.2.8-blue?style=for-the-badge&logo=react" alt="React" />
   <img src="https://img.shields.io/badge/Tailwind_CSS-4.3.3-38B2AC?style=for-the-badge&logo=tailwind-css" alt="Tailwind" />
@@ -237,6 +237,22 @@ flowchart TD
   - **Deep Linking**: инициализация и сохранение состояния активных вкладок и языка в URL (`/?tab=...`, `/?lang=...`) без холостых ререндеров.
 
 ---
+
+## ⚡ Что нового в версии 2.18.0
+
+* **Выделенная SEO-архитектура посадочных страниц (Next.js App Router)**:
+  - Созданы автономные статические маршруты `/unified`, `/comfort`, `/professional`, `/master-tags` с независимыми заголовками, OpenGraph, Twitter Cards и каноническими ссылками.
+  - Устранен конфликт каноникализации и hreflang: чистая кросс-языковая адресация без взаимного подавления локалей поисковыми роботами.
+  - Обновлен `sitemap.xml` с включением всех целевых маршрутов под узкоспециализированные запросы инженеров.
+* **Инженерные формулы и цитируемость в AI-поиске (Princeton GEO AI-SEO)**:
+  - Внедрен интерактивный блок математических моделей расчета: сегментация SQLite WAL по 4 МБ, ресурс Flash-памяти в годах (TBW), лимит RDB 500k строк и Fast/Slow теги.
+  - Добавлены официальные ссылки на Siemens Industry Online Support (SIOS 109772222, 109746939, 109810540) и стандарты ANSI/ISA-18.2 / IEC 62682.
+  - Расширена разметка JSON-LD: спецификатор `isBasedOn`, ссылки на SIOS и метаданные `SoftwareApplication`.
+  - Добавлена верификация Bing Webmaster Tools (`msvalidate.01`) для выдачи Microsoft Copilot.
+* **Виральная атрибуция и инструменты дистрибуции**:
+  - Метаданные `wb.Props` в экспортируемых файлах `Hmi Tags.xlsx` для цитирования инструмента без нарушения 30-колоночной структуры TIA Portal.
+  - Ссылка на инструмент в колонтитуле официального верификационного штампа отчета проекта (`ReportModal`).
+  - Создан пакет материалов для дистрибуции в профессиональных сообществах (`docs/MARKETING_DISTRIBUTION_KIT.md`: Reddit r/PLC, форум Siemens SIOS, статья для Хабра).
 
 ## ⚡ Что нового в версии 2.15.0
 

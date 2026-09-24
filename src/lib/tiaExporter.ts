@@ -214,6 +214,12 @@ export function generateTiaPortalXlsx(
   }
 
   const wb = XLSX.utils.book_new();
+  wb.Props = {
+    Title: 'Siemens TIA Portal Hmi Tags',
+    Subject: 'Hmi Tags Export for TIA Portal V14-V21+',
+    Author: 'Siemens WinCC Log & Storage Architect',
+    Comments: 'Generated via https://wincc-log-architect.vercel.app',
+  };
   const wsHmiTags = XLSX.utils.aoa_to_sheet(rows);
   XLSX.utils.book_append_sheet(wb, wsHmiTags, 'Hmi Tags');
 
@@ -260,6 +266,12 @@ export function generateTiaPortalAlarmXlsx(
   });
 
   const wb = XLSX.utils.book_new();
+  wb.Props = {
+    Title: 'Siemens TIA Portal Alarm Tags',
+    Subject: 'Alarm Tags Export for TIA Portal V14-V21+',
+    Author: 'Siemens WinCC Log & Storage Architect',
+    Comments: 'Generated via https://wincc-log-architect.vercel.app',
+  };
   const wsHmiTags = XLSX.utils.aoa_to_sheet(rows);
   XLSX.utils.book_append_sheet(wb, wsHmiTags, 'Hmi Tags');
 

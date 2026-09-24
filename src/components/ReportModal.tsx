@@ -735,8 +735,11 @@ export const ReportModal: React.FC<ReportModalProps> = ({
               <CheckCircle2 className="w-4 h-4 text-emerald-500 shrink-0" />
               <span>{t.reportVerifiedStamp}</span>
             </div>
-            <div className="font-mono text-[10px] text-[#00646E] dark:text-[#00A3B5] font-bold">
-              VERIFIED FOR SIEMENS TIA PORTAL V14-V21+ & WINCC V7/V8
+            <div className="flex flex-col sm:items-end font-mono text-[10px] text-[#00646E] dark:text-[#00A3B5] font-bold">
+              <span>VERIFIED FOR SIEMENS TIA PORTAL V14-V21+ & WINCC V7/V8</span>
+              <a href="https://wincc-log-architect.vercel.app" target="_blank" rel="noopener noreferrer" className="text-slate-400 hover:text-[#00646E] dark:hover:text-[#00A3B5] transition-colors underline font-sans text-[10px]">
+                Calculated with Siemens WinCC Log & Storage Architect (wincc-log-architect.vercel.app)
+              </a>
             </div>
           </div>
         </div>

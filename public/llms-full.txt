@@ -11,6 +11,8 @@ WinCC Unified runtime (PC Runtime and Unified Comfort Panels - UCP) stores Data 
 
 ### 4 MB Segment Allocation Rule
 Siemens allocates disk storage in discrete 4 MB multiples. The minimum segment size is 4 MB. When circular log rotation occurs, the runtime purges entire 4 MB segment files (`*.db3`, `*.wal`, `*.shm`) at once. This design ensures that raw flash memory blocks on industrial SD cards are freed cleanly, preventing filesystem fragmentation.
+Formula:
+$$\text{Segment Size (MB)} = \left\lceil \frac{\text{Daily Bytes} \times (\text{Segment Hours} / 24) \times 1.3}{4 \text{ MB}} \right\rceil \times 4 \text{ MB}$$
 
 ### Write Amplification Factor (1.5x)
 Every logged tag value is first written into the journal (`*.wal`), then flushed into the main SQLite database (`*.db3`) during a checkpoint operation. Together with SQLite B-tree indices and page allocation overhead, the physical data written to flash is approximately 1.5 times the raw tag data payload.
@@ -62,6 +64,9 @@ The calculator implements metrics from ANSI/ISA-18.2, IEC 62682, and EEMUA 191:
 ## 5. Flash Memory Endurance & Lifespan (TBW)
 
 Calculated based on Total Bytes Written (TBW) against card capacity and P/E cycles:
+Formula:
+$$\text{Life (Years)} = \frac{\text{Capacity (GB)} \times \text{P/E Cycles}}{\text{Daily GB Written} \times 1.5 \times 365}$$
+
 - **Siemens SIMATIC SD (SLC)**: 60,000 P/E cycles (up to 30 years operational life).
 - **Custom pSLC SD**: 20,000 P/E cycles.
 - **Industrial MLC USB/SD**: 3,000 P/E cycles.
@@ -73,7 +78,7 @@ Calculated based on Total Bytes Written (TBW) against card capacity and P/E cycl
 
 ## 6. Tag Configurator, Master Tag Hub & TIA Portal 30-Column Specification
 
-The Tag Configurator (also known as Master Tag Hub, Конфигуратор тегов WinCC / TIA Portal, or PLC/HMI Tag Generator) generates standard 30-column Excel (`.xlsx`) files adhering to Siemens TIA Portal specification:
+The Tag Configurator generates standard 30-column Excel (`.xlsx`) files adhering to Siemens TIA Portal specification:
 1. Name
 2. Path
 3. Connection
@@ -105,4 +110,19 @@ The Tag Configurator (also known as Master Tag Hub, Конфигуратор т�
 29. Scope
 30. Substitute Value Usage (Sheet 2)
 
-Compatible with TIA Portal V13 SP1, V14, V15, V15.1, V16, V17, V18, V19, and V20.
+Compatible with TIA Portal V13 SP1, V14, V15, V15.1, V16, V17, V18, V19, V20, and V21+.
+
+---
+
+## 7. Official Siemens Documentation (SIOS) References
+- **SIOS Entry ID 109772222**: SIMATIC WinCC Unified — Sizing and limits
+- **SIOS Entry ID 109746939**: WinCC Comfort/Advanced segmenting of archives
+- **SIOS Entry ID 109810540**: TIA Portal Openness HMI Tag Export Structure
+- **ANSI/ISA-18.2-2016 / IEC 62682:2014**: Management of Alarm Systems for the Process Industries
+
+## 8. Direct Landing Page Endpoints
+- Web Application: https://wincc-log-architect.vercel.app
+- WinCC Unified Calculator: https://wincc-log-architect.vercel.app/unified
+- WinCC Comfort Calculator: https://wincc-log-architect.vercel.app/comfort
+- WinCC Professional Calculator: https://wincc-log-architect.vercel.app/professional
+- TIA Portal HMI Tags Generator: https://wincc-log-architect.vercel.app/master-tags

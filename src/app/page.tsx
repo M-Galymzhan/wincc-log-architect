@@ -37,19 +37,23 @@ const IndustryPresetsModal = dynamic(
   { ssr: false }
 );
 
-export default function Home() {
+export interface HomeProps {
+  initialTab?: ActiveTab;
+}
+
+export default function Home({ initialTab }: HomeProps = {}) {
   const isLoadedRef = useRef(false);
   const [lang, setLangState] = useState<Language>('ru');
   const [theme, setTheme] = useState<Theme>('dark');
   const [, startTransition] = useTransition();
-  const [activeTab, setActiveTabState] = useState<ActiveTab>('unified');
+  const [activeTab, setActiveTabState] = useState<ActiveTab>(() => initialTab ?? 'unified');
 
-  const [visitedTabs, setVisitedTabs] = useState<Record<ActiveTab, boolean>>({
-    unified: true,
-    comfort: false,
-    professional: false,
-    master_tags: false,
-  });
+  const [visitedTabs, setVisitedTabs] = useState<Record<ActiveTab, boolean>>(() => ({
+    unified: initialTab ? initialTab === 'unified' : true,
+    comfort: initialTab === 'comfort',
+    professional: initialTab === 'professional',
+    master_tags: initialTab === 'master_tags',
+  }));
 
   const setLang = useCallback((l: Language) => {
     setLangState(l);
@@ -427,11 +431,13 @@ export default function Home() {
           }
         }
 
-        // Sync tab from URL parameter
-        const urlTab = params.get('tab') as ActiveTab;
-        if (urlTab === 'unified' || urlTab === 'comfort' || urlTab === 'professional' || urlTab === 'master_tags') {
-          setActiveTabState(urlTab);
-          setVisitedTabs((prev) => (prev[urlTab] ? prev : { ...prev, [urlTab]: true }));
+        // Sync tab from URL parameter only if initialTab wasn't explicitly specified
+        if (!initialTab) {
+          const urlTab = params.get('tab') as ActiveTab;
+          if (urlTab === 'unified' || urlTab === 'comfort' || urlTab === 'professional' || urlTab === 'master_tags') {
+            setActiveTabState(urlTab);
+            setVisitedTabs((prev) => (prev[urlTab] ? prev : { ...prev, [urlTab]: true }));
+          }
         }
 
         const savedData = localStorage.getItem('wincc_project_data');
@@ -451,7 +457,7 @@ export default function Home() {
     } finally {
       isLoadedRef.current = true;
     }
-  }, []);
+  }, [initialTab]);
 
   // Save to LocalStorage
   useEffect(() => {

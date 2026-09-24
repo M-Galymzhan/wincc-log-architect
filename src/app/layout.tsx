@@ -67,11 +67,11 @@ export const metadata: Metadata = {
     telephone: false,
   },
   alternates: {
-    canonical: "/",
+    canonical: "https://wincc-log-architect.vercel.app",
     languages: {
-      "ru-RU": "/?lang=ru",
-      "en-US": "/?lang=en",
-      "x-default": "/",
+      "ru": "https://wincc-log-architect.vercel.app",
+      "en": "https://wincc-log-architect.vercel.app/?lang=en",
+      "x-default": "https://wincc-log-architect.vercel.app",
     },
   },
   openGraph: {
@@ -111,6 +111,9 @@ export const metadata: Metadata = {
   verification: {
     google: "nBx0GzmBVShlot-mQstVXw77mBRJ1eCBGgCYkDNrMDE",
     yandex: "1a5f55f8fb175a8c",
+    other: {
+      "msvalidate.01": "22C81DFDE9BEA178D20BC10BC163F3F5",
+    },
   },
   manifest: "/manifest.webmanifest",
   icons: {
@@ -151,13 +154,25 @@ const jsonLd = {
       url: "https://wincc-log-architect.vercel.app",
       applicationCategory: "EngineeringApplication",
       applicationSubCategory: "IndustrialAutomation",
-      operatingSystem: "All (Web, Windows, Linux, macOS, iOS, Android)",
+      operatingSystem: "All (Web, Windows 10/11/Server, Linux, macOS, iOS, Android)",
       description: "Комплексный инженерный калькулятор и валидатор хранилищ архивов Siemens SIMATIC: WinCC Unified (SQLite WAL), Comfort/Advanced (RDB/CSV), Professional (MS SQL Server). Расчет сегментов, кольцевых буферов, ресурса Flash (TBW) и норм ISA-18.2.",
       screenshot: "https://wincc-log-architect.vercel.app/opengraph-image",
       image: "https://wincc-log-architect.vercel.app/opengraph-image",
-      softwareVersion: "2.17.1",
+      softwareVersion: "2.18.0",
       inLanguage: ["ru", "en"],
       license: "https://opensource.org/licenses/MIT",
+      isBasedOn: [
+        "https://support.industry.siemens.com/cs/document/109772222/",
+        "https://support.industry.siemens.com/cs/document/109746939/",
+        "https://support.industry.siemens.com/cs/document/109810540/",
+        "https://www.isa.org/standards-and-publications/isa-standards/isa-standards-committees/isa18"
+      ],
+      citation: [
+        "Siemens AG. SIMATIC WinCC Unified System Manual. SIOS Entry ID 109772222.",
+        "Siemens AG. WinCC Comfort/Advanced segmenting of archives. SIOS Entry ID 109746939.",
+        "ANSI/ISA-18.2-2016: Management of Alarm Systems for the Process Industries.",
+        "IEC 62682:2014: Management of alarm systems for the process industries."
+      ],
       featureList: [
         "Расчет размера сегментов и кольцевого буфера SQLite WAL для WinCC Unified (кратность 4 МБ)",
         "Валидация ограничений WinCC Comfort: лимит 500 000 строк на RDB/CSV файл и 32 ГБ FAT32",

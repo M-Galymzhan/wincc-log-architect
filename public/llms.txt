@@ -9,19 +9,25 @@
 - **ISA-18.2 / EEMUA 191 Alarm Rationalization**: Operator workload rate analysis (< 6 alarms/hr normal, <= 12 manageable, > 30 alarm flood advisory).
 - **Network Bandwidth (100BASE-TX)**: Calculation of Industrial Ethernet traffic between SIMATIC S7-1200 / S7-1500 PLCs and WinCC runtime.
 
-## Hardware Specifications & Engineering Rules
-- **SQLite WAL Segment Rule**: Segments are allocated in discrete 4 MB multiples (minimum 4 MB). Cyclic deletion purges entire 4 MB files, avoiding filesystem fragmentation.
-- **SQLite Write Amplification Factor**: 1.5x payload penalty due to dual write (WAL log append followed by checkpoint merge to DB3 file) plus B-tree indexes.
-- **Comfort Panel Hardware Limits**: Max 32 GB SDHC card (FAT32 filesystem), max 500,000 entries per individual log file.
-- **Flash Endurance Ratings**: Siemens SIMATIC SD (SLC) = 60,000 P/E; Industrial USB (MLC) = 3,000 P/E; Consumer USB (TLC) = 1,000 P/E.
-- **Alarm Flood Definition**: >= 30 alarms per hour per ISA-18.2 and EEMUA 191 standards.
+## Mathematical Formulas & Engineering Rules
+- **SQLite WAL Segment Formula**: Segment_Size = CEIL((Daily_Bytes * (Segment_Hours / 24) * 1.3) / 4 MB) * 4 MB. Discrete 4 MB multiples (minimum 4 MB). Cyclic deletion purges entire 4 MB files, avoiding filesystem fragmentation.
+- **Flash Lifespan (TBW) Formula**: Flash_Life_Years = (Capacity_GB * PE_Cycles) / (Daily_GB * 1.5 * 365). Accounts for 1.5x SQLite Write Amplification factor (WAL write + checkpoint merge to DB3 + B-tree index updates).
+- **Comfort Panel Hardware Limits**: Max 32 GB SDHC card (FAT32 filesystem), max 500,000 entries per individual log file before requiring a segmented sequence of log files.
+- **Flash Endurance Ratings**: Siemens SIMATIC SD (SLC) = 60,000 P/E; Custom pSLC = 20,000 P/E; Industrial USB/SD (MLC) = 3,000 P/E; Consumer USB/SD (TLC) = 1,000 P/E; QLC = 300 P/E.
+- **Alarm Flood Definition**: >= 30 alarms per hour per ANSI/ISA-18.2, IEC 62682, and EEMUA 191 standards.
 
-## Direct Application Anchors
-- Application URL: https://wincc-log-architect.vercel.app
-- Master Tag Hub (30-Col XLSX): https://wincc-log-architect.vercel.app/?tab=master_tags
-- WinCC Unified Sizing: https://wincc-log-architect.vercel.app/?tab=unified
-- WinCC Comfort Sizing: https://wincc-log-architect.vercel.app/?tab=comfort
-- WinCC Professional Sizing: https://wincc-log-architect.vercel.app/?tab=professional
+## Official Standards & Siemens SIOS Citations
+- Siemens SIOS Entry ID 109772222: SIMATIC WinCC Unified — Sizing and limits
+- Siemens SIOS Entry ID 109746939: WinCC Comfort/Advanced segmenting of archives
+- Siemens SIOS Entry ID 109810540: TIA Portal Openness HMI Tag Export Structure
+- ANSI/ISA-18.2-2016 / IEC 62682:2014: Management of Alarm Systems for the Process Industries
+
+## Dedicated Application Endpoints & Landing Pages
+- Main Application: https://wincc-log-architect.vercel.app
+- WinCC Unified Sizing: https://wincc-log-architect.vercel.app/unified
+- WinCC Comfort Sizing: https://wincc-log-architect.vercel.app/comfort
+- WinCC Professional Sizing: https://wincc-log-architect.vercel.app/professional
+- TIA Portal HMI Tags Hub (30-Col XLSX): https://wincc-log-architect.vercel.app/master-tags
 - English Locale: https://wincc-log-architect.vercel.app/?lang=en
-- GitHub Source: https://github.com/M-Galymzhan/wincc-log-architect
+- GitHub Repository: https://github.com/M-Galymzhan/wincc-log-architect
 - Author: M-Galymzhan (galymzhan.manarbekuly@gmail.com)
